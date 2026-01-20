@@ -1,0 +1,117 @@
+extends layout.pug
+
+block content
+  #login-screen(class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center transition-all duration-500")
+    .bg-white.p-8.rounded-2xl.shadow-2xl.w-full.max-w-md.text-center
+      .mb-6.flex.justify-center
+        .w-16.h-16.bg-blue-600.rounded-xl.flex.items-center.justify-center.text-white.text-3xl.shadow-lg.shadow-blue-500_30
+          i(class="fas fa-brain")
+      h2(class="text-2xl font-bold mb-2") KB-Manager Admin
+      p(class="text-slate-500 mb-8 text-sm") 知识库管理平台 MVP Version
+      
+      form(id="login-form" class="space-y-4 text-left")
+        div
+          label(class="block text-xs font-bold uppercase text-slate-400 mb-1") 用户名
+          input(type="text" name="username" class="w-full border border-slate-200 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="admin" value="admin" required)
+        div
+          label(class="block text-xs font-bold uppercase text-slate-400 mb-1") 密码
+          input(type="password" name="password" class="w-full border border-slate-200 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="••••••••" value="password" required)
+        div(class="flex items-center justify-between text-xs mb-4")
+          label(class="flex items-center gap-2 cursor-pointer")
+            input(type="checkbox" name="remember" class="accent-blue-600")
+            | 记住我
+          a(href="#" class="text-blue-600 font-bold") 忘记密码?
+        button(type="button" onclick="handleLogin()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold .hover_bg-blue-700 transition shadow-lg shadow-blue-200")
+          | 登录系统 
+          i(class="fas fa-arrow-right ml-2")
+      .mt-6.text-xs.text-slate-400
+        | 支持硬件环境：
+        i(class="fab fa-nvidia mx-1")
+        | NVIDIA & 
+        span(class="font-bold") Ascend 昇腾
+
+block scripts
+  script.
+    // 页面加载后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      const loginForm = document.getElementById('login-form');
+      if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          handleLogin();
+        });
+        
+        // 回车键支持
+        const inputs = loginForm.querySelectorAll('input');
+        inputs.forEach(input => {
+          input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleLogin();
+            }
+          });
+        });
+      }
+      
+      // 记住我功能
+      const rememberMe = localStorage.getItem('kb_remember_me');
+      if (rememberMe === 'true') {
+        const usernameInput = document.querySelector('input[name="username"]');
+        const passwordInput = document.querySelector('input[name="password"]');
+        const rememberCheckbox = document.querySelector('input[name="remember"]');
+        
+        if (usernameInput) usernameInput.value = localStorage.getItem('kb_username') || '';
+        if (passwordInput) passwordInput.value = localStorage.getItem('kb_password') || '';
+        if (rememberCheckbox) rememberCheckbox.checked = true;
+      }
+    });
+
+    // 登录处理函数
+    async function handleLogin() {
+      const form = document.getElementById('login-form');
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+      const rememberMe = formData.get('remember') === 'on';
+      
+      // 记住我功能
+      if (rememberMe) {
+        localStorage.setItem('kb_remember_me', 'true');
+        localStorage.setItem('kb_username', data.username);
+        // 注意：实际应用中不应明文存储密码
+        localStorage.setItem('kb_password', data.password);
+      } else {
+        localStorage.removeItem('kb_remember_me');
+        localStorage.removeItem('kb_username');
+        localStorage.removeItem('kb_password');
+      }
+      
+      // 显示加载状态
+      const submitBtn = form.querySelector('button[type="button"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>登录中...';
+      
+      try {
+        const response = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          // 登录成功，跳转
+          window.location.href = result.redirect;
+        } else {
+          alert(result.message || '登录失败');
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+        }
+      } catch (error) {
+        console.error('登录错误:', error);
+        alert('网络错误，请重试');
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+    }

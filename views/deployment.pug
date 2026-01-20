@@ -1,0 +1,72 @@
+extends layout.pug
+
+block content
+  #app-container(class="min-h-screen flex")
+    include includes/sidebar.pug
+    
+    main(class="ml-64 flex-1 p-8 bg-slate-50 min-h-screen")
+      #page-deployment.page-content.active
+        header(class="mb-8")
+          h2(class="text-2xl font-bold text-slate-800") 部署配置向导
+          p(class="text-slate-500 text-sm") 支持全新环境部署或对接现有中间件服务
+
+        .bg-white.rounded-2xl.shadow-sm.border.border-slate-100.overflow-hidden.max-w-4xl.mx-auto
+          //- Wizard Steps
+          .bg-slate-50.p-6.border-b.border-slate-100.flex.justify-between.px-16
+            .flex.flex-col.items-center.gap-2.text-blue-600
+              .w-8.h-8.rounded-full.bg-blue-600.text-white.flex.items-center.justify-center.font-bold.text-sm 1
+              span(class="text-xs font-bold") 模式选择
+            .flex-1.h-px.bg-slate-200.mt-4.mx-4
+            .flex.flex-col.items-center.gap-2.text-slate-400
+              .w-8.h-8.rounded-full.bg-white.border-2.border-slate-200.text-slate-400.flex.items-center.justify-center.font-bold.text-sm 2
+              span(class="text-xs") 硬件配置
+            .flex-1.h-px.bg-slate-200.mt-4.mx-4
+            .flex.flex-col.items-center.gap-2.text-slate-400
+              .w-8.h-8.rounded-full.bg-white.border-2.border-slate-200.text-slate-400.flex.items-center.justify-center.font-bold.text-sm 3
+              span(class="text-xs") 组件参数
+            .flex-1.h-px.bg-slate-200.mt-4.mx-4
+            .flex.flex-col.items-center.gap-2.text-slate-400
+              .w-8.h-8.rounded-full.bg-white.border-2.border-slate-200.text-slate-400.flex.items-center.justify-center.font-bold.text-sm 4
+              span(class="text-xs") 生成部署
+
+          .p-8
+            h3(class="font-bold text-lg mb-6") 选择您的部署模式
+            
+            .grid.grid-cols-2.gap-6.mb-8
+              //- New Deployment Option
+              label(class="cursor-pointer")
+                input(type="radio", name="deploy_mode", class="peer sr-only", checked)
+                div(class="p-6 rounded-2xl border-2 border-slate-200 hover:border-blue-500 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition h-full")
+                  .w-12.h-12.bg-blue-100.text-blue-600.rounded-xl.flex.items-center.justify-center.mb-4.text-xl
+                    i(class="fas fa-cube")
+                  h4(class="font-bold text-slate-800 mb-2") 全新部署
+                  p(class="text-xs text-slate-500 leading-relaxed") 自动拉取并配置所有核心组件（推理引擎、向量库、解析服务）。适用于空环境初始化。
+
+              //- Existing Service Option
+              label(class="cursor-pointer")
+                input(type="radio", name="deploy_mode", class="peer sr-only")
+                div(class="p-6 rounded-2xl border-2 border-slate-200 hover:border-blue-500 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition h-full")
+                  .w-12.h-12.bg-indigo-100.text-indigo-600.rounded-xl.flex.items-center.justify-center.mb-4.text-xl
+                    i(class="fas fa-plug")
+                  h4(class="font-bold text-slate-800 mb-2") 对接现有服务
+                  p(class="text-xs text-slate-500 leading-relaxed") 手动输入现有服务的 IP 和端口，仅部署轻量级管理面板。适用于已有基础设施。
+
+            .border-t.pt-6
+              h4(class="font-bold text-sm mb-4") 目标硬件环境
+              .flex.gap-4
+                button(class="flex items-center gap-3 px-6 py-3 border-2 border-blue-600 bg-blue-50 text-blue-700 rounded-xl font-bold text-sm")
+                  i(class="fas fa-microchip")
+                  | 华为昇腾 (Ascend NPU)
+                  i(class="fas fa-check-circle ml-2")
+                button(class="flex items-center gap-3 px-6 py-3 border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:border-slate-300")
+                  i(class="fab fa-nvidia")
+                  | NVIDIA GPU
+              p(class="text-xs text-slate-400 mt-2") 系统已检测到 NPU 驱动版本: 23.0.RC3
+
+          .bg-slate-50.p-6.border-t.border-slate-100.flex.justify-between.items-center
+            button(class="text-slate-500 font-bold text-sm hover:text-slate-700") 保存配置草稿
+            button(class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition")
+              | 下一步: 组件参数 
+              i(class="fas fa-arrow-right ml-2")
+
+  include includes/modals.pug

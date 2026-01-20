@@ -1,0 +1,217 @@
+extends layout.pug
+
+block content
+  #app-container(class="min-h-screen flex")
+    include includes/sidebar.pug
+    
+    main(class="ml-64 flex-1 p-8 bg-slate-50 min-h-screen")
+      #page-backup.page-content.active
+        header(class="mb-8")
+          h2(class="text-2xl font-bold text-slate-800") 备份与恢复
+          p(class="text-slate-500 text-sm") 数据快照管理、系统重置与应用重刷
+
+        div(class="grid grid-cols-1 lg:grid-cols-3 gap-8")
+          //- Backup Actions
+          div(class="space-y-6")
+            div(class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200")
+              h3(class="font-bold text-lg mb-4") 创建备份
+              button(class="w-full bg-blue-50 text-blue-700 border border-blue-200 py-3 rounded-xl font-bold mb-3 hover:bg-blue-100 text-left px-4 flex justify-between items-center group" onclick="startFullBackup()")
+                span
+                  i(class="fas fa-save mr-2")
+                  | 全量备份
+                i(class="fas fa-arrow-right opacity-0 group-hover:opacity-100 transition")
+              button(class="w-full bg-slate-50 text-slate-700 border border-slate-200 py-3 rounded-xl font-bold text-left px-4 flex justify-between items-center group hover:bg-slate-100" onclick="startIncrementalBackup()")
+                span
+                  i(class="fas fa-clock mr-2")
+                  | 增量备份
+                i(class="fas fa-plus opacity-0 group-hover:opacity-100 transition")
+
+            //- App Reflash (Specific Requirement)
+            div(class="bg-red-50 p-6 rounded-2xl border border-red-100")
+              h3(class="font-bold text-red-800 mb-2")
+                i(class="fas fa-sync-alt mr-2")
+                | 应用重刷 (App Reflash)
+              p(class="text-xs text-red-600 mb-4 leading-relaxed") 重新部署所有服务镜像，并基于选定备份点重置数据。用于系统级故障修复。
+              button(class="w-full bg-red-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-red-700 shadow-lg shadow-red-200" onclick="startAppReflash()") 启动重刷流程
+
+          //- Backup List
+          div(class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden")
+            div(class="p-6 border-b flex justify-between items-center")
+              h3(class="font-bold") 备份历史记录
+              
+            table(class="w-full text-left text-sm")
+              thead(class="bg-slate-50 text-slate-500 font-bold text-xs uppercase")
+                tr
+                  th(class="px-6 py-4") 备份ID / 时间
+                  th(class="px-6 py-4") 类型
+                  th(class="px-6 py-4") 验证
+                  th(class="px-6 py-4") 大小
+                  th(class="px-6 py-4") 操作
+              tbody(class="divide-y divide-slate-100")
+                each backup in backups
+                  tr
+                    td(class="px-6 py-4")
+                      div(class="font-bold text-slate-800")= backup.id
+                      div(class="text-xs text-slate-400")= backup.time
+                    td(class="px-6 py-4")
+                      if backup.type === 'FULL'
+                        span(class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-bold")= backup.type
+                      else
+                        span(class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-[10px] font-bold")= backup.type
+                    td(class="px-6 py-4")
+                      if backup.verified
+                        span(class="text-green-500 font-bold flex items-center")
+                          i(class="fas fa-check-circle mr-1")
+                          | Pass
+                      else
+                        span(class="text-yellow-500 font-bold flex items-center")
+                          i(class="fas fa-exclamation-triangle mr-1")
+                          | Pending
+                    td(class="px-6 py-4 text-slate-500 text-xs")= backup.size || '--'
+                    td(class="px-6 py-4")
+                      button(class="text-blue-600 font-bold hover:underline text-sm mr-4" onclick=`restoreBackup('${backup.id}')`) 恢复
+                      button(class="text-red-600 font-bold hover:underline text-sm" onclick=`deleteBackup('${backup.id}')`) 删除
+
+  include includes/modals.pug
+
+block scripts
+  script.
+    // 备份相关JavaScript函数
+    async function startFullBackup() {
+      if (confirm('确定要开始全量备份吗？这可能需要几分钟时间，且会占用系统资源。')) {
+        try {
+          const response = await fetch('/api/backup/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              backupType: 'full',
+              description: '手动全量备份'
+            })
+          });
+          
+          const result = await response.json();
+          if (result.success) {
+            alert(`全量备份已开始，备份ID: ${result.backupId}`);
+            // 刷新页面或更新备份列表
+            location.reload();
+          } else {
+            alert('备份启动失败: ' + (result.message || '未知错误'));
+          }
+        } catch (error) {
+          console.error('备份错误:', error);
+          alert('网络错误，请重试');
+        }
+      }
+    }
+    
+    async function startIncrementalBackup() {
+      if (confirm('确定要开始增量备份吗？')) {
+        try {
+          const response = await fetch('/api/backup/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              backupType: 'incremental',
+              description: '手动增量备份'
+            })
+          });
+          
+          const result = await response.json();
+          if (result.success) {
+            alert(`增量备份已开始，备份ID: ${result.backupId}`);
+            location.reload();
+          } else {
+            alert('备份启动失败: ' + (result.message || '未知错误'));
+          }
+        } catch (error) {
+          console.error('备份错误:', error);
+          alert('网络错误，请重试');
+        }
+      }
+    }
+    
+    async function startAppReflash() {
+      if (confirm('⚠️ 警告：应用重刷将会重新部署所有服务并重置数据！\n\n确定要继续吗？')) {
+        try {
+          const response = await fetch('/api/system/reflash', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'app_reflash',
+              confirm: true
+            })
+          });
+          
+          const result = await response.json();
+          if (result.success) {
+            alert('应用重刷已启动，系统将在几分钟内完成重置。');
+          } else {
+            alert('重刷启动失败: ' + (result.message || '未知错误'));
+          }
+        } catch (error) {
+          console.error('重刷错误:', error);
+          alert('网络错误，请重试');
+        }
+      }
+    }
+    
+    async function restoreBackup(backupId) {
+      if (confirm(`确定要从备份 ${backupId} 恢复吗？这将会覆盖当前数据。`)) {
+        try {
+          const response = await fetch('/api/backup/restore', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ backupId })
+          });
+          
+          const result = await response.json();
+          if (result.success) {
+            alert(`恢复任务已开始，系统将重启。\n预计完成时间: ${result.estimatedTime || '5分钟'}`);
+          } else {
+            alert('恢复失败: ' + (result.message || '未知错误'));
+          }
+        } catch (error) {
+          console.error('恢复错误:', error);
+          alert('网络错误，请重试');
+        }
+      }
+    }
+    
+    async function deleteBackup(backupId) {
+      if (confirm(`确定要删除备份 ${backupId} 吗？此操作不可撤销。`)) {
+        try {
+          const response = await fetch('/api/backup/delete', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ backupId })
+          });
+          
+          const result = await response.json();
+          if (result.success) {
+            alert('备份已删除');
+            location.reload();
+          } else {
+            alert('删除失败: ' + (result.message || '未知错误'));
+          }
+        } catch (error) {
+          console.error('删除错误:', error);
+          alert('网络错误，请重试');
+        }
+      }
+    }
+    
+    // 页面加载后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      // 可以在这里添加页面特定的初始化代码
+      console.log('备份页面已加载');
+    });

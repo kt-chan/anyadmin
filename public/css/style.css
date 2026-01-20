@@ -1,0 +1,141 @@
+/* public/css/style.css */
+/* 已移除重复的@import，字体将由layout.pug中的CDN链接提供 */
+
+/* 
+   注意：此文件是Tailwind的源文件。
+   @import "tailwindcss"; 指令必须存在，以便CLI工具生成最终的tailwind.css。
+   您在此处添加的任何自定义CSS，在构建后也会被包含进最终的tailwind.css中。
+*/
+@import "tailwindcss";
+
+/* === 以下为自定义样式 === */
+/* 1. 基础与工具类 (原custom.css核心部分) */
+.glass-panel {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+}
+
+.nav-active {
+    background-color: #2563eb;
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+}
+
+.page-content {
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.page-content.active {
+    display: block;
+    opacity: 1;
+}
+
+/* 2. 状态点动画 (合并自两者) */
+@keyframes pulse-dot {
+    0% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0.4); }
+    70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0); }
+}
+
+.status-dot-active {
+    width: 8px;
+    height: 8px;
+    background-color: #10b981;
+    border-radius: 50%;
+    animation: pulse-dot 2s infinite;
+}
+
+.status-dot-offline {
+    width: 8px;
+    height: 8px;
+    background-color: #94a3b8;
+    border-radius: 50%;
+}
+
+.status-dot-warning {
+    width: 8px;
+    height: 8px;
+    background-color: #f59e0b;
+    border-radius: 50%;
+}
+
+/* 3. 模态框 (合并自两者) */
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.open {
+    display: flex;
+}
+
+/* 4. 进度条动画 (原style.css) */
+.progress-striped {
+    background-image: linear-gradient(45deg, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
+    background-size: 1rem 1rem;
+    animation: progress-bar-stripes 1s linear infinite;
+}
+
+@keyframes progress-bar-stripes {
+    from { background-position: 1rem 0; }
+    to { background-position: 0 0; }
+}
+
+/* 5. 交互与组件增强 (合并与新增) */
+.nav-item {
+    transition: all 0.2s ease;
+}
+.nav-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.btn-hover {
+    transition: all 0.2s ease;
+    transform: translateY(0);
+}
+.btn-hover:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.card-hover {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+/* 6. 实用类 (原style.css优秀部分) */
+.pulse-green { animation: pulse-dot 2s infinite; }
+.login-transition { transition: opacity 0.5s ease-in-out; }
+.input-focus:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); outline: none; }
+.skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: skeleton-loading 1.5s infinite; }
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* 7. 滚动条等细节样式 (原style.css) */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #a1a1a1; }
+
+/* 8. 响应式调整 (合并) */
+@media (max-width: 768px) {
+    .nav-active { box-shadow: 0 2px 4px -1px rgba(37, 99, 235, 0.2); }
+    .modal { padding: 1rem; }
+    .modal .bg-white { width: 95% !important; max-height: 90vh; overflow-y: auto; }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "anyadmin",
+  "version": "0.0.0",
+  "description": "知识库管理平台",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "knowledgebase",
+    "management",
+    "dashboard",
+    "express",
+    "pug"
+  ],
+  "author": "Chan chi Wai",
+  "license": "MIT",
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.18",
+    "@tailwindcss/vite": "^4.1.18",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "pug": "^3.0.2",
+    "tailwindcss": "^4.1.18"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11",
+    "pug-lint": "^2.7.0"
+  }
+}

@@ -1,0 +1,74 @@
+doctype html
+html(lang="zh-CN")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title 知识库管理平台 MVP
+    
+    //- ============ 外部资源 CDN ============
+    //- 1. Tailwind CSS (Play CDN - v4 最新方式)
+    script(src="https://cdn.tailwindcss.com")
+    
+    //- 2. Font Awesome
+    link(rel="stylesheet", href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css")
+    
+    //- 3. 谷歌字体
+    style.
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+      body { font-family: 'Inter', 'Noto Sans SC', sans-serif; }
+      
+      /* ====== 自定义工具类 ====== */
+      .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); }
+      .nav-active { background-color: #2563eb; color: white; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2); }
+      .page-content { display: none; opacity: 0; transition: opacity 0.3s ease-in-out; }
+      .page-content.active { display: block; opacity: 1; }
+      
+      /* ====== 动画 ====== */
+      @keyframes pulse-dot { 
+        0% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0.4); } 
+        70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); } 
+        100% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0); } 
+      }
+      .status-dot-active { 
+        width: 8px; height: 8px; background-color: #10b981; border-radius: 50%; 
+        animation: pulse-dot 2s infinite; 
+      }
+      .status-dot-offline { 
+        width: 8px; height: 8px; background-color: #94a3b8; border-radius: 50%; 
+      }
+      .status-dot-warning { 
+        width: 8px; height: 8px; background-color: #f59e0b; border-radius: 50%; 
+      }
+
+      /* ====== 模态框 ====== */
+      .modal { 
+        display: none; 
+        position: fixed; 
+        inset: 0; 
+        background: rgba(0,0,0,0.5); 
+        z-index: 100; 
+        align-items: center; 
+        justify-content: center; 
+      }
+      .modal.open { display: flex; }
+
+      /* ====== 进度条条纹动画 ====== */
+      .progress-striped { 
+        background-image: linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent); 
+        background-size: 1rem 1rem; 
+        animation: progress-bar-stripes 1s linear infinite; 
+      }
+      @keyframes progress-bar-stripes { 
+        from { background-position: 1rem 0; } 
+        to { background-position: 0 0; } 
+      }
+    
+    block styles
+
+  body(class="bg-slate-50 text-slate-800 min-h-screen")
+    block content
+    
+    //- 本地JavaScript
+    script(src="/js/main.js")
+    
+    block scripts

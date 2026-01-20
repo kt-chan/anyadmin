@@ -1,0 +1,90 @@
+extends layout.pug
+
+block content
+  #app-container(class="min-h-screen flex")
+    include includes/sidebar.pug
+    
+    main(class="ml-64 flex-1 p-8 bg-slate-50 min-h-screen")
+      #page-services.page-content.active
+        header(class="flex justify-between items-center mb-8")
+          div
+            h2(class="text-2xl font-bold text-slate-800") 服务与模型管理
+            p(class="text-slate-500 text-sm") 深度配置推理参数、批处理策略及组件连接
+          div(class="flex gap-3")
+            button(class="bg-white border px-4 py-2 rounded-lg text-sm font-bold .hover_bg-slate-50")
+              i(class="fas fa-file-export mr-2 text-slate-400")
+              | 导出配置
+            button(class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold .hover_bg-blue-700", onclick="showModal('connectServiceModal')")
+              i(class="fas fa-plus mr-2")
+              | 注册新服务
+
+        .flex.gap-8.items-start
+          //- Left: Service List
+          .w-1_3.space-y-4
+            each service, index in services
+              div(class=`bg-white p-4 rounded-xl shadow-sm border border-slate-200 ${index === 0 ? 'border-l-4 border-l-blue-600' : ''} cursor-pointer hover:border-blue-300 transition`)
+                .flex.justify-between.items-start.mb-2
+                  h4(class="font-bold text-slate-800")= service.name
+                  if service.status === 'RUNNING'
+                    span(class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold")= service.status
+                  else
+                    span(class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold")= service.status
+                p(class="text-xs text-slate-500 mb-2") Type: #{service.type}
+                div(class="text-[10px] text-slate-400 font-mono")= service.endpoint
+
+          //- Right: Detailed Config Panel
+          .flex-1.bg-white.rounded-2xl.shadow-sm.border.border-slate-200.p-8
+            .flex.justify-between.items-center.mb-6.pb-4.border-b
+              div
+                h3(class="font-bold text-lg") 模型配置: llama-3-8b-instruct
+                p(class="text-xs text-slate-400 mt-1") UUID: 8f3a-22b1-99c0
+              .flex.gap-2
+                button(class="text-xs bg-slate-100 px-3 py-2 rounded font-bold .hover_bg-slate-200") 切换模型版本
+                button(class="text-xs bg-red-50 text-red-600 px-3 py-2 rounded font-bold .hover_bg-red-100") 停止服务
+
+            .grid.grid-cols-2.gap-8
+              //- Column 1: Inference Params
+              .space-y-6
+                h4(class="text-sm font-bold text-blue-600 uppercase tracking-wider mb-4") 推理参数
+                
+                div
+                  label(class="block text-xs font-bold text-slate-700 mb-2") Max Concurrency (最大并发)
+                  .flex.items-center.gap-4
+                    input(type="range", class="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600", min="1", max="128", value="32")
+                    span(class="text-sm font-mono font-bold bg-slate-100 px-2 py-1 rounded") 32
+
+                div
+                  label(class="block text-xs font-bold text-slate-700 mb-2") Token Limits (输入/输出)
+                  .grid.grid-cols-2.gap-2
+                    .relative
+                      input(type="number", value="4096", class="w-full border rounded p-2 text-sm font-mono pl-8")
+                      span(class="absolute left-2 top-2 text-xs text-slate-400") In
+                    .relative
+                      input(type="number", value="2048", class="w-full border rounded p-2 text-sm font-mono pl-8")
+                      span(class="absolute left-2 top-2 text-xs text-slate-400") Out
+
+              //- Column 2: Batch & Resource Params
+              .space-y-6
+                h4(class="text-sm font-bold text-blue-600 uppercase tracking-wider mb-4") 批处理与资源
+                
+                div
+                  label(class="block text-xs font-bold text-slate-700 mb-2") Batch Size / Delay
+                  .flex.gap-2
+                    input(type="number", value="16", class=".w-1_2 border rounded p-2 text-sm font-mono", placeholder="Size")
+                    input(type="number", value="200", class=".w-1_2 border rounded p-2 text-sm font-mono", placeholder="ms")
+                  p(class="text-[10px] text-slate-400 mt-1") Values: Batch Size (reqs) / Max Delay (ms)
+
+                div
+                  label(class="block text-xs font-bold text-slate-700 mb-2") NPU 分配策略
+                  select(class="w-full border rounded p-2 text-sm bg-slate-50")
+                    option Auto-Balance (推荐)
+                    option Performance First (全卡)
+                    option Memory Saving (半卡)
+
+            .mt-8.pt-6.border-t.flex.justify-end.items-center.gap-4
+              p(class="text-xs text-orange-500 font-bold")
+                i(class="fas fa-exclamation-triangle mr-1")
+                | 修改配置将重启服务
+              button(class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold shadow-md .hover_bg-blue-700") 保存并重启
+
+  include includes/modals.pug

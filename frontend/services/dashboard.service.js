@@ -1,29 +1,24 @@
-const {
-  getDashboardMetrics,
-  getDashboardServices,
-  getBackupInfo,
-  getDashboardConfig,
-  getDashboardAuditLogs
-} = require('../data/mockData');
+const apiClient = require('../utils/apiClient');
 const logger = require('../utils/logger');
 
 const dashboardService = {
   getOverviewData: async () => {
     logger.debug('Fetching dashboard overview data');
     try {
-      // In a real app, these might be parallel DB calls
-      const metrics = getDashboardMetrics();
-      const services = getDashboardServices();
-      const backupInfo = getBackupInfo();
-      const config = getDashboardConfig();
-      const auditLogs = getDashboardAuditLogs();
+      const [metricsRes, servicesRes, backupRes, configRes, auditRes] = await Promise.all([
+        apiClient.get('/dashboard/metrics'),
+        apiClient.get('/dashboard/services'),
+        apiClient.get('/backup/info'),
+        apiClient.get('/dashboard/config'),
+        apiClient.get('/dashboard/audit-logs')
+      ]);
 
       return {
-        metrics,
-        services,
-        backupInfo,
-        config,
-        auditLogs
+        metrics: metricsRes.data,
+        services: servicesRes.data,
+        backupInfo: backupRes.data,
+        config: configRes.data,
+        auditLogs: auditRes.data
       };
     } catch (error) {
       logger.error('Error fetching dashboard data', error);
@@ -32,7 +27,8 @@ const dashboardService = {
   },
 
   getMetrics: async () => {
-      return getDashboardMetrics();
+      const response = await apiClient.get('/dashboard/metrics');
+      return response.data;
   },
 
   saveConfig: async (configData) => {

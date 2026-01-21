@@ -1,12 +1,13 @@
-const { getBackupsData } = require('../data/mockData');
+const apiClient = require('../utils/apiClient');
 const logger = require('../utils/logger');
 
 const backupService = {
   getBackupData: async () => {
     logger.debug('Fetching backup page data');
     try {
+      const response = await apiClient.get('/backups');
       return {
-        backups: getBackupsData()
+        backups: response.data
       };
     } catch (error) {
       logger.error('Error fetching backup data', error);

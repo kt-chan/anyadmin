@@ -1,12 +1,13 @@
-const { getServicesData, getDashboardServices } = require('../data/mockData');
+const apiClient = require('../utils/apiClient');
 const logger = require('../utils/logger');
 
 const servicesService = {
   getServicesList: async () => {
     logger.debug('Fetching services list');
     try {
+      const response = await apiClient.get('/services');
       return {
-        services: getServicesData()
+        services: response.data
       };
     } catch (error) {
       logger.error('Error fetching services data', error);
@@ -15,7 +16,8 @@ const servicesService = {
   },
 
   getServicesStatus: async () => {
-    return getDashboardServices();
+    const response = await apiClient.get('/dashboard/services');
+    return response.data;
   },
 
   restartService: async (serviceId) => {

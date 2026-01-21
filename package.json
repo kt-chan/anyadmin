@@ -1,32 +1,31 @@
 {
-  "name": "anyadmin",
-  "version": "0.0.0",
-  "description": "知识库管理平台",
-  "main": "app.js",
+  "name": "anyadmin-root",
+  "version": "1.0.0",
+  "description": "Root package for AnyAdmin project managing both frontend and backend",
   "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "install:backend": "pip install -r backend/requirements.txt",
+    "install:all": "npm install && npm run install:backend",
+    "start:frontend": "cd frontend && npm start",
+    "start:backend": "python -m backend.main",
+    "dev": "npm-run-all --parallel start:backend start:frontend",
+    "test": "npm-run-all --parallel test:frontend test:backend",
+    "test:frontend": "jest tests/frontend",
+    "test:backend": "python -m pytest tests/backend"
   },
-  "keywords": [
-    "knowledgebase",
-    "management",
-    "dashboard",
-    "express",
-    "pug"
-  ],
-  "author": "Chan chi Wai",
-  "license": "MIT",
   "dependencies": {
     "@tailwindcss/cli": "^4.1.18",
     "@tailwindcss/vite": "^4.1.18",
+    "axios": "^1.13.2",
     "express": "^4.18.2",
     "express-session": "^1.17.3",
     "pug": "^3.0.2",
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
+    "jest": "^30.2.0",
     "nodemon": "^3.1.11",
-    "pug-lint": "^2.7.0"
+    "npm-run-all": "^4.1.5",
+    "pug-lint": "^2.7.0",
+    "supertest": "^7.2.2"
   }
 }

@@ -4,8 +4,61 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch Program",
-      "program": "${workspaceFolder}\\app.js"
+      "name": "Run Frontend",
+      "program": "${workspaceFolder}/frontend/app.js",
+      "cwd": "${workspaceFolder}/frontend",
+      "env": {
+        "NODE_ENV": "development",
+        "BACKEND_API_URL": "http://127.0.0.1:8000"
+      },
+      "console": "integratedTerminal",
+      "preLaunchTask": "wait-for-backend"
+    },
+    {
+      "name": "Run Backend",
+      "type": "python",
+      "request": "launch",
+      "module": "backend.main",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Frontend Tests (Jest)",
+      "program": "${workspaceFolder}/node_modules/jest/bin/jest.js",
+      "args": [
+        "--runInBand",
+        "--config=${workspaceFolder}/jest.config.js"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "Debug Backend Tests (Pytest)",
+      "type": "python",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "tests/backend"
+      ],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Run Full Stack",
+      "configurations": ["Run Backend", "Run Frontend"]
     }
   ]
 }

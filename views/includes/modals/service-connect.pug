@@ -1,16 +1,3 @@
-//- Log Modal
-div(id="logsModal", class="modal")
-  .bg-slate-900.w-3/4.h-3/4.rounded-2xl.shadow-2xl.flex.flex-col.overflow-hidden
-    div(class="p-4 border-b border-slate-700 flex justify-between items-center")
-      h3(class="text-white font-bold font-mono") System Logs (tail -f)
-      button(onclick="hideModal('logsModal')", class="text-slate-400 hover:text-white")
-        i(class="fas fa-times")
-    div(class="flex-1 p-4 overflow-y-auto font-mono text-xs text-green-400 space-y-1 bg-black")
-      p [INFO] 2024-05-20 14:00:01 MindIE-Service: Heartbeat received. Status: Healthy.
-      p [INFO] 2024-05-20 14:00:02 Milvus-Proxy: Connection pool active: 12/50.
-      p [WARN] 2024-05-20 14:00:05 Doc-Parser: Queue depth > 100. Auto-scaling triggered.
-      p(class="text-slate-500") ... previous logs ...
-
 //- Connect Service Modal
 div(id="connectServiceModal", class="modal")
   .bg-white.p-8.rounded-2xl.w-full.max-w-lg

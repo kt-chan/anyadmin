@@ -17,7 +17,7 @@ block content
             button(class="bg-white border px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-50 text-slate-700 shadow-sm", onclick="restartFailedTasks()")
               i(class="fas fa-redo mr-2 text-blue-500")
               | 重试失败任务
-            button(class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition shadow-sm", onclick="showModal('createTaskModal')")
+            button(class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition shadow-sm", onclick="showImportModal('createTaskModal')")
               i(class="fas fa-plus mr-2")
               | 新建导入任务
 
@@ -145,11 +145,11 @@ block content
 
     //- Create Task Modal
     div#createTaskModal(class="fixed inset-0 z-50 hidden")
-      div(class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm", onclick="hideModal('createTaskModal')")
+      div(class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm", onclick="hideImportModal('createTaskModal')")
       div(class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200")
         .px-6.py-4.border-b.border-slate-100.flex.justify-between.items-center
           h3(class="font-bold text-lg text-slate-800") 新建导入任务
-          button(class="text-slate-400 hover:text-slate-600", onclick="hideModal('createTaskModal')")
+          button(class="text-slate-400 hover:text-slate-600", onclick="hideImportModal('createTaskModal')")
             i(class="fas fa-times")
         
         .p-6.space-y-4
@@ -183,11 +183,7 @@ block content
             p(class="text-[10px] text-slate-400 mt-1") *基于文件名称及修改时间(mtime)检测变更
 
         .px-6.py-4.bg-slate-50.border-t.border-slate-100.flex.justify-end.gap-3
-          button(class="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-200 rounded-lg transition", onclick="hideModal('createTaskModal')") 取消
+          button(class="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-200 rounded-lg transition", onclick="hideImportModal('createTaskModal')") 取消
           button(class="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition shadow-md", onclick="submitNewTask()") 创建任务
 
   script(src="/js/import.js")
-  //- Reuse modal logic from main.js or include here if needed
-  script.
-    function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
-    function hideModal(id) { document.getElementById(id).classList.add('hidden'); }

@@ -25,7 +25,5 @@ block content
 
 block scripts
   script.
-    // 错误页面特定脚本
-    document.addEventListener('DOMContentLoaded', function() {
-      console.error('页面错误:', !{JSON.stringify(error || {})});
-    });
+    window.pageError = !{JSON.stringify(error || {})};
+  script(src="/js/error.js")

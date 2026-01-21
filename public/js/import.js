@@ -78,7 +78,7 @@ function submitNewTask() {
   .then(res => res.json())
   .then(data => {
     if (data.success) {
-      hideModal('createTaskModal');
+      hideImportModal('createTaskModal');
       refreshTasks();
       // Clear form
       document.getElementById('newTaskName').value = '';
@@ -97,3 +97,14 @@ function refreshTasks() {
 setInterval(() => {
   // refreshTasks(); // Uncomment to enable auto-refresh
 }, 30000);
+
+// Modal functions for Import page
+function showImportModal(id) { 
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('hidden'); 
+}
+
+function hideImportModal(id) { 
+  const el = document.getElementById(id);
+  if (el) el.classList.add('hidden'); 
+}

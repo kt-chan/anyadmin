@@ -93,6 +93,70 @@ const getSystemAuditLogs = () => [
   { time: '10:00:00', action: '系统自动执行全量备份', details: 'Backup ID: bk_20240520_full | Status: Success' }
 ];
 
+// 文件导入任务数据 (Mutable)
+let importTasks = [
+  {
+    id: 'task_001',
+    name: '文档全量同步',
+    sourceType: 'NFS',
+    sourcePath: '/mnt/nfs/docs/v1',
+    status: 'PROCESSING', // PENDING, PROCESSING, PAUSED, COMPLETED, FAILED
+    progress: {
+      total: 15000,
+      processed: 8432,
+      failed: 12
+    },
+    schedule: 'HOURLY', // REALTIME, HOURLY, DAILY, WEEKLY, MONTHLY, MANUAL
+    lastScan: '2024-05-21 10:00:00',
+    nextScan: '2024-05-21 11:00:00'
+  },
+  {
+    id: 'task_002',
+    name: '图片资源归档',
+    sourceType: 'S3',
+    sourcePath: 's3://company-assets/images',
+    status: 'PAUSED',
+    progress: {
+      total: 5000,
+      processed: 2100,
+      failed: 0
+    },
+    schedule: 'DAILY',
+    lastScan: '2024-05-20 02:00:00',
+    nextScan: '2024-05-22 02:00:00'
+  },
+  {
+    id: 'task_003',
+    name: '临时数据导入',
+    sourceType: 'LOCAL',
+    sourcePath: '/tmp/upload_buffer',
+    status: 'FAILED',
+    progress: {
+      total: 100,
+      processed: 45,
+      failed: 55
+    },
+    schedule: 'MANUAL',
+    lastScan: '2024-05-21 09:30:00',
+    nextScan: '-'
+  }
+];
+
+const getImportTasks = () => importTasks;
+const addImportTask = (task) => importTasks.push(task);
+const updateImportTask = (taskId, updates) => {
+  const taskIndex = importTasks.findIndex(t => t.id === taskId);
+  if (taskIndex !== -1) {
+    importTasks[taskIndex] = { ...importTasks[taskIndex], ...updates };
+    return true;
+  }
+  return false;
+};
+const deleteImportTask = (taskId) => {
+    importTasks = importTasks.filter(t => t.id !== taskId);
+};
+
+
 module.exports = {
   users,
   getDashboardMetrics,
@@ -103,5 +167,9 @@ module.exports = {
   getServicesData,
   getBackupsData,
   getSystemUsersData,
-  getSystemAuditLogs
+  getSystemAuditLogs,
+  getImportTasks,
+  addImportTask,
+  updateImportTask,
+  deleteImportTask
 };

@@ -73,7 +73,8 @@ function setActivePage() {
         '/deployment': 'deployment',
         '/services': 'services',
         '/backup': 'backup',
-        '/system': 'system'
+        '/system': 'system',
+        '/import': 'import'
     };
     
     const currentPage = pageMap[path] || 'dashboard';

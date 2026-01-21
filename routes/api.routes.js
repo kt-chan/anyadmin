@@ -30,4 +30,7 @@ router.post('/user/create', requireLogin, apiController.createUser);
 // 系统指标API
 router.get('/metrics', requireLogin, apiController.getSystemMetrics);
 
+// 调试API (公开访问)
+router.get('/debug', apiController.debugInfo);
+
 module.exports = router;

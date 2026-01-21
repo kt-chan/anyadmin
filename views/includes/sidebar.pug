@@ -21,6 +21,9 @@ aside(class="w-64 bg-slate-900 text-slate-300 flex flex-col fixed inset-y-0 z-40
     a(href="/services", data-page="services", class=`nav-item flex items-center gap-3 px-3 py-3 rounded-lg .hover_bg-slate-800 transition ${page === 'services' ? 'nav-active' : ''}`)
       i(class="fas fa-server w-5 text-center")
       | 服务与模型管理
+    a(href="/import", data-page="import", class=`nav-item flex items-center gap-3 px-3 py-3 rounded-lg .hover_bg-slate-800 transition ${page === 'import' ? 'nav-active' : ''}`)
+      i(class="fas fa-file-import w-5 text-center")
+      | 批量文件导入
 
     div(class="text-[10px] font-bold uppercase text-slate-500 px-3 py-2 mt-4") 运维安全
     a(href="/backup", data-page="backup", class=`nav-item flex items-center gap-3 px-3 py-3 rounded-lg .hover_bg-slate-800 transition ${page === 'backup' ? 'nav-active' : ''}`)

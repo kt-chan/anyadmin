@@ -2,9 +2,12 @@ const express = require('express');
 const session = require('express-session');
 const path = require('path');
 const routes = require('./routes');
+const appConfig = require('./config/app.config');
+const sessionConfig = require('./config/session.config');
+const logger = require('./utils/logger');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = appConfig.port;
 
 // ==================== 中间件配置 ====================
 app.set('view engine', 'pug');
@@ -18,16 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 // Session配置
-app.use(session({
-  secret: 'knowledgebase-secret-key',
-  resave: false,
-  saveUninitialized: true,
-  cookie: { 
-    secure: false, // 生产环境应设置为true并使用HTTPS
-    maxAge: 24 * 60 * 60 * 1000, // 24小时
-    httpOnly: true
-  }
-}));
+app.use(session(sessionConfig));
 
 // ==================== 注册路由 ====================
 // 所有路由通过routes/index.js统一管理
@@ -45,10 +39,10 @@ app.use((req, res) => {
 
 // 全局错误处理中间件
 app.use((err, req, res, next) => {
-  console.error('服务器错误:', err.stack);
+  logger.error('Server error:', err);
   
   // 根据环境决定是否暴露错误详情
-  const errorDetails = process.env.NODE_ENV === 'development' ? err.message : {};
+  const errorDetails = appConfig.env === 'development' ? err.message : {};
   
   res.status(500).render('error', {
     user: req.session.user || null,
@@ -63,6 +57,7 @@ const server = app.listen(PORT, () => {
   const host = address.address === '::' ? 'localhost' : address.address;
   const port = address.port;
   
+  logger.info(`Server started on http://${host}:${port}`);
   console.log(`
 ╔══════════════════════════════════════════════════════╗
 ║       知识库管理平台 MVP - 已成功启动                ║
@@ -77,33 +72,23 @@ const server = app.listen(PORT, () => {
 ║ 🔑 登录凭据:                                         ║
 ║   • 管理员:   admin / password                       ║
 ║   • 操作员:   operator_01 / password                 ║
-╠══════════════════════════════════════════════════════╣
-║ 📁 项目结构:                                         ║
-║   • app.js             - 主应用入口                  ║
-║   • routes/            - 路由模块目录                ║
-║   • controllers/       - 控制器目录                  ║
-║   • views/             - 模板文件目录                ║
-║   • public/            - 静态资源目录                ║
-╠══════════════════════════════════════════════════════╣
-║ ⚠️  注意: 应用使用Tailwind CSS和Font Awesome CDN     ║
-║     请确保网络连接正常                               ║
 ╚══════════════════════════════════════════════════════╝
   `);
 });
 
 // 优雅关闭处理
 process.on('SIGTERM', () => {
-  console.log('收到SIGTERM信号，正在关闭服务器...');
+  logger.info('Received SIGTERM, shutting down...');
   server.close(() => {
-    console.log('服务器已关闭');
+    logger.info('Server closed');
     process.exit(0);
   });
 });
 
 process.on('SIGINT', () => {
-  console.log('收到SIGINT信号，正在关闭服务器...');
+  logger.info('Received SIGINT, shutting down...');
   server.close(() => {
-    console.log('服务器已关闭');
+    logger.info('Server closed');
     process.exit(0);
   });
 });

@@ -1,70 +1,261 @@
 extends layout.pug
 
+block styles
+  style.
+    .step-content { display: none; }
+    .step-content.active { display: block; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    /* Hide scrollbar for clean look */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 block content
   #app-container(class="min-h-screen flex")
     include includes/sidebar.pug
     
     main(class="ml-64 flex-1 p-8 bg-slate-50 min-h-screen")
       #page-deployment.page-content.active
-        header(class="mb-8")
-          h2(class="text-2xl font-bold text-slate-800") 部署配置向导
-          p(class="text-slate-500 text-sm") 支持全新环境部署或对接现有中间件服务
+        //- Tabs Header
+        header(class="mb-8 flex justify-between items-center")
+          div
+            h2(class="text-2xl font-bold text-slate-800") 部署与模型管理
+            p(class="text-slate-500 text-sm") 管理 AI 基础设施部署及模型配置
 
-        .bg-white.rounded-2xl.shadow-sm.border.border-slate-100.overflow-hidden.max-w-4xl.mx-auto
-          //- Wizard Steps
-          .bg-slate-50.p-6.border-b.border-slate-100.flex.justify-between.px-16
-            .flex.flex-col.items-center.gap-2.text-blue-600
-              .w-8.h-8.rounded-full.bg-blue-600.text-white.flex.items-center.justify-center.font-bold.text-sm 1
-              span(class="text-xs font-bold") 模式选择
-            .flex-1.h-px.bg-slate-200.mt-4.mx-4
-            .flex.flex-col.items-center.gap-2.text-slate-400
-              .w-8.h-8.rounded-full.bg-white.border-2.border-slate-200.text-slate-400.flex.items-center.justify-center.font-bold.text-sm 2
-              span(class="text-xs") 硬件配置
-            .flex-1.h-px.bg-slate-200.mt-4.mx-4
-            .flex.flex-col.items-center.gap-2.text-slate-400
-              .w-8.h-8.rounded-full.bg-white.border-2.border-slate-200.text-slate-400.flex.items-center.justify-center.font-bold.text-sm 3
-              span(class="text-xs") 组件参数
-            .flex-1.h-px.bg-slate-200.mt-4.mx-4
-            .flex.flex-col.items-center.gap-2.text-slate-400
-              .w-8.h-8.rounded-full.bg-white.border-2.border-slate-200.text-slate-400.flex.items-center.justify-center.font-bold.text-sm 4
-              span(class="text-xs") 生成部署
+          //- Tab Switcher
+          div(class="bg-white p-1 rounded-xl border border-slate-200 shadow-sm flex")
+            button#tab-wizard-btn(class="px-4 py-2 rounded-lg text-sm font-bold bg-blue-50 text-blue-600 transition", onclick="switchTab('wizard')") 
+              i.fas.fa-magic.mr-2
+              | 部署向导
+            button#tab-models-btn(class="px-4 py-2 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 transition", onclick="switchTab('models')")
+              i.fas.fa-sliders-h.mr-2
+              | 模型参数
 
-          .p-8
-            h3(class="font-bold text-lg mb-6") 选择您的部署模式
-            
-            .grid.grid-cols-2.gap-6.mb-8
-              //- New Deployment Option
-              label(class="cursor-pointer")
-                input(type="radio", name="deploy_mode", class="peer sr-only", checked)
-                div(class="p-6 rounded-2xl border-2 border-slate-200 hover:border-blue-500 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition h-full")
-                  .w-12.h-12.bg-blue-100.text-blue-600.rounded-xl.flex.items-center.justify-center.mb-4.text-xl
-                    i(class="fas fa-cube")
-                  h4(class="font-bold text-slate-800 mb-2") 全新部署
-                  p(class="text-xs text-slate-500 leading-relaxed") 自动拉取并配置所有核心组件（推理引擎、向量库、解析服务）。适用于空环境初始化。
+        //- TAB 1: Deployment Wizard
+        #tab-wizard-content
+          .bg-white.rounded-2xl.shadow-sm.border.border-slate-100.overflow-hidden.max-w-5xl.mx-auto
+            //- Wizard Progress
+            .bg-slate-50.p-6.border-b.border-slate-100
+              .flex.justify-between.px-8.items-center
+                //- Step 1
+                .step-indicator.flex.flex-col.items-center.gap-2.text-blue-600(data-step="1")
+                  .w-8.h-8.rounded-full.bg-blue-600.text-white.flex.items-center.justify-center.font-bold.text-sm 1
+                  span(class="text-xs font-bold") 模式/硬件
+                .flex-1.h-px.bg-slate-200.mx-4
+                //- Step 2
+                .step-indicator.flex.flex-col.items-center.gap-2.text-slate-400(data-step="2")
+                  .w-8.h-8.rounded-full.bg-white.border-2.border-slate-200.text-slate-400.flex.items-center.justify-center.font-bold.text-sm 2
+                  span(class="text-xs") 基础配置
+                .flex-1.h-px.bg-slate-200.mx-4
+                //- Step 3
+                .step-indicator.flex.flex-col.items-center.gap-2.text-slate-400(data-step="3")
+                  .w-8.h-8.rounded-full.bg-white.border-2.border-slate-200.text-slate-400.flex.items-center.justify-center.font-bold.text-sm 3
+                  span(class="text-xs") 推理引擎
+                .flex-1.h-px.bg-slate-200.mx-4
+                //- Step 4
+                .step-indicator.flex.flex-col.items-center.gap-2.text-slate-400(data-step="4")
+                  .w-8.h-8.rounded-full.bg-white.border-2.border-slate-200.text-slate-400.flex.items-center.justify-center.font-bold.text-sm 4
+                  span(class="text-xs") 向量/解析
+                .flex-1.h-px.bg-slate-200.mx-4
+                //- Step 5
+                .step-indicator.flex.flex-col.items-center.gap-2.text-slate-400(data-step="5")
+                  .w-8.h-8.rounded-full.bg-white.border-2.border-slate-200.text-slate-400.flex.items-center.justify-center.font-bold.text-sm 5
+                  span(class="text-xs") 部署生成
 
-              //- Existing Service Option
-              label(class="cursor-pointer")
-                input(type="radio", name="deploy_mode", class="peer sr-only")
-                div(class="p-6 rounded-2xl border-2 border-slate-200 hover:border-blue-500 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition h-full")
-                  .w-12.h-12.bg-indigo-100.text-indigo-600.rounded-xl.flex.items-center.justify-center.mb-4.text-xl
-                    i(class="fas fa-plug")
-                  h4(class="font-bold text-slate-800 mb-2") 对接现有服务
-                  p(class="text-xs text-slate-500 leading-relaxed") 手动输入现有服务的 IP 和端口，仅部署轻量级管理面板。适用于已有基础设施。
+            form#wizard-form.p-8
+              //- STEP 1: Mode & Hardware
+              #step-1.step-content.active
+                h3(class="font-bold text-lg mb-6") 1. 选择部署模式与硬件
+                
+                label.block.text-sm.font-bold.text-slate-700.mb-2 部署模式
+                .grid.grid-cols-2.gap-6.mb-8
+                  label.cursor-pointer
+                    input(type="radio", name="mode", value="new_deployment", class="peer sr-only", checked)
+                    div(class="p-6 rounded-2xl border-2 border-slate-200 hover:border-blue-500 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition h-full")
+                      .w-12.h-12.bg-blue-100.text-blue-600.rounded-xl.flex.items-center.justify-center.mb-4.text-xl
+                        i(class="fas fa-cube")
+                      h4(class="font-bold text-slate-800 mb-2") 全新部署
+                      p(class="text-xs text-slate-500 leading-relaxed") 自动拉取并配置所有核心组件。适用于空环境。
 
-            .border-t.pt-6
-              h4(class="font-bold text-sm mb-4") 目标硬件环境
-              .flex.gap-4
-                button(class="flex items-center gap-3 px-6 py-3 border-2 border-blue-600 bg-blue-50 text-blue-700 rounded-xl font-bold text-sm")
-                  i(class="fas fa-microchip")
-                  | 华为昇腾 (Ascend NPU)
-                  i(class="fas fa-check-circle ml-2")
-                button(class="flex items-center gap-3 px-6 py-3 border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:border-slate-300")
-                  i(class="fab fa-nvidia")
-                  | NVIDIA GPU
-              p(class="text-xs text-slate-400 mt-2") 系统已检测到 NPU 驱动版本: 23.0.RC3
+                  label.cursor-pointer
+                    input(type="radio", name="mode", value="integrate_existing", class="peer sr-only")
+                    div(class="p-6 rounded-2xl border-2 border-slate-200 hover:border-blue-500 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition h-full")
+                      .w-12.h-12.bg-indigo-100.text-indigo-600.rounded-xl.flex.items-center.justify-center.mb-4.text-xl
+                        i(class="fas fa-plug")
+                      h4(class="font-bold text-slate-800 mb-2") 对接现有服务
+                      p(class="text-xs text-slate-500 leading-relaxed") 手动输入现有服务 IP/Port，仅部署管理面板。
 
-          .bg-slate-50.p-6.border-t.border-slate-100.flex.justify-between.items-center
-            button(class="text-slate-500 font-bold text-sm hover:text-slate-700") 保存配置草稿
-            button(class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition")
-              | 下一步: 组件参数 
-              i(class="fas fa-arrow-right ml-2")
+                label.block.text-sm.font-bold.text-slate-700.mb-2 目标硬件平台
+                .grid.grid-cols-2.gap-4
+                  label.cursor-pointer
+                    input(type="radio", name="platform", value="ascend", class="peer sr-only", checked)
+                    div(class="flex items-center gap-3 px-6 py-4 border-2 border-slate-200 rounded-xl font-bold text-slate-600 hover:border-blue-500 peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:text-blue-700 transition")
+                      i(class="fas fa-microchip")
+                      div
+                        div 华为昇腾 (Ascend NPU)
+                        div.text-xs.font-normal.mt-1 引擎: MindIE
+                  
+                  label.cursor-pointer
+                    input(type="radio", name="platform", value="nvidia", class="peer sr-only")
+                    div(class="flex items-center gap-3 px-6 py-4 border-2 border-slate-200 rounded-xl font-bold text-slate-600 hover:border-blue-500 peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:text-blue-700 transition")
+                      i(class="fab fa-nvidia")
+                      div
+                        div NVIDIA GPU
+                        div.text-xs.font-normal.mt-1 引擎: vLLM
+
+              //- STEP 2: Management Interface
+              #step-2.step-content
+                h3(class="font-bold text-lg mb-6") 2. 管理面板配置
+                .grid.grid-cols-2.gap-6
+                  div
+                    label.block.text-sm.font-medium.text-slate-700.mb-1 主机地址 (Host)
+                    input(type="text", name="mgmt_host", value="0.0.0.0", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
+                  div
+                    label.block.text-sm.font-medium.text-slate-700.mb-1 端口 (Port)
+                    input(type="number", name="mgmt_port", value="3000", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
+                p.text-xs.text-slate-500.mt-2.bg-blue-50.p-3.rounded-lg.border.border-blue-100
+                  i.fas.fa-info-circle.mr-2
+                  | 这是 AnyAdmin 管理界面的访问地址。
+
+              //- STEP 3: Inference Engine
+              #step-3.step-content
+                h3(class="font-bold text-lg mb-6") 3. 推理引擎配置
+                .space-y-4
+                  div
+                    label.block.text-sm.font-medium.text-slate-700.mb-1 模型路径 / HuggingFace ID
+                    input(type="text", name="model_path", placeholder="e.g., /data/models/llama2-7b or meta-llama/Llama-2-7b", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
+                  
+                  .grid.grid-cols-2.gap-6
+                    div
+                      label.block.text-sm.font-medium.text-slate-700.mb-1 服务端口
+                      input(type="number", name="inference_port", value="8000", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
+                    div
+                      label.block.text-sm.font-medium.text-slate-700.mb-1 最大 Token 数
+                      input(type="number", name="max_tokens", value="4096", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
+
+                  //- Show test connection only in integration mode
+                  .integration-only.hidden.mt-4
+                     button(type="button", onclick="testConnection('inference')", class="text-blue-600 text-sm font-bold hover:underline") <i class="fas fa-plug mr-1"></i> 测试连接
+
+              //- STEP 4: Vector DB & Parser
+              #step-4.step-content
+                h3(class="font-bold text-lg mb-6") 4. 向量数据库与解析器
+                
+                .mb-8
+                  label.block.text-sm.font-bold.text-slate-700.mb-4 向量数据库类型
+                  .grid.grid-cols-4.gap-4
+                    label.cursor-pointer
+                      input(type="radio", name="vector_db", value="lancedb", class="peer sr-only", checked)
+                      div(class="text-center p-3 border rounded-lg peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-slate-50") LanceDB
+                    label.cursor-pointer
+                      input(type="radio", name="vector_db", value="milvus", class="peer sr-only")
+                      div(class="text-center p-3 border rounded-lg peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-slate-50") Milvus
+                    label.cursor-pointer
+                      input(type="radio", name="vector_db", value="chroma", class="peer sr-only")
+                      div(class="text-center p-3 border rounded-lg peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-slate-50") Chroma
+                    label.cursor-pointer
+                      input(type="radio", name="vector_db", value="pgvector", class="peer sr-only")
+                      div(class="text-center p-3 border rounded-lg peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-slate-50") PgVector
+
+                  //- Dynamic fields based on DB selection (Simplified for prototype)
+                  .mt-4.p-4.bg-slate-50.rounded-lg.border.border-slate-200
+                    .grid.grid-cols-2.gap-4
+                      div
+                        label.block.text-xs.font-medium.text-slate-500.mb-1 数据库 Host
+                        input(type="text", name="vectordb_host", value="localhost", class="w-full text-sm rounded-md border-2 border-slate-300")
+                      div
+                        label.block.text-xs.font-medium.text-slate-500.mb-1 数据库 Port
+                        input(type="number", name="vectordb_port", value="19530", class="w-full text-sm rounded-md border-2 border-slate-300")
+
+                .border-t.pt-6
+                  label.block.text-sm.font-bold.text-slate-700.mb-2 文档解析服务
+                  .flex.items-center.gap-3.p-4.border.rounded-lg.bg-slate-50
+                    i(class="fas fa-file-alt text-slate-400")
+                    div.flex-1
+                      div.font-bold.text-sm Mineru (PDF/Docx Parser)
+                      div.text-xs.text-slate-500 Primary parsing engine
+                    div
+                       label.text-xs.text-slate-500.mr-2 Port:
+                       input(type="number", name="parser_port", value="8888", class="w-20 text-sm rounded-md border-2 border-slate-300")
+
+              //- STEP 5: Review & Generate
+              #step-5.step-content
+                h3(class="font-bold text-lg mb-6") 5. 确认并生成
+                .bg-slate-50.rounded-xl.p-6.border-1.border-slate-200.mb-6
+                  h4.font-bold.text-sm.text-slate-700.mb-4 配置摘要
+                  ul.space-y-3.text-sm.text-slate-600#config-summary
+                    //- JS will populate this
+                    li 加载中...
+
+                .flex.gap-4
+                  button(type="button", onclick="generateDeployment()", class="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 shadow-lg shadow-green-200 transition")
+                    i(class="fas fa-rocket mr-2") 
+                    | 生成部署脚本
+                  button(type="button", class="flex-1 bg-white border-2 border-slate-300 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-50 transition")
+                    i(class="fas fa-download mr-2") 
+                    | 导出配置文件
+
+            //- Footer Navigation
+            .bg-slate-50.p-6.border-t.border-slate-100.flex.justify-between.items-center
+              button#prev-btn(type="button", class="text-slate-500 font-bold text-sm hover:text-slate-700 px-4 py-2 hidden") 
+                i(class="fas fa-arrow-left mr-2")
+                | 上一步
+              
+              button#next-btn(type="button", class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition ml-auto")
+                | 下一步
+                i(class="fas fa-arrow-right ml-2")
+
+        //- TAB 2: Model Management
+        #tab-models-content(class="hidden")
+          .grid.grid-cols-3.gap-6.max-w-6xl.mx-auto
+            //- Left: Model List
+            .col-span-1.bg-white.rounded-2xl.shadow-sm.border.border-slate-100.overflow-hidden.h-fit
+              .p-4.border-b.border-slate-100.flex.justify-between.items-center
+                h3.font-bold.text-slate-700 模型列表
+                button(class="text-blue-600 text-sm hover:bg-blue-50 p-1 rounded")
+                  i.fas.fa-sync-alt
+              
+              ul#model-list.divide-y.divide-slate-100.max-h-96.overflow-y-auto
+                //- JS populated
+                li.p-4.text-center.text-slate-400 加载中...
+
+              .p-4.border-t.border-slate-100
+                button(class="w-full py-2 border border-dashed border-2 border-slate-300 text-slate-500 rounded-lg text-sm hover:border-blue-500 hover:text-blue-600 transition")
+                  i.fas.fa-plus.mr-2
+                  | 注册新模型
+
+            //- Right: Configuration Panel
+            .col-span-2.bg-white.rounded-2xl.shadow-sm.border.border-slate-100.p-8
+              header.flex.justify-between.items-start.mb-6
+                div
+                  h3.text-xl.font-bold.text-slate-800#selected-model-name Llama-2-7b-chat
+                  div.flex.items-center.gap-2.mt-1
+                    span(class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-bold") Running
+                    span.text-xs.text-slate-400 Platform: Nvidia/vLLM
+                div
+                   button(class="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800")
+                     i.fas.fa-save.mr-2
+                     | 保存更改
+
+              form#model-config-form.space-y-6
+                div
+                  h4.font-bold.text-sm.text-slate-700.mb-3 推理参数 (Inference)
+                  .grid.grid-cols-2.gap-4
+                    div
+                      label.block.text-xs.text-slate-500.mb-1 Temperature
+                      input(type="range", min="0", max="1", step="0.1", class="w-full")
+                    div
+                      label.block.text-xs.text-slate-500.mb-1 Top P
+                      input(type="number", value="0.9", class="w-full rounded border-slate-200 text-sm")
+                
+                div
+                  h4.font-bold.text-sm.text-slate-700.mb-3 资源分配 (Resources)
+                  .grid.grid-cols-2.gap-4
+                    div
+                      label.block.text-xs.text-slate-500.mb-1 GPU Memory Util
+                      input(type="text", value="0.9", class="w-full rounded border-slate-200 text-sm")
+                    div
+                      label.block.text-xs.text-slate-500.mb-1 Tensor Parallel Size
+                      input(type="number", value="1", class="w-full rounded border-slate-200 text-sm")
+
+block scripts
+  script(src="/js/deployment.js")

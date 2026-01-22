@@ -1,0 +1,161 @@
+##Task 1
+**Objective:**  
+refactor this Express web application using a systematic approach that avoids trial-and-error. this is a windows environment and you are running in powershell.
+And this express web application is a working copy of, so you should not break the app. To refactor this express app:
+First, You should scan this project except node_modules folder, and study the application logic, this is a working copy express app.
+After that, refactor the code to be more modulized, remove duplicated logics, and make it more readable by following the **Archtiecture Pattern** and **Refactor Guide**  
+
+**Archtiecture Pattern**
+The key components are:
+
+1. Service Layer: Each service will handle communication with a specific external API (or a set of related endpoints).
+2. Controllers: Will use the services to get data and handle the request/response cycle.
+3. Routes: Define the endpoints and map them to controllers.
+4. Middleware: For authentication, validation, error handling, etc.
+5. Configuration: For external API URLs, keys, etc.
+6. Utils: For HTTP client, caching, logging, etc.
+
+**Refactor Guide**  
+- Use batch syntax checking to identify and fix multiple issues at once.   
+- Make the express app accessible and friendly with API debug
+- Launch the Express app in away that avoid  single-threaded debug mode, avoid get stuck at "Interactive shell awaiting input... press Ctrl+f to focus shell  ..."
+- Verify fixes systematically by access the express app and automate the testing, you can accesss log for details
+- Using taskkill broadly can indeed terminate the CLI itself. You should be more precise with process management in the future, identifying specific PIDs (e.g., by port number) before termination.
+- Do not convert chinese to english, keep the text in chinese.
+
+
+##Task 2
+**Objective:**  
+In the sdie bar - component management section, add file batch import functionality. Currently, the import subpage is buggy and automatically redirects back to the dashboard. You need to fix this page.  
+
+The batch file import feature should support:  
+- Bulk import from both filesystem paths (local, NFS) and object storage paths.  
+- A dedicated batch import panel with status display, resumable transfers, and change detection based on file name and modification date (checksum).  
+
+**Requirements:**  
+1. **Status Display** – Task-level overview showing total files and processed count. Support for:  
+   - Restart/pause all tasks.  
+   - Start/pause individual tasks.  
+   - Restart/clear failed tasks.  
+
+2. **Change Detection** – Ability to enable/disable scanning with configurable intervals:  
+   - Options: real-time, hourly, daily, weekly, monthly.  
+   - Provide a control panel for managing backup cycles.  
+
+**Refactor Guide:**  
+- Use batch syntax checking to identify and fix multiple issues at once.  
+- Ensure the Express app is accessible and API-debug friendly.  
+- Launch the Express app in a way that avoids single-threaded debug mode and prevents getting stuck at prompts such as:  
+  *“Interactive shell awaiting input... press Ctrl+F to focus shell...”*  
+- Verify fixes systematically by accessing the Express app and automating tests. Check logs for details.  
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers before termination.  
+
+**Note:** Keep all original Chinese terms and text unchanged; only restructure and clarify in English.e with process management in the future, identifying specific PIDs (e.g., by port number) before termination.
+- Do not convert chinese to english, keep the text in chinese.
+
+## Task 3
+Refactor the express web application using a systematic approach that avoids trial-and-error. this is a windows environment and you are running in powershell.
+objective: you should build a backend service fastapi rest api service to wrap the data/mockData.js, and update rest of the code (in particular js in services folder) for this fastapi backend service.
+
+**Refactor Guide:**  
+- Use batch syntax checking to identify and fix multiple issues at once.  
+- Ensure the Express app is accessible and API-debug friendly.  
+- Launch the Express app in a way that avoids single-threaded debug mode and prevents getting stuck at prompts such as:   *“Interactive shell awaiting input... press Ctrl+F to focus shell...”*  
+- Verify fixes systematically by accessing the Express app and automating tests. Check logs for details.  
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers before termination.  
+
+## Task 4
+Refactor the express web application using a systematic approach that avoids trial-and-error. this is a windows environment and you are running in powershell.
+objective: you should make a clear separation of front-end and back-end for this project; and then add unit test for the project;
+
+**Refactor Guide:**  
+- Use batch syntax checking to identify and fix multiple issues at once.  
+- Ensure the Express front-end app and the fastapi backend app are accessible and API-debug friendly.  
+- Launch the apps / processes in a way that avoids single-threaded debug mode and prevents getting stuck at prompts such as:   *“Interactive shell awaiting input... press Ctrl+F to focus shell...”*  
+- Verify fixes systematically by accessing the Express app and fast api with automating tests. Check logs for details.  
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers before termination.  
+
+
+## Task 5
+Write unit test for all services in the frontend express web application and backend fastapi services, you should use a systematic approach that avoids trial-and-error. this is a windows environment and you are running in powershell.
+objective: Write unit test for all services , perform the tests, make sure the whole application stack works.
+
+**Refactor Guide:**  
+- Use batch syntax checking to identify and fix multiple issues at once.  
+- Ensure the Express front-end app and the fastapi backend app are accessible and API-debug friendly.  
+- Launch the apps / processes in a way that avoids single-threaded debug mode and prevents getting stuck at prompts such as:   *“Interactive shell awaiting input... press Ctrl+F to focus shell...”*  
+- Verify fixes systematically by accessing the Express app and fast api with automating tests. Check logs for details.  
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers before termination.  
+
+
+## Task 6
+analyze this view pug  @frontend\views\deployment.pug, then you have to rewrite and enrich this view pug, as well as the corresponding frontend and backend services for below funcitonal features.
+Since you donot work the actual platform for running the required services, you should simulate those action and response using backend/mockData, so that you do not built, download and run the actual service.
+
+**Objective:**Update deployment.pug and corresponding codes to deploy and manage an AI platform that supports multiple hardware backends, vector databases, and a document parser.
+
+### **1. Core Supported Components**
+
+*   **Target Platforms (Choose 1):**
+    *   `nvidia` (using vLLM as the inference engine)
+    *   `ascend` (using MindIE as the inference engine)
+
+*   **Vector Database Options (Choose 1+):**
+    *   `lancedb`
+    *   `milvus`
+    *   `chroma`
+    *   `pgvector`
+
+*   **Document Parsing Service:**
+    *   `mineru` (as the primary service)
+
+---
+
+### **2. Feature Requirements**
+
+#### **2.1 One-Click Deployment Wizard**
+*   **Mode Selection:**
+    *   `new_deployment`: Install and configure all components from scratch.
+    *   `integrate_existing`: Connect to pre-deployed services.
+*   **Guided Configuration Flow:** A step-by-step UI/text wizard that collects settings for:
+    1.  **Management Interface:** Host, port, and general settings.
+    2.  **Inference Engine & Model:** Select platform (`nvidia`/`ascend`), configure model paths, and initial runtime parameters.
+    3.  **Vector Database:** Select type and configure connection (host, port, credentials, initial database/collection).
+    4.  **Document Parser:** Configure `mineru` service connection.
+*   **Automation Output:** The tool must generate deployable artifacts (e.g., shell scripts, Ansible playbooks, Kubernetes YAML, Docker Compose files) based on the wizard's choices.
+*   **Config Portability:** Support exporting the final configuration as a file and importing it to replicate the setup.
+
+#### **2.2 Integration with Existing Services**
+*   Allow manual entry of service endpoints (URL, port) for any component (inference, vector DB, parser).
+*   Provide a "Test Connection" button/function for each manually configured service.
+*   Save and manage multiple integration profiles.
+
+#### **2.3 Model Configuration Management**
+*   **Model Inventory:** Display a list of models loaded/available in the inference engine.
+*   **Parameter Management:** Provide a UI/interface to view and edit configuration for a selected model.
+    *   **Inference Params:** Max input/output tokens, temperature, top_p.
+    *   **Batching Params:** Batch size, batch delay.
+    *   **Resource Params:** GPU/NPU allocation (e.g., device ids, memory fraction).
+*   **Configuration Lifecycle:**
+    *   Save, export, and import model configuration profiles.
+    *   Apply a new configuration to a model (with a clear warning that this may require a service restart).
+    *   Support model deployment (loading), switching, and updating.
+
+---
+
+### **3. Technical Implementation Notes**
+
+*   Use configuration templates for each component (`vLLM`, `MindIE`, `lancedb`, etc.) and render final files based on user input.
+*   The management tool should interact with component APIs (where available) for operations like listing models or applying configs.
+*   Clearly warn users when a configuration change necessitates a service restart.
+
+### **Coding Guide**  
+- this is a windows environment and you are running in powershell.
+- Use batch syntax checking to identify and fix multiple issues at once.  
+- Since you donot work the actual platform for running the required services, you should simulate those action and response using backend/mockData, so that you do not built, download and run the actual service.
+- Launch the apps / processes with seperate process and redirect the output to logs, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
+- Verify fixes systematically by accessing the frontend app and backend fastapi service with writing unit tests, and you should pass this unit test and Check logs for details.  
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers before termination.  
+- Make sure the unit test work, and you run it before finish the job, otherwise retry another approach. Previuosly, You get this error: 
+
+## Task 5.1

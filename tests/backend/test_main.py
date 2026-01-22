@@ -126,3 +126,50 @@ def test_import_tasks_crud():
     # 5. Update non-existent task
     response = client.put("/import/tasks/non_existent_id", json={"status": "FAILED"})
     assert response.status_code == 404
+
+# Deployment Tests
+def test_deploy_generate():
+    config = {
+        "mode": "new_deployment",
+        "platform": "nvidia",
+        "components": {
+            "model": "llama-2",
+            "vector_db": "milvus"
+        }
+    }
+    response = client.post("/deploy/generate", json=config)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert "artifacts" in data
+    assert "deploy.sh" in data["artifacts"]
+
+def test_deploy_test_connection():
+    # Success case
+    response = client.post("/deploy/test-connection", json={"host": "127.0.0.1", "port": 8000})
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
+
+    # Fail case
+    response = client.post("/deploy/test-connection", json={"host": "fail-host", "port": 8000})
+    assert response.status_code == 200
+    assert response.json()["status"] == "error"
+
+def test_get_models():
+    response = client.get("/models")
+    assert response.status_code == 200
+    models = response.json()
+    assert isinstance(models, list)
+    assert len(models) > 0
+    assert "name" in models[0]
+
+def test_save_model_config():
+    config = {
+        "name": "NewModel",
+        "path": "/models/new",
+        "platform": "ascend",
+        "params": {"max_tokens": 1024}
+    }
+    response = client.post("/models", json=config)
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"

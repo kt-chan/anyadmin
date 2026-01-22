@@ -106,6 +106,37 @@ def delete_import_task(task_id: str):
     mock_data.delete_import_task(task_id)
     return {"status": "success"}
 
+# --- Deployment & Models (New) ---
+from pydantic import BaseModel
+
+class DeploymentConfig(BaseModel):
+    mode: str
+    platform: str
+    components: Dict[str, Any]
+
+class ModelConfig(BaseModel):
+    name: str
+    path: str
+    platform: str
+    params: Dict[str, Any]
+
+@app.post("/deploy/generate")
+def generate_deployment(config: DeploymentConfig):
+    return mock_data.generate_deployment_artifacts(config.model_dump())
+
+@app.post("/deploy/test-connection")
+def test_connection(service: Dict[str, Any] = Body(...)):
+    return mock_data.test_service_connection(service)
+
+@app.get("/models")
+def get_models_endpoint():
+    return mock_data.get_models()
+
+@app.post("/models")
+def save_model_config_endpoint(config: ModelConfig):
+    return mock_data.save_model_config(config.model_dump())
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

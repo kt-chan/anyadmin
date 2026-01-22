@@ -172,3 +172,73 @@ def delete_import_task(task_id: str):
     global import_tasks
     import_tasks = [t for t in import_tasks if t["id"] != task_id]
     return True
+
+# --- Deployment & Models Mock Data ---
+
+models_data = [
+    {
+        "id": "model_1",
+        "name": "Llama-2-7b-chat",
+        "platform": "nvidia",
+        "status": "loaded",
+        "params": {"max_tokens": 4096, "temperature": 0.7}
+    },
+    {
+        "id": "model_2",
+        "name": "ChatGLM3-6B",
+        "platform": "ascend",
+        "status": "stopped",
+        "params": {"max_tokens": 8192, "temperature": 0.5}
+    }
+]
+
+def get_models():
+    return models_data
+
+def save_model_config(config: Dict[str, Any]):
+    # Mock save - in memory only
+    # Check if exists to update, else append
+    for i, m in enumerate(models_data):
+        if m["name"] == config.get("name"):
+            models_data[i].update(config)
+            return {"status": "success", "message": f"Updated {config.get('name')}"}
+    
+    # New mock model
+    new_model = {
+        "id": f"model_{len(models_data) + 1}",
+        "status": "stopped",
+        **config
+    }
+    models_data.append(new_model)
+    return {"status": "success", "message": f"Saved {config.get('name')}"}
+
+def generate_deployment_artifacts(config: Dict[str, Any]):
+    mode = config.get("mode", "unknown")
+    platform = config.get("platform", "unknown")
+    
+    script_content = f"""#!/bin/bash
+# Auto-generated deployment script for AnyAdmin
+# Mode: {mode}
+# Platform: {platform}
+# Timestamp: {datetime.datetime.now().isoformat()}
+
+echo "Starting deployment..."
+"""
+    if platform == "nvidia":
+        script_content += "docker run -d --gpus all vllm/vllm-openai ...\n"
+    elif platform == "ascend":
+        script_content += "bash start_mindie.sh ...\n"
+        
+    return {
+        "status": "success",
+        "artifacts": {
+            "deploy.sh": script_content,
+            "docker-compose.yml": "version: '3'..."
+        }
+    }
+
+def test_service_connection(service: Dict[str, Any]):
+    target = service.get("host", "unknown")
+    if "fail" in target:
+        return {"status": "error", "message": f"Could not connect to {target}"}
+    return {"status": "success", "message": f"Successfully connected to {target}"}

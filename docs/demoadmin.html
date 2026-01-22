@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>知识库管理平台 MVP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+        body { font-family: 'Inter', 'Noto Sans SC', sans-serif; }
+        
+        /* Utility Classes */
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); }
+        .nav-active { background-color: #2563eb; color: white; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2); }
+        .page-content { display: none; opacity: 0; transition: opacity 0.3s ease-in-out; }
+        .page-content.active { display: block; opacity: 1; }
+        
+        /* Animations */
+        @keyframes pulse-dot { 0% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0.4); } 70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0); } }
+        .status-dot-active { width: 8px; height: 8px; background-color: #10b981; border-radius: 50%; animation: pulse-dot 2s infinite; }
+        .status-dot-offline { width: 8px; height: 8px; background-color: #94a3b8; border-radius: 50%; }
+        .status-dot-warning { width: 8px; height: 8px; background-color: #f59e0b; border-radius: 50%; }
+
+        /* Modal */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+        .modal.open { display: flex; }
+
+        /* Progress Bar Striped Animation */
+        .progress-striped { background-image: linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent); background-size: 1rem 1rem; animation: progress-bar-stripes 1s linear infinite; }
+        @keyframes progress-bar-stripes { from { background-position: 1rem 0; } to { background-position: 0 0; } }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+    <!-- Login Screen Overlay -->
+    <div id="login-screen" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center transition-all duration-500">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md text-center">
+            <div class="mb-6 flex justify-center">
+                <div class="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center text-white text-3xl shadow-lg shadow-blue-500/30">
+                    <i class="fas fa-brain"></i>
+                </div>
+            </div>
+            <h2 class="text-2xl font-bold mb-2">KB-Manager Admin</h2>
+            <p class="text-slate-500 mb-8 text-sm">知识库管理平台 MVP Version</p>
+            
+            <form onsubmit="handleLogin(event)" class="space-y-4 text-left">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">用户名</label>
+                    <input type="text" class="w-full border border-slate-200 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="admin" value="admin">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">密码</label>
+                    <input type="password" class="w-full border border-slate-200 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="••••••••" value="password">
+                </div>
+                <div class="flex items-center justify-between text-xs mb-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" class="accent-blue-600"> 记住我
+                    </label>
+                    <a href="#" class="text-blue-600 font-bold">忘记密码?</a>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">
+                    登录系统 <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+            </form>
+            <div class="mt-6 text-xs text-slate-400">
+                支持硬件环境：<i class="fab fa-nvidia mx-1"></i> NVIDIA & <span class="font-bold">Ascend</span> 昇腾
+            </div>
+        </div>
+    </div>
+
+    <!-- App Container (Hidden initially) -->
+    <div id="app-container" class="opacity-0 transition-opacity duration-500 min-h-screen flex">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col fixed inset-y-0 z-40">
+            <div class="p-6 border-b border-slate-800">
+                <h1 class="text-white text-xl font-bold flex items-center gap-2">
+                    <i class="fas fa-brain text-blue-500"></i> KB-Manager
+                </h1>
+                <div class="mt-2 flex items-center gap-2 text-xs">
+                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                    <span>系统正常运行</span>
+                </div>
+            </div>
+            
+            <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+                <div class="text-[10px] font-bold uppercase text-slate-500 px-3 py-2 mt-2">核心监控</div>
+                <a href="#" onclick="navTo('dashboard')" data-page="dashboard" class="nav-item nav-active flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-tachometer-alt w-5 text-center"></i> 状态监管仪表板
+                </a>
+
+                <div class="text-[10px] font-bold uppercase text-slate-500 px-3 py-2 mt-4">组件管理</div>
+                <a href="#" onclick="navTo('deployment')" data-page="deployment" class="nav-item flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-rocket w-5 text-center"></i> 部署配置向导
+                </a>
+                <a href="#" onclick="navTo('services')" data-page="services" class="nav-item flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-server w-5 text-center"></i> 服务与模型管理
+                </a>
+                <a href="#" onclick="navTo('import')" data-page="import" class="nav-item flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-server w-5 text-center"></i> 批量文件导入
+                </a>
+
+                <div class="text-[10px] font-bold uppercase text-slate-500 px-3 py-2 mt-4">运维安全</div>
+                <a href="#" onclick="navTo('backup')" data-page="backup" class="nav-item flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-database w-5 text-center"></i> 备份与恢复
+                </a>
+                <a href="#" onclick="navTo('system')" data-page="system" class="nav-item flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-users-cog w-5 text-center"></i> 系统管理 (用户)
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-slate-800">
+                <button onclick="handleLogout()" class="flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:text-red-300 w-full hover:bg-slate-800 rounded-lg transition">
+                    <i class="fas fa-sign-out-alt"></i> 退出登录
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="ml-64 flex-1 p-8 bg-slate-50 min-h-screen">
+            
+            <!-- 1. Dashboard (服务状态监管) -->
+             <!-- 1. Dashboard Page -->
+        <div id="page-dashboard" class="page-content active">
+             <!-- 头部 -->
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h2 class="text-3xl font-bold">服务监控仪表板</h2>
+                <p class="text-slate-500">实时查看集群健康度与资源利用率</p>
+            </div>
+            <div class="flex gap-4">
+                <button class="bg-white border border-slate-200 px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-slate-50 transition">
+                    <i class="fas fa-sync-alt"></i> 刷新频率: 15s
+                </button>
+                <div class="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-semibold">
+                    <span class="status-dot pulse-green"></span>
+                    系统状态良好
+                </div>
+            </div>
+        </header>
+
+        <!-- 资源卡片 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="p-3 bg-blue-50 text-blue-600 rounded-xl"><i class="fas fa-server"></i></div>
+                    <span class="text-xs text-green-500 font-bold font-mono">100% Online</span>
+                </div>
+                <h3 class="text-slate-500 text-sm">运行中服务</h3>
+                <p class="text-2xl font-bold">8 / 8</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="p-3 bg-orange-50 text-orange-600 rounded-xl"><i class="fas fa-microchip"></i></div>
+                    <span class="text-xs text-slate-400 font-mono">NPU (Ascend)</span>
+                </div>
+                <h3 class="text-slate-500 text-sm">算力负载</h3>
+                <p class="text-2xl font-bold">64.2%</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><i class="fas fa-memory"></i></div>
+                    <span class="text-xs text-slate-400 font-mono">14.2 / 32 GB</span>
+                </div>
+                <h3 class="text-slate-500 text-sm">显存/内存占用</h3>
+                <p class="text-2xl font-bold">44.3%</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="p-3 bg-teal-50 text-teal-600 rounded-xl"><i class="fas fa-tasks"></i></div>
+                    <span class="text-xs text-teal-600 font-mono">Normal Queue</span>
+                </div>
+                <h3 class="text-slate-500 text-sm">解析任务队列</h3>
+                <p class="text-2xl font-bold">12</p>
+            </div>
+        </div>
+
+        <!-- 核心板块：服务管理 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- 服务列表 -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                        <h3 class="font-bold text-lg">服务运行清单</h3>
+                        <button class="text-blue-600 text-sm font-semibold">管理所有 <i class="fas fa-chevron-right ml-1"></i></button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-slate-50 text-slate-500 text-xs text-left uppercase tracking-wider">
+                                <tr>
+                                    <th class="px-6 py-4">服务名称</th>
+                                    <th class="px-6 py-4">角色/类型</th>
+                                    <th class="px-6 py-4">健康状况</th>
+                                    <th class="px-6 py-4">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 text-sm">
+                                <tr>
+                                    <td class="px-6 py-4 font-semibold text-slate-700">推理引擎 (llama-3-8b)</td>
+                                    <td class="px-6 py-4"><span class="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs">vLLM / MindIE</span></td>
+                                    <td class="px-6 py-4"><span class="text-green-500 flex items-center gap-2 font-medium"><i class="fas fa-check-circle text-xs"></i> 运行中</span></td>
+                                    <td class="px-6 py-4">
+                                        <button class="text-slate-400 hover:text-blue-600 mr-3"><i class="fas fa-redo"></i></button>
+                                        <button class="text-slate-400 hover:text-red-600"><i class="fas fa-power-off"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 font-semibold text-slate-700">向量库 (Milvus)</td>
+                                    <td class="px-6 py-4"><span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs">Vector DB</span></td>
+                                    <td class="px-6 py-4"><span class="text-green-500 flex items-center gap-2 font-medium"><i class="fas fa-check-circle text-xs"></i> 健康</span></td>
+                                    <td class="px-6 py-4">
+                                        <button class="text-slate-400 hover:text-blue-600 mr-3"><i class="fas fa-redo"></i></button>
+                                        <button class="text-slate-400 hover:text-red-600"><i class="fas fa-power-off"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 font-semibold text-slate-700">文档解析引擎</td>
+                                    <td class="px-6 py-4"><span class="bg-teal-50 text-teal-700 px-2 py-1 rounded text-xs">Doc Parser</span></td>
+                                    <td class="px-6 py-4"><span class="text-orange-500 flex items-center gap-2 font-medium"><i class="fas fa-spinner fa-spin text-xs"></i> 任务处理中</span></td>
+                                    <td class="px-6 py-4">
+                                        <button class="text-slate-400 hover:text-blue-600 mr-3"><i class="fas fa-redo"></i></button>
+                                        <button class="text-slate-400 hover:text-red-600"><i class="fas fa-power-off"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 备份模块 -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                    <h3 class="font-bold text-lg mb-4">数据备份与灾备恢复</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="border border-slate-100 rounded-xl p-4 hover:border-blue-200 transition">
+                            <h4 class="font-bold text-sm mb-2"><i class="fas fa-cloud-upload-alt text-blue-600 mr-2"></i> 上次备份</h4>
+                            <p class="text-xs text-slate-500 mb-4">2024-05-20 02:00:00 (增量备份)</p>
+                            <button class="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-blue-700">立即执行全量备份</button>
+                        </div>
+                        <div class="border border-slate-100 rounded-xl p-4 hover:border-orange-200 transition">
+                            <h4 class="font-bold text-sm mb-2"><i class="fas fa-history text-orange-600 mr-2"></i> 快速恢复</h4>
+                            <p class="text-xs text-slate-500 mb-4">可用备份点: 12 个</p>
+                            <button class="w-full bg-white border border-slate-200 text-slate-700 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50">从最近备份点恢复</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 参数配置侧栏 -->
+            <div class="space-y-6">
+                <div class="bg-slate-900 rounded-2xl p-6 text-white shadow-xl">
+                    <h3 class="font-bold mb-4 flex items-center gap-2">
+                        <i class="fas fa-sliders-h text-blue-400"></i> 模型推理配置
+                    </h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-[10px] uppercase text-slate-400 font-bold block mb-1">Max Concurrency 并发限制</label>
+                            <input type="range" class="w-full accent-blue-500 bg-slate-800" value="64">
+                            <div class="flex justify-between text-[10px] font-mono mt-1 text-slate-500">
+                                <span>1</span>
+                                <span>64 (Current)</span>
+                                <span>256</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[10px] uppercase text-slate-400 font-bold block mb-1">Token Limit 上下文长度</label>
+                            <select class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs focus:ring-2 focus:ring-blue-500">
+                                <option>4,096 Tokens</option>
+                                <option selected>8,192 Tokens</option>
+                                <option>32,768 Tokens</option>
+                            </select>
+                        </div>
+                        <div class="pt-4 border-t border-slate-800 space-y-2">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-slate-400">动态批处理 (Dynamic Batching)</span>
+                                <span class="bg-green-900/50 text-green-400 px-2 py-0.5 rounded text-[10px]">ON</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-slate-400">硬件加速类型</span>
+                                <span class="text-slate-200">昇腾 MindIE</span>
+                            </div>
+                        </div>
+                        <button class="w-full mt-4 bg-blue-600 py-3 rounded-xl text-sm font-bold hover:bg-blue-500 transition shadow-lg shadow-blue-900/20">
+                            保存配置并重启服务
+                        </button>
+                        <p class="text-[10px] text-center text-slate-500 italic">注：更改推理参数需重启服务，预计中断 15s</p>
+                    </div>
+                </div>
+
+                <!-- 审计日志简报 -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                    <h3 class="font-bold text-sm mb-4">最近操作审计</h3>
+                    <div class="space-y-4">
+                        <div class="flex gap-3 items-start">
+                            <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-xs text-slate-500">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold text-slate-700">Admin <span class="font-normal text-slate-500">修改了推理并发数</span></p>
+                                <p class="text-[10px] text-slate-400">10分钟前 · 终端: 192.168.1.102</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0 text-xs text-green-600">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold text-slate-700">系统自检 <span class="font-normal text-slate-500">全量备份完成</span></p>
+                                <p class="text-[10px] text-slate-400">今天 02:00 · 自动化任务</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+
+
+            <!-- 2. Deployment Wizard (组件部署) -->
+            <div id="page-deployment" class="page-content">
+                <header class="mb-8">
+                    <h2 class="text-2xl font-bold text-slate-800">部署配置向导</h2>
+                    <p class="text-slate-500 text-sm">支持全新环境部署或对接现有中间件服务</p>
+                </header>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden max-w-4xl mx-auto">
+                    <!-- Wizard Steps -->
+                    <div class="bg-slate-50 p-6 border-b border-slate-100 flex justify-between px-16">
+                        <div class="flex flex-col items-center gap-2 text-blue-600">
+                            <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">1</div>
+                            <span class="text-xs font-bold">模式选择</span>
+                        </div>
+                        <div class="flex-1 h-px bg-slate-200 mt-4 mx-4"></div>
+                        <div class="flex flex-col items-center gap-2 text-slate-400">
+                            <div class="w-8 h-8 rounded-full bg-white border-2 border-slate-200 text-slate-400 flex items-center justify-center font-bold text-sm">2</div>
+                            <span class="text-xs">硬件配置</span>
+                        </div>
+                        <div class="flex-1 h-px bg-slate-200 mt-4 mx-4"></div>
+                        <div class="flex flex-col items-center gap-2 text-slate-400">
+                            <div class="w-8 h-8 rounded-full bg-white border-2 border-slate-200 text-slate-400 flex items-center justify-center font-bold text-sm">3</div>
+                            <span class="text-xs">组件参数</span>
+                        </div>
+                        <div class="flex-1 h-px bg-slate-200 mt-4 mx-4"></div>
+                        <div class="flex flex-col items-center gap-2 text-slate-400">
+                            <div class="w-8 h-8 rounded-full bg-white border-2 border-slate-200 text-slate-400 flex items-center justify-center font-bold text-sm">4</div>
+                            <span class="text-xs">生成部署</span>
+                        </div>
+                    </div>
+
+                    <div class="p-8">
+                        <h3 class="font-bold text-lg mb-6">选择您的部署模式</h3>
+                        
+                        <div class="grid grid-cols-2 gap-6 mb-8">
+                            <!-- New Deployment Option -->
+                            <label class="cursor-pointer">
+                                <input type="radio" name="deploy_mode" class="peer sr-only" checked>
+                                <div class="p-6 rounded-2xl border-2 border-slate-200 hover:border-blue-500 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition h-full">
+                                    <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-4 text-xl"><i class="fas fa-cube"></i></div>
+                                    <h4 class="font-bold text-slate-800 mb-2">全新部署</h4>
+                                    <p class="text-xs text-slate-500 leading-relaxed">
+                                        自动拉取并配置所有核心组件（推理引擎、向量库、解析服务）。适用于空环境初始化。
+                                    </p>
+                                </div>
+                            </label>
+
+                            <!-- Existing Service Option -->
+                            <label class="cursor-pointer">
+                                <input type="radio" name="deploy_mode" class="peer sr-only">
+                                <div class="p-6 rounded-2xl border-2 border-slate-200 hover:border-blue-500 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition h-full">
+                                    <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-4 text-xl"><i class="fas fa-plug"></i></div>
+                                    <h4 class="font-bold text-slate-800 mb-2">对接现有服务</h4>
+                                    <p class="text-xs text-slate-500 leading-relaxed">
+                                        手动输入现有服务的 IP 和端口，仅部署轻量级管理面板。适用于已有基础设施。
+                                    </p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="border-t pt-6">
+                            <h4 class="font-bold text-sm mb-4">目标硬件环境</h4>
+                            <div class="flex gap-4">
+                                <button class="flex items-center gap-3 px-6 py-3 border-2 border-blue-600 bg-blue-50 text-blue-700 rounded-xl font-bold text-sm">
+                                    <i class="fas fa-microchip"></i> 华为昇腾 (Ascend NPU)
+                                    <i class="fas fa-check-circle ml-2"></i>
+                                </button>
+                                <button class="flex items-center gap-3 px-6 py-3 border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:border-slate-300">
+                                    <i class="fab fa-nvidia"></i> NVIDIA GPU
+                                </button>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-2">系统已检测到 NPU 驱动版本: 23.0.RC3</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 p-6 border-t border-slate-100 flex justify-between items-center">
+                        <button class="text-slate-500 font-bold text-sm hover:text-slate-700">保存配置草稿</button>
+                        <button class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition">
+                            下一步: 组件参数 <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Services & Model Config (服务管理) -->
+            <div id="page-services" class="page-content">
+                <header class="flex justify-between items-center mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">服务与模型管理</h2>
+                        <p class="text-slate-500 text-sm">深度配置推理参数、批处理策略及组件连接</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <button class="bg-white border px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-50">
+                            <i class="fas fa-file-export mr-2 text-slate-400"></i> 导出配置
+                        </button>
+                        <button class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700" onclick="showModal('connectServiceModal')">
+                            <i class="fas fa-plus mr-2"></i> 注册新服务
+                        </button>
+                    </div>
+                </header>
+
+                <div class="flex gap-8 items-start">
+                    <!-- Left: Service List -->
+                    <div class="w-1/3 space-y-4">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-blue-600 cursor-pointer">
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-bold text-slate-800">llama-3-8b-instruct</h4>
+                                <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold">RUNNING</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mb-2">Type: Inference (MindIE)</p>
+                            <div class="text-[10px] text-slate-400 font-mono">http://10.0.1.5:8000</div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-blue-300 transition">
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-bold text-slate-800">bge-large-zh-v1.5</h4>
+                                <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold">RUNNING</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mb-2">Type: Embedding</p>
+                            <div class="text-[10px] text-slate-400 font-mono">http://10.0.1.5:8001</div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-blue-300 transition">
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-bold text-slate-800">milvus-standalone</h4>
+                                <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold">STOPPED</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mb-2">Type: Vector DB</p>
+                            <div class="text-[10px] text-slate-400 font-mono">http://10.0.1.8:19530</div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Detailed Config Panel -->
+                    <div class="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+                        <div class="flex justify-between items-center mb-6 pb-4 border-b">
+                            <div>
+                                <h3 class="font-bold text-lg">模型配置: llama-3-8b-instruct</h3>
+                                <p class="text-xs text-slate-400 mt-1">UUID: 8f3a-22b1-99c0</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="text-xs bg-slate-100 px-3 py-2 rounded font-bold hover:bg-slate-200">切换模型版本</button>
+                                <button class="text-xs bg-red-50 text-red-600 px-3 py-2 rounded font-bold hover:bg-red-100">停止服务</button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-8">
+                            <!-- Column 1: Inference Params -->
+                            <div class="space-y-6">
+                                <h4 class="text-sm font-bold text-blue-600 uppercase tracking-wider mb-4">推理参数</h4>
+                                
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-2">Max Concurrency (最大并发)</label>
+                                    <div class="flex items-center gap-4">
+                                        <input type="range" class="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" min="1" max="128" value="32">
+                                        <span class="text-sm font-mono font-bold bg-slate-100 px-2 py-1 rounded">32</span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-2">Token Limits (输入/输出)</label>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div class="relative">
+                                            <input type="number" value="4096" class="w-full border rounded p-2 text-sm font-mono pl-8">
+                                            <span class="absolute left-2 top-2 text-xs text-slate-400">In</span>
+                                        </div>
+                                        <div class="relative">
+                                            <input type="number" value="2048" class="w-full border rounded p-2 text-sm font-mono pl-8">
+                                            <span class="absolute left-2 top-2 text-xs text-slate-400">Out</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Column 2: Batch & Resource Params -->
+                            <div class="space-y-6">
+                                <h4 class="text-sm font-bold text-blue-600 uppercase tracking-wider mb-4">批处理与资源</h4>
+                                
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-2">Batch Size / Delay</label>
+                                    <div class="flex gap-2">
+                                        <input type="number" value="16" class="w-1/2 border rounded p-2 text-sm font-mono" placeholder="Size">
+                                        <input type="number" value="200" class="w-1/2 border rounded p-2 text-sm font-mono" placeholder="ms">
+                                    </div>
+                                    <p class="text-[10px] text-slate-400 mt-1">Values: Batch Size (reqs) / Max Delay (ms)</p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-2">NPU 分配策略</label>
+                                    <select class="w-full border rounded p-2 text-sm bg-slate-50">
+                                        <option>Auto-Balance (推荐)</option>
+                                        <option>Performance First (全卡)</option>
+                                        <option>Memory Saving (半卡)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-8 pt-6 border-t flex justify-end items-center gap-4">
+                            <p class="text-xs text-orange-500 font-bold"><i class="fas fa-exclamation-triangle mr-1"></i> 修改配置将重启服务</p>
+                            <button class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold shadow-md hover:bg-blue-700">保存并重启</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+			<!-- 4. Bulk Load -->
+			<div id="page-import" class="page-content">
+<!-- 配置面板 -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-1 space-y-6">
+                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                                <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <i class="fas fa-cog text-blue-500"></i> 数据源配置
+                                </h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">导入模式</label>
+                                        <div class="flex p-1 bg-slate-100 rounded-lg">
+                                            <button class="flex-1 py-2 text-xs font-bold rounded-md bg-white shadow-sm text-blue-600">文件路径</button>
+                                            <button class="flex-1 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">对象存储桶</button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">绝对路径 / Bucket 路径</label>
+                                        <input type="text" placeholder="/data/knowledge_base/docs/" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                    </div>
+                                    <div class="pt-2">
+                                        <div class="flex items-center justify-between mb-4">
+                                            <span class="text-sm font-medium text-slate-700">启用 Checksum 校验</span>
+                                            <div class="w-10 h-6 bg-blue-600 rounded-full relative cursor-pointer">
+                                                <div class="absolute right-1 top-1 w-4 h-4 bg-white rounded-full"></div>
+                                            </div>
+                                        </div>
+                                        <p class="text-[10px] text-slate-400 leading-relaxed italic">
+                                            开启后将对比文件名、大小及最后更新时间。若哈希一致则跳过，支持断点续传。
+                                        </p>
+                                    </div>
+                                    <button class="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">
+                                        开始扫描变更
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-900 rounded-2xl p-6 text-white">
+                                <h4 class="text-sm font-bold mb-4">导入统计</h4>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="p-3 bg-slate-800 rounded-xl">
+                                        <p class="text-[10px] text-slate-500 uppercase font-bold">待处理</p>
+                                        <p class="text-xl font-bold">1,248</p>
+                                    </div>
+                                    <div class="p-3 bg-slate-800 rounded-xl">
+                                        <p class="text-[10px] text-slate-500 uppercase font-bold">已同步</p>
+                                        <p class="text-xl font-bold text-green-400">8.2k</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 任务列表 -->
+                        <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
+                            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                                <div>
+                                    <h4 class="font-bold text-slate-800">当前同步任务流</h4>
+                                    <p class="text-[10px] text-slate-400 font-medium">自动识别新增与变更文件</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button class="px-3 py-1.5 text-xs font-bold text-slate-600 border border-slate-200 rounded-lg hover:bg-white">暂停全部</button>
+                                    <button class="px-3 py-1.5 text-xs font-bold text-red-600 border border-red-100 rounded-lg hover:bg-red-50">清空失败任务</button>
+                                </div>
+                            </div>
+                            
+                            <div class="flex-1 overflow-y-auto max-h-[600px]">
+                                <table class="w-full text-left">
+                                    <thead class="bg-slate-50/80 text-slate-400 text-[10px] font-bold uppercase sticky top-0">
+                                        <tr>
+                                            <th class="px-6 py-3">文件名/路径</th>
+                                            <th class="px-6 py-3">校验状态</th>
+                                            <th class="px-6 py-3 w-48">进度</th>
+                                            <th class="px-6 py-3 text-right">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-50 text-sm">
+                                        <!-- 任务 1: 正在同步 (断点续传) -->
+                                        <tr class="hover:bg-slate-50/50">
+                                            <td class="px-6 py-4">
+                                                <div class="flex items-center gap-3">
+                                                    <i class="far fa-file-pdf text-red-500 text-lg"></i>
+                                                    <div class="min-w-0">
+                                                        <p class="font-semibold truncate">2025_技术白皮书_Final.pdf</p>
+                                                        <p class="text-[10px] text-slate-400">/data/docs/tech/...</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <span class="flex items-center gap-1.5 text-blue-600 font-bold text-[10px] bg-blue-50 px-2 py-0.5 rounded-full w-max">
+                                                    <i class="fas fa-sync-alt animate-spin-slow"></i> 变更刷新
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div class="space-y-1.5">
+                                                    <div class="flex justify-between text-[10px] font-bold">
+                                                        <span>72%</span>
+                                                        <span class="text-slate-400">12.4MB/s</span>
+                                                    </div>
+                                                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                                        <div class="bg-blue-500 h-full w-[72%] progress-bar-glow"></div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 text-right">
+                                                <button class="p-2 text-slate-400 hover:text-blue-600"><i class="fas fa-pause text-xs"></i></button>
+                                            </td>
+                                        </tr>
+                                        <!-- 任务 2: 等待 (断点续传标记) -->
+                                        <tr class="hover:bg-slate-50/50">
+                                            <td class="px-6 py-4 opacity-60">
+                                                <div class="flex items-center gap-3">
+                                                    <i class="far fa-file-word text-blue-500 text-lg"></i>
+                                                    <div class="min-w-0">
+                                                        <p class="font-semibold truncate">市场调研报告_v2.docx</p>
+                                                        <p class="text-[10px] text-slate-400">/data/docs/market/...</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <span class="flex items-center gap-1.5 text-orange-600 font-bold text-[10px] bg-orange-50 px-2 py-0.5 rounded-full w-max">
+                                                    <i class="fas fa-history"></i> 断点等待
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div class="space-y-1.5">
+                                                    <div class="flex justify-between text-[10px] font-bold text-slate-400">
+                                                        <span>已完成 45%</span>
+                                                    </div>
+                                                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                                        <div class="bg-slate-300 h-full w-[45%]"></div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 text-right">
+                                                <button class="p-2 text-slate-400 hover:text-green-600"><i class="fas fa-play text-xs"></i></button>
+                                            </td>
+                                        </tr>
+                                        <!-- 任务 3: 已同步 (Checksum 匹配) -->
+                                        <tr class="hover:bg-slate-50/50 bg-green-50/20">
+                                            <td class="px-6 py-4">
+                                                <div class="flex items-center gap-3">
+                                                    <i class="far fa-file-excel text-green-600 text-lg"></i>
+                                                    <div class="min-w-0">
+                                                        <p class="font-semibold truncate">员工通讯录_2024.xlsx</p>
+                                                        <p class="text-[10px] text-slate-400">/data/docs/hr/...</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <span class="flex items-center gap-1.5 text-green-600 font-bold text-[10px] bg-green-100 px-2 py-0.5 rounded-full w-max">
+                                                    <i class="fas fa-check"></i> 哈希一致
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <span class="text-[10px] font-bold text-green-600">同步完成 (100%)</span>
+                                            </td>
+                                            <td class="px-6 py-4 text-right">
+                                                <button class="p-2 text-slate-300 cursor-not-allowed"><i class="fas fa-trash text-xs"></i></button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+			</div>
+            
+			<!-- 5. Backup & Recovery (备份恢复) -->
+            <div id="page-backup" class="page-content">
+                <header class="mb-8">
+                    <h2 class="text-2xl font-bold text-slate-800">备份与恢复</h2>
+                    <p class="text-slate-500 text-sm">数据快照管理、系统重置与应用重刷</p>
+                </header>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Backup Actions -->
+                    <div class="space-y-6">
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                            <h3 class="font-bold text-lg mb-4">创建备份</h3>
+                            <button class="w-full bg-blue-50 text-blue-700 border border-blue-200 py-3 rounded-xl font-bold mb-3 hover:bg-blue-100 text-left px-4 flex justify-between items-center group">
+                                <span><i class="fas fa-save mr-2"></i> 全量备份</span>
+                                <i class="fas fa-arrow-right opacity-0 group-hover:opacity-100 transition"></i>
+                            </button>
+                            <button class="w-full bg-slate-50 text-slate-700 border border-slate-200 py-3 rounded-xl font-bold text-left px-4 flex justify-between items-center group hover:bg-slate-100">
+                                <span><i class="fas fa-clock mr-2"></i> 增量备份</span>
+                                <i class="fas fa-plus opacity-0 group-hover:opacity-100 transition"></i>
+                            </button>
+                        </div>
+
+                        <!-- App Reflash (Specific Requirement) -->
+                        <div class="bg-red-50 p-6 rounded-2xl border border-red-100">
+                            <h3 class="font-bold text-red-800 mb-2"><i class="fas fa-sync-alt mr-2"></i> 应用重刷 (App Reflash)</h3>
+                            <p class="text-xs text-red-600 mb-4 leading-relaxed">
+                                重新部署所有服务镜像，并基于选定备份点重置数据。用于系统级故障修复。
+                            </p>
+                            <button class="w-full bg-red-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-red-700 shadow-lg shadow-red-200">
+                                启动重刷流程
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Backup List -->
+                    <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="p-6 border-b flex justify-between items-center">
+                            <h3 class="font-bold">备份历史记录</h3>
+                            <span class="text-xs text-slate-400">Total: 42GB</span>
+                        </div>
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 text-slate-500 font-bold text-xs uppercase">
+                                <tr>
+                                    <th class="px-6 py-4">备份ID / 时间</th>
+                                    <th class="px-6 py-4">类型</th>
+                                    <th class="px-6 py-4">验证</th>
+                                    <th class="px-6 py-4">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr>
+                                    <td class="px-6 py-4">
+                                        <div class="font-bold text-slate-800">bk_20240520_full</div>
+                                        <div class="text-xs text-slate-400">Today, 02:00 AM</div>
+                                    </td>
+                                    <td class="px-6 py-4"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-bold">FULL</span></td>
+                                    <td class="px-6 py-4 text-green-500 font-bold"><i class="fas fa-check-circle mr-1"></i> Pass</td>
+                                    <td class="px-6 py-4">
+                                        <button class="text-blue-600 font-bold hover:underline">恢复</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4">
+                                        <div class="font-bold text-slate-800">bk_20240519_inc</div>
+                                        <div class="text-xs text-slate-400">Yesterday, 02:00 AM</div>
+                                    </td>
+                                    <td class="px-6 py-4"><span class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-[10px] font-bold">INC</span></td>
+                                    <td class="px-6 py-4 text-green-500 font-bold"><i class="fas fa-check-circle mr-1"></i> Pass</td>
+                                    <td class="px-6 py-4">
+                                        <button class="text-blue-600 font-bold hover:underline">恢复</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. System Management (系统管理) -->
+            <div id="page-system" class="page-content">
+                <header class="mb-8">
+                    <h2 class="text-2xl font-bold text-slate-800">系统管理</h2>
+                    <p class="text-slate-500 text-sm">用户角色、权限控制与操作审计</p>
+                </header>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+                    <div class="p-6 border-b flex justify-between items-center">
+                        <h3 class="font-bold">用户列表</h3>
+                        <button class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold">
+                            <i class="fas fa-user-plus mr-1"></i> 新建用户
+                        </button>
+                    </div>
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 text-slate-500 font-bold text-xs uppercase">
+                            <tr>
+                                <th class="px-6 py-4">用户名</th>
+                                <th class="px-6 py-4">角色</th>
+                                <th class="px-6 py-4">状态</th>
+                                <th class="px-6 py-4">最后登录</th>
+                                <th class="px-6 py-4">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr>
+                                <td class="px-6 py-4 font-bold">admin</td>
+                                <td class="px-6 py-4"><span class="bg-purple-100 text-purple-700 px-2 py-1 rounded text-[10px] font-bold">ADMINISTRATOR</span></td>
+                                <td class="px-6 py-4"><span class="text-green-500 text-xs font-bold">● Active</span></td>
+                                <td class="px-6 py-4 text-slate-500 text-xs">Just now</td>
+                                <td class="px-6 py-4 text-slate-400">
+                                    <i class="fas fa-lock text-xs mr-2"></i> System
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 font-bold">operator_01</td>
+                                <td class="px-6 py-4"><span class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-[10px] font-bold">OPERATOR</span></td>
+                                <td class="px-6 py-4"><span class="text-green-500 text-xs font-bold">● Active</span></td>
+                                <td class="px-6 py-4 text-slate-500 text-xs">2 days ago</td>
+                                <td class="px-6 py-4 space-x-2">
+                                    <button class="text-blue-600 font-bold text-xs">编辑</button>
+                                    <button class="text-red-600 font-bold text-xs">删除</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <h3 class="font-bold mb-4">操作审计日志</h3>
+                    <div class="space-y-4">
+                        <div class="flex gap-4 items-start text-sm pb-4 border-b border-slate-50">
+                            <span class="font-mono text-slate-400 text-xs mt-1">14:20:05</span>
+                            <div>
+                                <p class="font-bold text-slate-800">用户 admin 登录系统</p>
+                                <p class="text-xs text-slate-500">IP: 192.168.1.102 | Method: JWT Auth</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4 items-start text-sm pb-4 border-b border-slate-50">
+                            <span class="font-mono text-slate-400 text-xs mt-1">10:00:00</span>
+                            <div>
+                                <p class="font-bold text-slate-800">系统自动执行全量备份</p>
+                                <p class="text-xs text-slate-500">Backup ID: bk_20240520_full | Status: Success</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Log Modal -->
+    <div id="logsModal" class="modal">
+        <div class="bg-slate-900 w-3/4 h-3/4 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center">
+                <h3 class="text-white font-bold font-mono">System Logs (tail -f)</h3>
+                <button onclick="hideModal('logsModal')" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="flex-1 p-4 overflow-y-auto font-mono text-xs text-green-400 space-y-1 bg-black">
+                <p>[INFO] 2024-05-20 14:00:01 MindIE-Service: Heartbeat received. Status: Healthy.</p>
+                <p>[INFO] 2024-05-20 14:00:02 Milvus-Proxy: Connection pool active: 12/50.</p>
+                <p>[WARN] 2024-05-20 14:00:05 Doc-Parser: Queue depth > 100. Auto-scaling triggered.</p>
+                <p class="text-slate-500">... previous logs ...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connect Service Modal -->
+    <div id="connectServiceModal" class="modal">
+        <div class="bg-white p-8 rounded-2xl w-full max-w-lg">
+            <h3 class="text-xl font-bold mb-4">对接现有服务</h3>
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">服务类型</label>
+                    <select class="w-full border p-2 rounded-lg bg-slate-50">
+                        <option>推理引擎 (vLLM/MindIE)</option>
+                        <option>向量数据库</option>
+                        <option>文档解析器</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">服务 IP 地址</label>
+                        <input type="text" placeholder="192.168.x.x" class="w-full border p-2 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">端口</label>
+                        <input type="text" placeholder="8000" class="w-full border p-2 rounded-lg">
+                    </div>
+                </div>
+                <button class="w-full border border-blue-600 text-blue-600 py-2 rounded-lg text-sm font-bold hover:bg-blue-50">
+                    <i class="fas fa-plug mr-2"></i> 测试连接
+                </button>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button onclick="hideModal('connectServiceModal')" class="px-4 py-2 text-slate-500 font-bold text-sm">取消</button>
+                <button class="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm shadow-lg shadow-blue-200">保存配置</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Navigation Logic
+        function navTo(pageId) {
+            // Update Menu
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('nav-active'));
+            document.querySelector(`[data-page="${pageId}"]`).classList.add('nav-active');
+
+            // Update Content
+            document.querySelectorAll('.page-content').forEach(el => el.classList.remove('active'));
+            setTimeout(() => {
+                const target = document.getElementById('page-' + pageId);
+                if(target) target.classList.add('active');
+            }, 100);
+        }
+
+        // Login Simulation
+        function handleLogin(e) {
+            e.preventDefault();
+            const loginScreen = document.getElementById('login-screen');
+            const appContainer = document.getElementById('app-container');
+            
+            // Fade out login
+            loginScreen.style.opacity = '0';
+            setTimeout(() => {
+                loginScreen.style.display = 'none';
+                // Fade in app
+                appContainer.style.opacity = '1';
+                navTo('dashboard');
+            }, 500);
+        }
+
+        // Logout Simulation
+        function handleLogout() {
+            if(confirm('确定要退出登录吗？')) {
+                location.reload();
+            }
+        }
+
+        // Modal Logic
+        function showModal(id) {
+            document.getElementById(id).classList.add('open');
+        }
+        function hideModal(id) {
+            document.getElementById(id).classList.remove('open');
+        }
+
+        // Initialize
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('open');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,5 +1,7 @@
 from typing import List, Dict, Any, Optional
 import datetime
+import json
+import os
 
 # 用户数据
 users = [
@@ -61,17 +63,17 @@ def get_dashboard_config():
 
 def get_dashboard_audit_logs():
     return [
-        { 
-            "user": 'Admin', 
-            "action": '修改了推理并发数', 
-            "time": '10分钟前', 
+        {
+            "user": 'Admin',
+            "action": '修改了推理并发数',
+            "time": '10分钟前',
             "details": '终端: 192.168.1.102',
             "type": 'user'
         },
-        { 
-            "user": '系统自检', 
-            "action": '全量备份完成', 
-            "time": '今天 02:00', 
+        {
+            "user": '系统自检',
+            "action": '全量备份完成',
+            "time": '今天 02:00',
             "details": '自动化任务',
             "type": 'system'
         }
@@ -212,33 +214,251 @@ def save_model_config(config: Dict[str, Any]):
     models_data.append(new_model)
     return {"status": "success", "message": f"Saved {config.get('name')}"}
 
+# --- Node Management (File Persistence) ---
+NODES_FILE = "mock_deployment_nodes.json"
+
+def save_target_nodes(nodes: List[str]):
+    try:
+        with open(NODES_FILE, "w") as f:
+            json.dump({"nodes": nodes}, f)
+        return {"status": "success", "message": f"Saved {len(nodes)} nodes."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+def get_target_nodes():
+    if not os.path.exists(NODES_FILE):
+        return []
+    try:
+        with open(NODES_FILE, "r") as f:
+            data = json.load(f)
+            return data.get("nodes", [])
+    except:
+        return []
+
 def generate_deployment_artifacts(config: Dict[str, Any]):
     mode = config.get("mode", "unknown")
     platform = config.get("platform", "unknown")
+    target_nodes_str = (config.get("target_nodes") or "").strip()
+    inference_host = (config.get("inference_host") or "").strip()
     
-    script_content = f"""#!/bin/bash
-# Auto-generated deployment script for AnyAdmin
-# Mode: {mode}
-# Platform: {platform}
-# Timestamp: {datetime.datetime.now().isoformat()}
+    artifacts = {}
+    
+    if mode == "new_deployment":
+        # 0. Hosts Inventory (if applicable)
+        if target_nodes_str:
+            nodes = [n.strip() for n in target_nodes_str.split('\n') if n.strip()]
+            if nodes:
+                hosts_ini = "[ai_nodes]\n" + "\n".join(nodes) + "\n\n[master]\nlocalhost ansible_connection=local"
+                artifacts["hosts.ini"] = hosts_ini
 
-echo "Starting deployment..."
+        # 1. Bash Script for Ubuntu 22.04
+        bash_script = """#!/bin/bash
+# Auto-generated deployment script for AnyAdmin (One-Click Wizard)
+# Platform: {platform}
+# Target OS: Ubuntu 22.04 LTS
+
+set -e
+
+echo ">>> Starting system preparation for {platform}..."
 """
-    if platform == "nvidia":
-        script_content += "docker run -d --gpus all vllm/vllm-openai ...\n"
-    elif platform == "ascend":
-        script_content += "bash start_mindie.sh ...\n"
+        if target_nodes_str:
+             bash_script += "echo '>>> Multi-node setup detected. See hosts.ini for inventory.'\n"
+             
+        bash_script += "apt-get update && apt-get install -y docker.io docker-compose\n"
+
+        if platform == "nvidia":
+            bash_script += """
+echo ">>> Installing NVIDIA Container Toolkit..."
+distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+curl -s -L https://nvidia.github.io/libnvidia-container/gpgkey | sudo apt-key add -
+curl -s -L https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list | sudo tee /etc/apt/sources.list.d/libnvidia-container.list
+apt-get update && apt-get install -y nvidia-container-toolkit
+sudo systemctl restart docker
+"""
+        elif platform == "ascend":
+             bash_script += """
+echo ">>> Installing Ascend Driver & Firmware..."
+# Placeholder for Ascend driver installation
+# ./Ascend-hdk-910b-npu-driver_23.0.rc3_linux-aarch64.run --full
+"""
+
+        bash_script += """
+echo ">>> Pulling Docker images..."
+docker pull vectordb/lancedb:latest
+docker pull mineru/parser:latest
+"""
+        if platform == "nvidia":
+            bash_script += "docker pull vllm/vllm-openai:latest\n"
+        elif platform == "ascend":
+            bash_script += "docker pull mindspore/mindie:1.0.0\n"
+
+        bash_script += "\necho 'Deployment preparation complete. Run docker-compose up -d to start.'"
+        artifacts["deploy_ubuntu.sh"] = bash_script
+
+        # 2. Kubernetes YAML
+        k8s_yaml = f"""apiVersion: v1
+kind: Namespace
+metadata:
+  name: anyadmin-ai
+---
+# Vector Database (LanceDB)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lancedb
+  namespace: anyadmin-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lancedb
+  template:
+    metadata:
+      labels:
+        app: lancedb
+    spec:
+      containers:
+      - name: lancedb
+        image: vectordb/lancedb:latest
+        ports:
+        - containerPort: 8080
+---
+# Document Parser (Mineru)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mineru-parser
+  namespace: anyadmin-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mineru
+  template:
+    metadata:
+      labels:
+        app: mineru
+    spec:
+      containers:
+      - name: parser
+        image: mineru/parser:latest
+        ports:
+        - containerPort: 8888
+---
+# Inference Engine ({platform})
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inference-engine
+  namespace: anyadmin-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inference
+  template:
+    metadata:
+      labels:
+        app: inference
+    spec:
+"""
+        if inference_host and inference_host != "localhost":
+             k8s_yaml += f"      nodeSelector:\n        kubernetes.io/hostname: {inference_host}\n"
         
+        k8s_yaml += "      containers:\n      - name: engine\n"
+
+        if platform == "nvidia":
+            k8s_yaml += """
+        image: vllm/vllm-openai:latest
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+"""
+        elif platform == "ascend":
+            k8s_yaml += """
+        image: mindspore/mindie:1.0.0
+        resources:
+          limits:
+            huawei.com/Ascend910: 1
+"""
+        artifacts["k8s_deployment.yaml"] = k8s_yaml
+
+    else: # Integrate Existing
+        install_script = f"""#!/bin/bash
+# Integration Agent Installer
+# Connects this machine to AnyAdmin Control Plane
+
+echo ">>> Verifying connectivity..."
+curl -v {config.get('mgmt_host', 'localhost')}:{config.get('mgmt_port', 3000)}
+
+echo ">>> Installing Agent..."
+# pip install anyadmin-agent
+echo "Agent installed and connected."
+"""
+        artifacts["install_agent.sh"] = install_script
+
     return {
         "status": "success",
-        "artifacts": {
-            "deploy.sh": script_content,
-            "docker-compose.yml": "version: '3'..."
-        }
+        "artifacts": artifacts
     }
 
 def test_service_connection(service: Dict[str, Any]):
-    target = service.get("host", "unknown")
-    if "fail" in target:
-        return {"status": "error", "message": f"Could not connect to {target}"}
-    return {"status": "success", "message": f"Successfully connected to {target}"}
+    # Mock connection test logic
+    service_type = service.get("type", "unknown")
+    host = service.get("host", "localhost")
+    port = service.get("port", 80)
+    
+    # Simulate failures for specific 'fail' hosts
+    if "fail" in str(host):
+         return {
+            "status": "error", 
+            "message": f"Connection refused to {service_type} at {host}:{port}"
+        }
+    
+    # Specific mock delays or logic per type could go here
+    if service_type == "vectordb":
+        return {
+            "status": "success",
+            "message": f"Connected to Vector DB ({host}:{port}). Collections: 4"
+        }
+    elif service_type == "parser":
+        return {
+            "status": "success",
+            "message": f"Connected to Mineru Parser ({host}:{port}). Workers: 2"
+        }
+    elif service_type == "ssh":
+        nodes = [n.strip() for n in str(host).split('\n') if n.strip()]
+        failed_nodes = [n for n in nodes if "fail" in n]
+        if failed_nodes:
+             return {
+                "status": "error",
+                "message": f"SSH Connection failed for nodes: {', '.join(failed_nodes)}. Check keys."
+             }
+        return {
+            "status": "success",
+            "message": f"SSH Connection successful for {len(nodes)} nodes: {', '.join(nodes)}"
+        }
+
+    return {
+        "status": "success", 
+        "message": f"Successfully connected to {service_type} at {host}:{port}. Latency: 12ms"
+    }
+
+def detect_system_hardware(nodes: List[str]):
+    # Mock detection logic
+    # Real world: SSH to nodes, run `nvidia-smi` or `npu-smi`
+    detected_platform = "nvidia"
+    details = "Detected NVIDIA GPU (Tesla T4) via nvidia-smi"
+    
+    for node in nodes:
+        # Mock: if any node string contains 'ascend', we simulate Ascend detection
+        if "ascend" in node.lower():
+            detected_platform = "ascend"
+            details = "Detected Huawei Ascend 910 via npu-smi"
+            break
+            
+    return {
+        "status": "success",
+        "platform": detected_platform,
+        "details": details
+    }

@@ -53,6 +53,36 @@ const deploymentController = {
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }
+  },
+
+  // API: Save Nodes
+  saveNodes: async (req, res) => {
+    try {
+      const result = await deploymentService.saveNodes(req.body.nodes);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  // API: Get Nodes
+  getNodes: async (req, res) => {
+    try {
+      const result = await deploymentService.getNodes();
+      res.json({ success: true, data: result.nodes });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  // API: Detect Hardware
+  detectHardware: async (req, res) => {
+    try {
+      const result = await deploymentService.detectHardware(req.body.nodes);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
   }
 };
 

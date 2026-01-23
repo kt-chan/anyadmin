@@ -44,6 +44,39 @@ const deploymentService = {
       logger.error('Error saving model config:', error);
       throw error;
     }
+  },
+
+  // Save target nodes
+  saveNodes: async (nodes) => {
+    try {
+      const response = await apiClient.post('/deploy/nodes', { nodes });
+      return response.data;
+    } catch (error) {
+      logger.error('Error saving nodes:', error);
+      throw error;
+    }
+  },
+
+  // Get target nodes
+  getNodes: async () => {
+    try {
+      const response = await apiClient.get('/deploy/nodes');
+      return response.data; // Expecting { nodes: [] }
+    } catch (error) {
+      logger.error('Error fetching nodes:', error);
+      throw error;
+    }
+  },
+
+  // Detect hardware
+  detectHardware: async (nodes) => {
+    try {
+      const response = await apiClient.post('/deploy/detect-hardware', { nodes });
+      return response.data;
+    } catch (error) {
+      logger.error('Error detecting hardware:', error);
+      throw error;
+    }
   }
 };
 

@@ -113,6 +113,11 @@ class DeploymentConfig(BaseModel):
     mode: str
     platform: str
     components: Dict[str, Any]
+    target_nodes: Optional[str] = None
+    inference_host: Optional[str] = None
+
+class NodesConfig(BaseModel):
+    nodes: List[str]
 
 class ModelConfig(BaseModel):
     name: str
@@ -120,9 +125,24 @@ class ModelConfig(BaseModel):
     platform: str
     params: Dict[str, Any]
 
+class HardwareConfig(BaseModel):
+    nodes: List[str]
+
+@app.post("/deploy/detect-hardware")
+def detect_hardware(config: HardwareConfig):
+    return mock_data.detect_system_hardware(config.nodes)
+
 @app.post("/deploy/generate")
 def generate_deployment(config: DeploymentConfig):
     return mock_data.generate_deployment_artifacts(config.model_dump())
+
+@app.post("/deploy/nodes")
+def save_nodes(config: NodesConfig):
+    return mock_data.save_target_nodes(config.nodes)
+
+@app.get("/deploy/nodes")
+def get_nodes():
+    return {"nodes": mock_data.get_target_nodes()}
 
 @app.post("/deploy/test-connection")
 def test_connection(service: Dict[str, Any] = Body(...)):

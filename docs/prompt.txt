@@ -159,3 +159,115 @@ Since you donot work the actual platform for running the required services, you 
 - Make sure the unit test work, and you run it before finish the job, otherwise retry another approach. Previuosly, You get this error: 
 
 ## Task 5.1
+
+analyze this view pug  @frontend\views\deployment.pug, then you have to rewrite and enrich this view pug as well as the corresponding frontend and backend services for below funcitonal features enrichment.
+
+**Objective:**
+
+Update deployment.pug and corresponding codes to deploy and manage an AI platform that supports both workflow "One-Click Deployment Wizard" and "Integration with Existing Services".
+
+1. "One-Click Deployment Wizard" support standard setup for either huawei ascend platform or nvidia vllm platform, including lancedb as vector database, and mineru as document parseing service. this wizard should generate deployment scripts (k8s yaml file, and bash script on ubuntu 22.04).
+2. "Integration with Existing Services" support connectivity test, and package installation scripts for corresponding platform.
+
+
+### **Coding Guide**  
+- this is a windows environment and you are running in powershell.
+- Use batch syntax checking to identify and fix multiple issues at once.  
+- Since you donot work the actual platform for running the required services, you should simulate those action and response using backend/mockData, so that you do not built, download and run the actual service.
+- Launch the apps / processes with seperate process and redirect the output to logs, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
+- Verify fixes systematically by accessing the frontend app and backend fastapi service with writing unit tests, and you should pass this unit test and Check logs for details.  
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers before termination.  
+- Make sure the unit test work, and you run it before finish the job, otherwise retry another approach. 
+
+## Task 5.2
+
+analyze this view pug  @frontend\views\deployment.pug, then you have to rewrite and enrich this view pug as well as the corresponding frontend and backend services for below funcitonal features enrichment objective.
+
+*** funcitonal features enrichment ***
+
+**Objective:**
+1. enrich the deployment's subsection STEP 2: Management Interface (管理面板配置) to support multple hosts, such that the system allow config and deploy service onto different hosts.
+2. add final connectivity and service readiness check after new deployment, to verify the system is fully functional.
+
+remark:  Since you donot work the actual platform for running the required services, you should simulate those action and response using backend/mockData, so that you do not built, download and run the actual service.
+
+### **Coding Guide**  
+- this is a windows environment and you are running in powershell.
+- Use batch syntax checking to identify and fix multiple issues at once.  
+- Since you donot work the actual platform for running the required services, you should simulate those action and response using backend/mockData, so that you do not built, download and run the actual service.
+- Launch the apps / processes with seperate process and redirect the output to logs, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
+- Verify fixes systematically by accessing the frontend app and backend fastapi service with writing unit tests, and you should pass this unit test and Check logs for details.  
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers before termination.  
+- Make sure the unit test work, and you run it before finish the job, otherwise retry another approach. 
+
+
+
+## Task 5.3
+analyze this view pug  @frontend\views\deployment.pug, then you have to rewrite and enrich this view pug as well as the corresponding frontend and backend services for below funcitonal features enrichment objective.
+And you have to follow the restrictions and Coding Guide provided in final section of below context.
+
+*** funcitonal features enrichment ***
+
+**Objective:**
+1. Target Nodes should support host and port, 管理面板 Host and 管理面板 Port should be prefilled/auto filled by backend service using external ip (not 127.0.0.1 / localhost);
+2. enrich the deployment's subsection STEP 2: Management Interface (管理面板配置) to support remote servers / hosts password-less ssh login;
+   2.1 you should give a setup guide and call the backend to generate ssh key for user downlaod, and show instruction to enable this admin app to connect to the remote hosts via passwordless ssh, 
+   2.2 then ask user to download the key, and perform the setup according 1.1, 
+   2.3 after that perform connectivity test for passwordless login, and this Verify SSH Connectivity (Check Target Nodes) should put below the nodes and ports configuration
+
+
+**Restrictions**  
+Since you donot work the actual platform for running the required services, you should simulate those action and response using backend/mockData, so that you do not built, download and run the actual service.
+
+**Coding Guide**  
+- this is a windows environment and you are running in powershell.
+- Use batch syntax checking to identify and fix multiple issues at once.  
+- Launch the apps / processes with seperate process and redirect the output to logs, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
+- Verify fixes systematically by accessing the frontend app and backend fastapi service with writing unit tests, and you should pass this unit test and Check logs for details.  
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers before termination.  
+- Make sure the unit test work, and you run it before finish the job, otherwise retry another approach. 
+
+## Task 5.4
+analyze this view pug  @frontend\views\deployment.pug, then you have to rewrite and enrich this view pug as well as the corresponding frontend and backend services for below funcitonal features enrichment objective.
+And you have to follow the restrictions and Coding Guide provided in final section of below context.
+
+*** funcitonal features enrichment ***
+
+**Objective:**
+1. add backend service and backend mockData to support target host dropdown selection. currently it is all blank values.
+2. 推理引擎配置 - 模型路径 should also be a dropdown select for pre-loaded models (such as qwen3-32b, deepseek-llama-70B)
+3. add field check for each subpage, ensure all required fields are provided then enable the next step button.
+
+
+**Restrictions**  
+Since you donot work the actual platform for running the required services, you should simulate those action and response using backend/mockData, so that you do not built, download and run the actual service.
+
+**Coding Guide**  
+- this is a windows environment and you are running in powershell.
+- Use batch syntax checking to identify and fix multiple issues at once.  
+- Launch the apps / processes with seperate process and redirect the output to logs, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers before termination.  
+- Write unit tests to verify any update systematically by accessing the frontend app and backend fastapi services code changes.
+- Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
+
+
+## Task 5.5
+analyze this view pug  @frontend\views\deployment.pug, then you have to rewrite and enrich this view pug as well as the corresponding frontend and backend services for below funcitonal features enrichment objective.
+And you have to follow the restrictions and Coding Guide provided in final section of below context.
+
+*** funcitonal features enrichment ***
+
+**Objective:**
+1. for step 1 "模式/硬件-选择部署模式与硬件", the next step ("下一步") is always disabled, even after selection of deployment mode (部署模式) and Archtiecture (目标硬件平台). Fix this.
+
+
+**Restrictions**  
+Since you donot work the actual platform for running the required services, you should simulate those action and response using backend/mockData, so that you do not built, download and run the actual service.
+
+**Coding Guide**  
+- this is a windows environment and you are running in powershell.
+- Use batch syntax checking to identify and fix multiple issues at once.  
+- Launch the apps / processes with seperate process and redirect the output to logs, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers before termination.  
+- Write unit tests to verify any update systematically by accessing the frontend app and backend fastapi services code changes.
+- Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 

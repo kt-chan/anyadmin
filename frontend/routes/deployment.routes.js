@@ -12,4 +12,8 @@ router.post('/api/test-connection', requireLogin, deploymentController.testConne
 router.get('/api/models', requireLogin, deploymentController.getModels);
 router.post('/api/models', requireLogin, deploymentController.saveModel);
 
+router.get('/api/nodes', requireLogin, deploymentController.getNodes);
+router.post('/api/nodes', requireLogin, deploymentController.saveNodes);
+router.post('/api/detect-hardware', requireLogin, deploymentController.detectHardware);
+
 module.exports = router;

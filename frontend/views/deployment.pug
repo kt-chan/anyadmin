@@ -18,8 +18,8 @@ block content
         //- Tabs Header
         header(class="mb-8 flex justify-between items-center")
           div
-            h2(class="text-2xl font-bold text-slate-800") 部署与模型管理
-            p(class="text-slate-500 text-sm") 管理 AI 基础设施部署及模型配置
+            h2(class="text-2xl font-bold text-slate-800") 机器节点和部署管理
+            p(class="text-slate-500 text-sm") 管理 AI 基础设施部署
 
           //- Tab Switcher
           div(class="bg-white p-1 rounded-xl border border-slate-200 shadow-sm flex")
@@ -36,15 +36,15 @@ block content
             //- Wizard Progress
             .bg-slate-50.p-6.border-b.border-slate-100
               .flex.justify-between.px-8.items-center
-                //- Step 1
+                //- Step 1 (Now Basic Config)
                 .step-indicator.flex.flex-col.items-center.gap-2.text-blue-600(data-step="1")
                   .w-8.h-8.rounded-full.bg-blue-600.text-white.flex.items-center.justify-center.font-bold.text-sm 1
-                  span(class="text-xs font-bold") 模式/硬件
+                  span(class="text-xs font-bold") 基础配置
                 .flex-1.h-px.bg-slate-200.mx-4
-                //- Step 2
+                //- Step 2 (Now Mode/Hardware)
                 .step-indicator.flex.flex-col.items-center.gap-2.text-slate-400(data-step="2")
                   .w-8.h-8.rounded-full.bg-white.border-2.border-slate-200.text-slate-400.flex.items-center.justify-center.font-bold.text-sm 2
-                  span(class="text-xs") 基础配置
+                  span(class="text-xs") 模式/硬件
                 .flex-1.h-px.bg-slate-200.mx-4
                 //- Step 3
                 .step-indicator.flex.flex-col.items-center.gap-2.text-slate-400(data-step="3")
@@ -62,9 +62,52 @@ block content
                   span(class="text-xs") 部署生成
 
             form#wizard-form.p-8
-              //- STEP 1: Mode & Hardware
+              //- STEP 1 (Swapped): Management Interface
               #step-1.step-content.active
-                h3(class="font-bold text-lg mb-6") 1. 选择部署模式与硬件
+                h3(class="font-bold text-lg mb-6") 1. 管理面板与节点配置
+                .grid.grid-cols-2.gap-6
+                  div
+                    label.block.text-sm.font-medium.text-slate-700.mb-1 管理面板 Host
+                    input(type="text", name="mgmt_host", value="192.168.1.100", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
+                  div
+                    label.block.text-sm.font-medium.text-slate-700.mb-1 管理面板 Port
+                    input(type="number", name="mgmt_port", value="3000", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
+                
+                //- SSH Configuration Guide
+                .mt-6.p-4.bg-blue-50.rounded-xl.border.border-blue-100
+                  h4.font-bold.text-sm.text-blue-800.mb-2 
+                    i.fas.fa-key.mr-2
+                    | Configure Passwordless SSH Access
+                  p.text-xs.text-blue-600.mb-3 To manage remote nodes, please use the system-generated SSH key.
+                  
+                  .flex.items-center.gap-4.mb-4
+                    button(type="button", onclick="downloadSSHKey()", class="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 shadow-sm")
+                      i.fas.fa-download.mr-2
+                      | Download System SSH Key
+                    span.text-xs.text-blue-400 (id_rsa.pub)
+
+                  .bg-white.p-3.rounded-lg.border.border-blue-200
+                    code.text-xs.text-slate-600.block.mb-1 # On each target node, add this key to authorized_keys:
+                    code.text-xs.font-mono.text-slate-800.block cat id_rsa.pub >> ~/.ssh/authorized_keys
+
+                //- Target Nodes Configuration
+                .mt-6
+                  label.block.text-sm.font-medium.text-slate-700.mb-2 目标计算节点 (Target Nodes)
+                  textarea(name="target_nodes", rows="3", placeholder="Enter IP addresses and ports, one per line\n192.168.1.101:22\n192.168.1.102:22", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm font-mono")
+                  p.text-xs.text-slate-500.mt-1 输入将部署推理服务或向量库的节点 IP 列表。
+                
+                .mt-3
+                  button(type="button", onclick="testConnection('ssh')", class="text-blue-700 text-xs font-bold hover:underline bg-white px-3 py-2 rounded border border-blue-200 shadow-sm") 
+                    i.fas.fa-terminal.mr-1
+                    | Verify SSH Connectivity (Check Target Nodes)
+
+                p.text-xs.text-slate-500.mt-4.bg-blue-50.p-3.rounded-lg.border.border-blue-100
+                  i.fas.fa-info-circle.mr-2
+                  | 这是 AnyAdmin 管理界面的访问地址及集群节点配置。
+
+              //- STEP 2 (Swapped): Mode & Hardware
+              #step-2.step-content
+                h3(class="font-bold text-lg mb-6") 2. 选择部署模式与硬件
                 
                 label.block.text-sm.font-bold.text-slate-700.mb-2 部署模式
                 .grid.grid-cols-2.gap-6.mb-8
@@ -84,10 +127,11 @@ block content
                       h4(class="font-bold text-slate-800 mb-2") 对接现有服务
                       p(class="text-xs text-slate-500 leading-relaxed") 手动输入现有服务 IP/Port，仅部署管理面板。
 
-                label.block.text-sm.font-bold.text-slate-700.mb-2 目标硬件平台
+                label.block.text-sm.font-bold.text-slate-700.mb-2 目标硬件平台 (Auto-Detected)
+                #hardware-detection-status.mb-4.text-sm.text-slate-500 Waiting for detection...
                 .grid.grid-cols-2.gap-4
                   label.cursor-pointer
-                    input(type="radio", name="platform", value="ascend", class="peer sr-only", checked)
+                    input(type="radio", name="platform", value="ascend", class="peer sr-only", disabled)
                     div(class="flex items-center gap-3 px-6 py-4 border-2 border-slate-200 rounded-xl font-bold text-slate-600 hover:border-blue-500 peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:text-blue-700 transition")
                       i(class="fas fa-microchip")
                       div
@@ -95,42 +139,37 @@ block content
                         div.text-xs.font-normal.mt-1 引擎: MindIE
                   
                   label.cursor-pointer
-                    input(type="radio", name="platform", value="nvidia", class="peer sr-only")
+                    input(type="radio", name="platform", value="nvidia", class="peer sr-only", disabled)
                     div(class="flex items-center gap-3 px-6 py-4 border-2 border-slate-200 rounded-xl font-bold text-slate-600 hover:border-blue-500 peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:text-blue-700 transition")
                       i(class="fab fa-nvidia")
                       div
                         div NVIDIA GPU
                         div.text-xs.font-normal.mt-1 引擎: vLLM
 
-              //- STEP 2: Management Interface
-              #step-2.step-content
-                h3(class="font-bold text-lg mb-6") 2. 管理面板配置
-                .grid.grid-cols-2.gap-6
-                  div
-                    label.block.text-sm.font-medium.text-slate-700.mb-1 主机地址 (Host)
-                    input(type="text", name="mgmt_host", value="0.0.0.0", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
-                  div
-                    label.block.text-sm.font-medium.text-slate-700.mb-1 端口 (Port)
-                    input(type="number", name="mgmt_port", value="3000", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
-                p.text-xs.text-slate-500.mt-2.bg-blue-50.p-3.rounded-lg.border.border-blue-100
-                  i.fas.fa-info-circle.mr-2
-                  | 这是 AnyAdmin 管理界面的访问地址。
-
               //- STEP 3: Inference Engine
               #step-3.step-content
                 h3(class="font-bold text-lg mb-6") 3. 推理引擎配置
                 .space-y-4
                   div
-                    label.block.text-sm.font-medium.text-slate-700.mb-1 模型路径 / HuggingFace ID
-                    input(type="text", name="model_path", placeholder="e.g., /data/models/llama2-7b or meta-llama/Llama-2-7b", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
+                    label.block.text-sm.font-medium.text-slate-700.mb-1 推理模型 (Model Selection)
+                    select(name="model_path", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
+                      option(value="", disabled, selected) Select a Model
+                      option(value="qwen/Qwen2.5-32B-Instruct") Qwen2.5-32B-Instruct
+                      option(value="deepseek-ai/deepseek-llama-70b") DeepSeek-Llama-70B
+                      option(value="meta-llama/Llama-3-8b-chat") Llama-3-8b-chat
                   
+                  div
+                    label.block.text-sm.font-medium.text-slate-700.mb-1 部署目标主机 (Target Host)
+                    select(name="inference_host", class="node-selector w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
+                      option(value="") Select Target Node
+
                   .grid.grid-cols-2.gap-6
                     div
                       label.block.text-sm.font-medium.text-slate-700.mb-1 服务端口
                       input(type="number", name="inference_port", value="8000", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
                     div
-                      label.block.text-sm.font-medium.text-slate-700.mb-1 最大 Token 数
-                      input(type="number", name="max_tokens", value="4096", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
+                      label.block.text-sm.font-medium.text-slate-700.mb-1 模型名称 (Model Name)
+                      input(type="text", name="model_name", placeholder="e.g. Llama-2-7b-chat", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
 
                   //- Show test connection only in integration mode
                   .integration-only.hidden.mt-4
@@ -161,21 +200,37 @@ block content
                     .grid.grid-cols-2.gap-4
                       div
                         label.block.text-xs.font-medium.text-slate-500.mb-1 数据库 Host
-                        input(type="text", name="vectordb_host", value="localhost", class="w-full text-sm rounded-md border-2 border-slate-300")
+                        select(name="vectordb_host", class="node-selector w-full text-sm rounded-md border-2 border-slate-300")
+                          option(value="") Select Target Node
                       div
                         label.block.text-xs.font-medium.text-slate-500.mb-1 数据库 Port
                         input(type="number", name="vectordb_port", value="19530", class="w-full text-sm rounded-md border-2 border-slate-300")
+                    
+                    //- Test Connection for Vector DB
+                    .integration-only.hidden.mt-3
+                       button(type="button", onclick="testConnection('vectordb')", class="text-blue-600 text-xs font-bold hover:underline") <i class="fas fa-plug mr-1"></i> 测试连接
 
                 .border-t.pt-6
                   label.block.text-sm.font-bold.text-slate-700.mb-2 文档解析服务
-                  .flex.items-center.gap-3.p-4.border.rounded-lg.bg-slate-50
-                    i(class="fas fa-file-alt text-slate-400")
-                    div.flex-1
-                      div.font-bold.text-sm Mineru (PDF/Docx Parser)
-                      div.text-xs.text-slate-500 Primary parsing engine
-                    div
-                       label.text-xs.text-slate-500.mr-2 Port:
-                       input(type="number", name="parser_port", value="8888", class="w-20 text-sm rounded-md border-2 border-slate-300")
+                  .bg-slate-50.p-4.rounded-lg.border.border-slate-200
+                    .flex.items-center.gap-3.mb-4
+                        i(class="fas fa-file-alt text-slate-400")
+                        div.flex-1
+                            div.font-bold.text-sm Mineru (PDF/Docx Parser)
+                            div.text-xs.text-slate-500 Primary parsing engine
+
+                    .grid.grid-cols-2.gap-4
+                        div
+                            label.block.text-xs.font-medium.text-slate-500.mb-1 服务 Host
+                            select(name="parser_host", class="node-selector w-full text-sm rounded-md border-2 border-slate-300")
+                              option(value="") Select Target Node
+                        div
+                            label.block.text-xs.font-medium.text-slate-500.mb-1 服务 Port
+                            input(type="number", name="parser_port", value="8888", class="w-full text-sm rounded-md border-2 border-slate-300")
+                    
+                    //- Test Connection for Parser
+                    .integration-only.hidden.mt-3
+                       button(type="button", onclick="testConnection('parser')", class="text-blue-600 text-xs font-bold hover:underline") <i class="fas fa-plug mr-1"></i> 测试连接
 
               //- STEP 5: Review & Generate
               #step-5.step-content
@@ -194,13 +249,16 @@ block content
                     i(class="fas fa-download mr-2") 
                     | 导出配置文件
 
+                //- Results Container (Populated by JS)
+                #generation-results.hidden.mt-6.border-t.pt-6
+
             //- Footer Navigation
             .bg-slate-50.p-6.border-t.border-slate-100.flex.justify-between.items-center
               button#prev-btn(type="button", class="text-slate-500 font-bold text-sm hover:text-slate-700 px-4 py-2 hidden") 
                 i(class="fas fa-arrow-left mr-2")
                 | 上一步
               
-              button#next-btn(type="button", class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition ml-auto")
+              button#next-btn(type="button", disabled, class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition ml-auto disabled:opacity-50 disabled:cursor-not-allowed")
                 | 下一步
                 i(class="fas fa-arrow-right ml-2")
 

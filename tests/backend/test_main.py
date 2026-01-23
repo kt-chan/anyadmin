@@ -142,18 +142,73 @@ def test_deploy_generate():
     data = response.json()
     assert data["status"] == "success"
     assert "artifacts" in data
-    assert "deploy.sh" in data["artifacts"]
+    assert "deploy_ubuntu.sh" in data["artifacts"]
+
+def test_deploy_generate_multinode():
+    config = {
+        "mode": "new_deployment",
+        "platform": "nvidia",
+        "target_nodes": "10.0.0.1\n10.0.0.2",
+        "inference_host": "node-1",
+        "components": {}
+    }
+    response = client.post("/deploy/generate", json=config)
+    assert response.status_code == 200
+    data = response.json()
+    artifacts = data["artifacts"]
+    
+    assert "hosts.ini" in artifacts
+    assert "10.0.0.1" in artifacts["hosts.ini"]
+    
+    assert "nodeSelector" in artifacts["k8s_deployment.yaml"]
+    assert "node-1" in artifacts["k8s_deployment.yaml"]
+    
+    assert "Multi-node setup detected" in artifacts["deploy_ubuntu.sh"]
+
+def test_deploy_nodes():
+    nodes = ["192.168.1.10", "192.168.1.11"]
+    
+    # Save
+    response = client.post("/deploy/nodes", json={"nodes": nodes})
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
+    
+    # Get
+    response = client.get("/deploy/nodes")
+    assert response.status_code == 200
+    assert response.json()["nodes"] == nodes
 
 def test_deploy_test_connection():
-    # Success case
-    response = client.post("/deploy/test-connection", json={"host": "127.0.0.1", "port": 8000})
+    # Success case - Generic
+    response = client.post("/deploy/test-connection", json={"host": "127.0.0.1", "port": 8000, "type": "inference"})
     assert response.status_code == 200
     assert response.json()["status"] == "success"
 
+    # Success case - Parser
+    response = client.post("/deploy/test-connection", json={"host": "127.0.0.1", "port": 8888, "type": "parser"})
+    assert response.status_code == 200
+    assert "Mineru" in response.json()["message"]
+
     # Fail case
-    response = client.post("/deploy/test-connection", json={"host": "fail-host", "port": 8000})
+    response = client.post("/deploy/test-connection", json={"host": "fail-host", "port": 8000, "type": "inference"})
     assert response.status_code == 200
     assert response.json()["status"] == "error"
+
+def test_deploy_test_connection_ssh():
+    # Success case
+    response = client.post("/deploy/test-connection", json={"host": "192.168.1.1\n192.168.1.2", "port": 22, "type": "ssh"})
+    assert response.status_code == 200
+    json_resp = response.json()
+    assert json_resp["status"] == "success"
+    assert "192.168.1.1" in json_resp["message"]
+
+    # Fail case
+    response = client.post("/deploy/test-connection", json={"host": "192.168.1.1\nfail-node", "port": 22, "type": "ssh"})
+    assert response.status_code == 200
+    json_resp = response.json()
+    assert json_resp["status"] == "error"
+    assert "fail-node" in json_resp["message"]
+
 
 def test_get_models():
     response = client.get("/models")

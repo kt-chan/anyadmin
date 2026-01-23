@@ -11,6 +11,7 @@
 2. 启动后端：
     - cd core; go run cmd/server/main.go
     - 或者: 先把后端编译成可执行程序再执行: cd core; go build -o anyzearch-admin cmd/server/main.go; ./anyzearch-admin
+3. 后端需要的容器要提前pull，比如:  docker pull vllm/vllm-openai
 
 ## 登录：
 1. 默认端口：http://localhost:5173/dashboard

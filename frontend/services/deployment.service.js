@@ -16,16 +16,35 @@ const deploymentService = {
     }
   },
 
+  // Get System SSH Key
+  getSSHKey: async (token) => {
+    try {
+      const axiosConfig = {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'text'
+      };
+      const response = await apiClient.get('/api/v1/deploy/ssh-key', axiosConfig);
+      return response.data;
+    } catch (error) {
+      logger.error('Error getting SSH key:', error);
+      throw error;
+    }
+  },
+
   // Test service connection
   testConnection: async (token, serviceDetails) => {
     try {
       const axiosConfig = {
         headers: { Authorization: `Bearer ${token}` }
       };
-      // Mocking test connection since backend doesn't have it yet
-      // const response = await apiClient.post('/api/v1/deploy/test-connection', serviceDetails, axiosConfig);
-      // return response.data;
-      return { success: true, message: 'Connection successful' };
+      
+      if (serviceDetails.type === 'ssh') {
+        const response = await apiClient.post('/api/v1/deploy/verify-ssh', serviceDetails, axiosConfig);
+        return response.data;
+      }
+      
+      // Keep mock for others for now or route them if backend supports
+      return { success: true, message: 'Connection successful (Mock for non-SSH)' };
     } catch (error) {
       logger.error('Error testing connection:', error);
       throw error;

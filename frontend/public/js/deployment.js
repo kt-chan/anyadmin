@@ -347,17 +347,37 @@ function createResultsContainer() {
   return container;
 }
 
-window.downloadSSHKey = function() {
-  const mockKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC... generated-by-anyadmin";
-  const blob = new Blob([mockKey], { type: "text/plain" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "id_rsa.pub";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+window.downloadSSHKey = async function() {
+  try {
+    const btn = document.querySelector('button[onclick="downloadSSHKey()"]');
+    const originalText = btn ? btn.innerHTML : 'Download System SSH Key';
+    if(btn) {
+       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Downloading...';
+       btn.disabled = true;
+    }
+
+    const response = await fetch('/deployment/api/ssh-key');
+    if (!response.ok) throw new Error('Failed to fetch key');
+    const keyContent = await response.text();
+    
+    const blob = new Blob([keyContent], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "id_rsa.pub";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Could not download SSH Key: ' + e.message);
+  } finally {
+    const btn = document.querySelector('button[onclick="downloadSSHKey()"]');
+    if(btn) {
+       btn.innerHTML = originalText;
+       btn.disabled = false;
+    }
+  }
 };
 
 window.testConnection = async function(type) {

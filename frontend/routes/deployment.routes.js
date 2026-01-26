@@ -8,6 +8,7 @@ router.get('/', requireLogin, deploymentController.showDeployment);
 
 // API Routes
 router.post('/api/generate', requireLogin, deploymentController.generate);
+router.get('/api/ssh-key', requireLogin, deploymentController.getSSHKey);
 router.post('/api/test-connection', requireLogin, deploymentController.testConnection);
 router.get('/api/models', requireLogin, deploymentController.getModels);
 router.post('/api/models', requireLogin, deploymentController.saveModel);

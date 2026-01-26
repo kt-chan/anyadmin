@@ -26,6 +26,18 @@ const deploymentController = {
     }
   },
 
+  // API: Get SSH Key
+  getSSHKey: async (req, res) => {
+    try {
+      const token = req.session.user?.token;
+      const key = await deploymentService.getSSHKey(token);
+      res.set('Content-Type', 'text/plain');
+      res.send(key);
+    } catch (error) {
+      res.status(500).send('Failed to fetch SSH key');
+    }
+  },
+
   // API: Test Connection
   testConnection: async (req, res) => {
     try {

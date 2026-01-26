@@ -140,3 +140,6 @@ vite.config.ts.timestamp-*
 
 # pycache
 tests/backend/__pycache__
+
+# rsa keys
+backend/keys

@@ -3,14 +3,14 @@
   "version": "1.0.0",
   "description": "Root package for AnyAdmin project managing both frontend and backend",
   "scripts": {
-    "install:backend": "pip install -r backend/requirements.txt",
+    "install:backend": "cd backend && go mod download",
     "install:all": "npm install && npm run install:backend",
     "start:frontend": "cd frontend && npm start",
-    "start:backend": "python -m backend.main",
+    "start:backend": "cd backend && go run cmd/server/main.go",
     "dev": "npm-run-all --parallel start:backend start:frontend",
     "test": "npm-run-all --parallel test:frontend test:backend",
     "test:frontend": "jest tests/frontend",
-    "test:backend": "python -m pytest tests/backend"
+    "test:backend": "cd backend && go test ./internal/service/..."
   },
   "dependencies": {
     "@tailwindcss/cli": "^4.1.18",

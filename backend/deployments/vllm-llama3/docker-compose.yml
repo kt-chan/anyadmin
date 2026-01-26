@@ -1,0 +1,18 @@
+version: '3.8'
+services:
+  inference:
+    image: vllm/vllm-openai:latest
+    container_name: vllm-llama3
+    ports:
+      - "8000:8000"
+    volumes:
+      - /data/llama3:/model
+    command: --model /model --max-model-len 4096
+    
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

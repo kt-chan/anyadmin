@@ -34,6 +34,8 @@ func NewRouter() *gin.Engine {
 			auth.GET("/configs/inference", api.GetInferenceConfigs)
 			auth.POST("/configs/inference", api.SaveInferenceConfig)
 			auth.DELETE("/configs/inference/:id", api.DeleteInferenceConfig)
+			auth.GET("/deploy/ssh-key", api.GetSystemSSHKey)
+			auth.POST("/deploy/verify-ssh", api.VerifyNodeConnection)
 			auth.POST("/deploy/generate", api.DeployService)
 			auth.GET("/import/tasks", api.GetImportTasks)
 			auth.POST("/import/tasks", api.CreateImportTask)

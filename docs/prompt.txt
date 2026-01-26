@@ -271,3 +271,24 @@ Since you donot work the actual platform for running the required services, you 
 - Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers before termination.  
 - Write unit tests to verify any update systematically by accessing the frontend app and backend fastapi services code changes.
 - Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
+
+## Task 6
+
+analyze this view pug  @frontend\views\deployment.pug, then you have to rewrite and enrich this view pug as well as the corresponding frontend and backend services for below funcitonal features enrichment objective.
+And you have to follow Coding Guide provided in final section of below context.
+
+*** funcitonal features enrichment ***
+
+**Objective:**
+1.  Under section "机器节点和部署管理", Implement "Passwordless SSH Access" in backend service to generate id_ras.pub authorized_keys, and "Verify SSH Connectivity (Check Target Nodes)"
+2.  Update frontend code required for this function
+3.  Write unit test for this task
+
+
+**Coding Guide**  
+- this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, and backend code in GO.
+- Use batch syntax checking to identify and fix multiple issues at once.  
+- Launch the apps / processes with seperate process and redirect the output to logs, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers before termination.  
+- Write unit tests to verify any update systematically by accessing the frontend app and backend fastapi services code changes.
+- Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 

@@ -9,22 +9,20 @@
       "cwd": "${workspaceFolder}/frontend",
       "env": {
         "NODE_ENV": "development",
-        "BACKEND_API_URL": "http://127.0.0.1:8000"
+        "BACKEND_API_URL": "http://127.0.0.1:8080"
       },
       "console": "integratedTerminal",
       "preLaunchTask": "wait-for-backend"
     },
     {
-      "name": "Run Backend",
-      "type": "python",
+      "name": "Run Backend (Go)",
+      "type": "go",
       "request": "launch",
-      "module": "backend.main",
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}"
-      },
-      "console": "integratedTerminal",
-      "justMyCode": false
+      "mode": "debug",
+      "program": "${workspaceFolder}/backend/cmd/server/main.go",
+      "cwd": "${workspaceFolder}/backend",
+      "env": {},
+      "console": "integratedTerminal"
     },
     {
       "type": "node",
@@ -38,27 +36,12 @@
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen"
-    },
-    {
-      "name": "Debug Backend Tests (Pytest)",
-      "type": "python",
-      "request": "launch",
-      "module": "pytest",
-      "args": [
-        "tests/backend"
-      ],
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}"
-      },
-      "console": "integratedTerminal",
-      "justMyCode": false
     }
   ],
   "compounds": [
     {
       "name": "Run Full Stack",
-      "configurations": ["Run Backend", "Run Frontend"]
+      "configurations": ["Run Backend (Go)", "Run Frontend"]
     }
   ]
 }

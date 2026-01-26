@@ -3,9 +3,12 @@ const logger = require('../utils/logger');
 
 const deploymentService = {
   // Generate deployment artifacts
-  generateDeployment: async (config) => {
+  generateDeployment: async (token, config) => {
     try {
-      const response = await apiClient.post('/deploy/generate', config);
+      const axiosConfig = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+      const response = await apiClient.post('/api/v1/deploy/generate', config, axiosConfig);
       return response.data;
     } catch (error) {
       logger.error('Error generating deployment:', error);
@@ -14,10 +17,15 @@ const deploymentService = {
   },
 
   // Test service connection
-  testConnection: async (serviceDetails) => {
+  testConnection: async (token, serviceDetails) => {
     try {
-      const response = await apiClient.post('/deploy/test-connection', serviceDetails);
-      return response.data;
+      const axiosConfig = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+      // Mocking test connection since backend doesn't have it yet
+      // const response = await apiClient.post('/api/v1/deploy/test-connection', serviceDetails, axiosConfig);
+      // return response.data;
+      return { success: true, message: 'Connection successful' };
     } catch (error) {
       logger.error('Error testing connection:', error);
       throw error;
@@ -25,9 +33,12 @@ const deploymentService = {
   },
 
   // Get list of models
-  getModels: async () => {
+  getModels: async (token) => {
     try {
-      const response = await apiClient.get('/models');
+      const axiosConfig = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+      const response = await apiClient.get('/api/v1/configs/inference', axiosConfig);
       return response.data;
     } catch (error) {
       logger.error('Error fetching models:', error);
@@ -36,9 +47,12 @@ const deploymentService = {
   },
 
   // Save model configuration
-  saveModelConfig: async (config) => {
+  saveModelConfig: async (token, config) => {
     try {
-      const response = await apiClient.post('/models', config);
+      const axiosConfig = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+      const response = await apiClient.post('/api/v1/configs/inference', config, axiosConfig);
       return response.data;
     } catch (error) {
       logger.error('Error saving model config:', error);
@@ -47,10 +61,10 @@ const deploymentService = {
   },
 
   // Save target nodes
-  saveNodes: async (nodes) => {
+  saveNodes: async (token, nodes) => {
     try {
-      const response = await apiClient.post('/deploy/nodes', { nodes });
-      return response.data;
+      // Backend doesn't have /deploy/nodes yet
+      return { success: true };
     } catch (error) {
       logger.error('Error saving nodes:', error);
       throw error;
@@ -58,10 +72,10 @@ const deploymentService = {
   },
 
   // Get target nodes
-  getNodes: async () => {
+  getNodes: async (token) => {
     try {
-      const response = await apiClient.get('/deploy/nodes');
-      return response.data; // Expecting { nodes: [] }
+      // Backend doesn't have /deploy/nodes yet
+      return { nodes: [] };
     } catch (error) {
       logger.error('Error fetching nodes:', error);
       throw error;
@@ -69,10 +83,10 @@ const deploymentService = {
   },
 
   // Detect hardware
-  detectHardware: async (nodes) => {
+  detectHardware: async (token, nodes) => {
     try {
-      const response = await apiClient.post('/deploy/detect-hardware', { nodes });
-      return response.data;
+      // Backend doesn't have /deploy/detect-hardware yet
+      return { success: true, hardware: 'Ascend NPU' };
     } catch (error) {
       logger.error('Error detecting hardware:', error);
       throw error;

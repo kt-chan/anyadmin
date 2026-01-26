@@ -5,7 +5,8 @@ const servicesController = {
   // 显示服务管理页面
   showServices: async (req, res) => {
     try {
-      const data = await servicesService.getServicesList();
+      const token = req.session.user?.token;
+      const data = await servicesService.getServicesList(token);
       
       res.render('services', {
         user: req.session.user,

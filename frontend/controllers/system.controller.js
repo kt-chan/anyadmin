@@ -5,7 +5,8 @@ const systemController = {
   // 显示系统管理页面
   showSystem: async (req, res) => {
     try {
-      const data = await systemService.getSystemData();
+      const token = req.session.user?.token;
+      const data = await systemService.getSystemData(token);
       
       res.render('system', {
         user: req.session.user,

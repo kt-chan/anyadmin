@@ -18,7 +18,8 @@ const deploymentController = {
   // API: Generate Deployment
   generate: async (req, res) => {
     try {
-      const result = await deploymentService.generateDeployment(req.body);
+      const token = req.session.user?.token;
+      const result = await deploymentService.generateDeployment(token, req.body);
       res.json({ success: true, data: result });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
@@ -28,7 +29,8 @@ const deploymentController = {
   // API: Test Connection
   testConnection: async (req, res) => {
     try {
-      const result = await deploymentService.testConnection(req.body);
+      const token = req.session.user?.token;
+      const result = await deploymentService.testConnection(token, req.body);
       res.json(result);
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
@@ -38,7 +40,8 @@ const deploymentController = {
   // API: Get Models
   getModels: async (req, res) => {
     try {
-      const models = await deploymentService.getModels();
+      const token = req.session.user?.token;
+      const models = await deploymentService.getModels(token);
       res.json({ success: true, data: models });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
@@ -48,7 +51,8 @@ const deploymentController = {
   // API: Save Model Config
   saveModel: async (req, res) => {
     try {
-      const result = await deploymentService.saveModelConfig(req.body);
+      const token = req.session.user?.token;
+      const result = await deploymentService.saveModelConfig(token, req.body);
       res.json({ success: true, data: result });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
@@ -58,7 +62,8 @@ const deploymentController = {
   // API: Save Nodes
   saveNodes: async (req, res) => {
     try {
-      const result = await deploymentService.saveNodes(req.body.nodes);
+      const token = req.session.user?.token;
+      const result = await deploymentService.saveNodes(token, req.body.nodes);
       res.json({ success: true, data: result });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
@@ -68,7 +73,8 @@ const deploymentController = {
   // API: Get Nodes
   getNodes: async (req, res) => {
     try {
-      const result = await deploymentService.getNodes();
+      const token = req.session.user?.token;
+      const result = await deploymentService.getNodes(token);
       res.json({ success: true, data: result.nodes });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
@@ -78,7 +84,8 @@ const deploymentController = {
   // API: Detect Hardware
   detectHardware: async (req, res) => {
     try {
-      const result = await deploymentService.detectHardware(req.body.nodes);
+      const token = req.session.user?.token;
+      const result = await deploymentService.detectHardware(token, req.body.nodes);
       res.json(result);
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });

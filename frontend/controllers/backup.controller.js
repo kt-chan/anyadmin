@@ -5,7 +5,8 @@ const backupController = {
   // 显示备份恢复页面
   showBackup: async (req, res) => {
     try {
-      const data = await backupService.getBackupData();
+      const token = req.session.user?.token;
+      const data = await backupService.getBackupData(token);
       
       res.render('backup', {
         user: req.session.user,

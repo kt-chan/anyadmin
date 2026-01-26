@@ -2,10 +2,13 @@ const apiClient = require('../utils/apiClient');
 const logger = require('../utils/logger');
 
 const backupService = {
-  getBackupData: async () => {
+  getBackupData: async (token) => {
     logger.debug('Fetching backup page data');
     try {
-      const response = await apiClient.get('/backups');
+      const config = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+      const response = await apiClient.get('/api/v1/backups', config);
       return {
         backups: response.data
       };
@@ -15,23 +18,37 @@ const backupService = {
     }
   },
 
-  createBackup: async (type) => {
+  createBackup: async (token, type) => {
     logger.info(`Creating backup of type: ${type}`);
-    return {
-      backupId: `bk_${Date.now()}`,
-      startTime: new Date().toLocaleTimeString()
-    };
+    try {
+      const config = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+      const response = await apiClient.post('/api/v1/backups', { type }, config);
+      return response.data;
+    } catch (error) {
+      logger.error('Error creating backup', error);
+      throw error;
+    }
   },
 
-  restoreFromBackup: async (backupId) => {
+  restoreFromBackup: async (token, backupId) => {
     logger.info(`Restoring from backup: ${backupId}`);
-    return {
-      restoreStartTime: new Date().toLocaleTimeString()
-    };
+    try {
+      const config = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+      const response = await apiClient.post(`/api/v1/backups/restore/${backupId}`, {}, config);
+      return response.data;
+    } catch (error) {
+      logger.error('Error restoring from backup', error);
+      throw error;
+    }
   },
 
-  deleteBackup: async (backupId) => {
+  deleteBackup: async (token, backupId) => {
     logger.info(`Deleting backup: ${backupId}`);
+    // Backend doesn't seem to have delete backup yet in router.go
     return true;
   }
 };

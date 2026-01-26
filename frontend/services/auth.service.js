@@ -5,9 +5,10 @@ const authService = {
   authenticate: async (username, password) => {
     logger.debug(`Attempting login for user: ${username}`);
     try {
-      const response = await apiClient.post('/auth/login', { username, password });
-      const user = response.data;
-      if (user) {
+      const response = await apiClient.post('/api/v1/login', { username, password });
+      const data = response.data;
+      if (data && data.user) {
+        const user = { ...data.user, token: data.token };
         logger.info(`User logged in successfully: ${username}`);
         return user;
       }

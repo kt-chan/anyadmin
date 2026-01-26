@@ -5,7 +5,8 @@ const dashboardController = {
   // 显示仪表板
   showDashboard: async (req, res) => {
     try {
-      const data = await dashboardService.getOverviewData();
+      const token = req.session.user?.token;
+      const data = await dashboardService.getOverviewData(token);
       
       res.render('dashboard', {
         user: req.session.user,

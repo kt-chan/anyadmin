@@ -1,5 +1,7 @@
 # AnyAdmin - AI Infrastructure Management Platform
 
+[English](README.md) | [中文](README_zh-CN.md)
+
 ## Abstract
 AnyAdmin is a comprehensive management interface designed for orchestrating AI infrastructure. it provides a unified platform for managing compute nodes, automating model deployments (vLLM, MindIE), configuring vector databases (LanceDB, Milvus), and monitoring system health. The platform simplifies complex deployment workflows through an intuitive wizard-based interface, supporting both NVIDIA GPU and Huawei Ascend NPU hardware.
 

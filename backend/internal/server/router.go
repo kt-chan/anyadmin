@@ -36,7 +36,13 @@ func NewRouter() *gin.Engine {
 			auth.DELETE("/configs/inference/:id", api.DeleteInferenceConfig)
 			auth.GET("/deploy/ssh-key", api.GetSystemSSHKey)
 			auth.POST("/deploy/verify-ssh", api.VerifyNodeConnection)
+			auth.POST("/deploy/test-connection", api.TestServiceConnection)
+			auth.POST("/deploy/vllm-models", api.FetchVLLMModels)
 			auth.POST("/deploy/generate", api.DeployService)
+			// Node Management
+			auth.GET("/deploy/nodes", api.GetNodes)
+			auth.POST("/deploy/nodes", api.SaveNodes)
+			
 			auth.GET("/import/tasks", api.GetImportTasks)
 			auth.POST("/import/tasks", api.CreateImportTask)
 			auth.GET("/backups", api.GetBackups)

@@ -13,6 +13,9 @@ var (
 	BackupRecords []global.BackupRecord
 	InferenceCfgs []global.InferenceConfig
 	OperationLogs []global.OperationLog
+    
+    // Deployment Nodes
+    DeploymentNodes []string
 	
 	// Mutex for thread-safe updates
 	Mu sync.Mutex
@@ -32,6 +35,9 @@ func InitData() {
 			Role:     "operator",
 		},
 	}
+
+    // Initialize Deployment Nodes
+    DeploymentNodes = []string{"1.1.1.1:20", "1.1.1.2:20", "1.1.1.3:20"}
 
 	// Initialize Inference Configs (Models)
 	InferenceCfgs = []global.InferenceConfig{

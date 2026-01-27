@@ -10,6 +10,7 @@ router.get('/', requireLogin, deploymentController.showDeployment);
 router.post('/api/generate', requireLogin, deploymentController.generate);
 router.get('/api/ssh-key', requireLogin, deploymentController.getSSHKey);
 router.post('/api/test-connection', requireLogin, deploymentController.testConnection);
+router.post('/api/discover-models', requireLogin, deploymentController.discoverModels);
 router.get('/api/models', requireLogin, deploymentController.getModels);
 router.post('/api/models', requireLogin, deploymentController.saveModel);
 

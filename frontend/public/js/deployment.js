@@ -34,8 +34,10 @@ async function fetchNodesAndPopulate() {
             sel.innerHTML = '<option value="">Select Target Node</option>';
             nodes.forEach(node => {
                 const opt = document.createElement('option');
-                opt.value = node;
-                opt.textContent = node;
+                // Strip port for service selection (e.g. "172.20.0.10:22" -> "172.20.0.10")
+                const ipOnly = node.split(':')[0];
+                opt.value = ipOnly;
+                opt.textContent = ipOnly;
                 sel.appendChild(opt);
             });
             if (nodes.includes(currentVal)) sel.value = currentVal;
@@ -46,9 +48,78 @@ async function fetchNodesAndPopulate() {
 
 // --- Wizard Logic ---
 
+window.refreshModels = async function(isManual = false) {
+  const hostSelect = document.getElementById('inference-host-select');
+  const portInput = document.getElementById('inference-port-input');
+  const modelSelect = document.getElementById('model-select');
+  
+  if (!hostSelect || !portInput || !modelSelect) return;
+
+  const host = hostSelect.value;
+  const port = portInput.value;
+
+  if (!host) {
+    if(isManual) alert("Please select a target host first.");
+    return;
+  }
+
+  const originalContent = modelSelect.innerHTML;
+  modelSelect.innerHTML = '<option>Loading models...</option>';
+  modelSelect.disabled = true;
+  
+  // Also rotate icon if called via button
+  const btn = document.querySelector('button[onclick="refreshModels()"] i');
+  if(btn) btn.classList.add('fa-spin');
+
+  try {
+    const response = await fetch('/deployment/api/discover-models', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ host, port })
+    });
+    
+    const result = await response.json();
+    
+    modelSelect.innerHTML = '<option value="" disabled selected>Select a Model</option>';
+    
+    if (result.success && result.data && result.data.data) {
+        // vLLM returns { object: "list", data: [ { id: "..." } ] }
+        result.data.data.forEach(model => {
+            const opt = document.createElement('option');
+            opt.value = model.id;
+            opt.textContent = model.id; // Use ID as display name
+            modelSelect.appendChild(opt);
+        });
+    } else {
+         const opt = document.createElement('option');
+         opt.value = "";
+         opt.textContent = "No models found or connection failed";
+         modelSelect.appendChild(opt);
+    }
+
+  } catch (e) {
+    console.error(e);
+    modelSelect.innerHTML = '<option value="">Error fetching models</option>';
+  } finally {
+    modelSelect.disabled = false;
+    if(btn) btn.classList.remove('fa-spin');
+  }
+};
+
 function initWizard() {
   const nextBtn = document.getElementById('next-btn');
   const prevBtn = document.getElementById('prev-btn');
+
+  // --- New Logic for Step 3 Model Selection ---
+  // Model name input removed from UI, relying on select value.
+  
+  // Auto-fetch when host changes in Step 3
+  const hostSelect = document.getElementById('inference-host-select');
+  if (hostSelect) {
+      hostSelect.addEventListener('change', () => {
+          if (currentStep === 3) refreshModels();
+      });
+  }
 
   if (nextBtn) {
     nextBtn.addEventListener('click', async () => {
@@ -65,9 +136,6 @@ function initWizard() {
         currentStep++;
         updateWizardUI();
 
-        if (currentStep === 2) {
-            detectHardware();
-        }
         }
     });
   }
@@ -387,8 +455,15 @@ window.testConnection = async function(type) {
   let payload = { type };
   
   if (type === 'inference') {
-    payload.host = formData.get('mgmt_host') || 'localhost'; 
+    // Use the selected target host from Step 3, not the management host
+    payload.host = formData.get('inference_host'); 
     payload.port = formData.get('inference_port');
+    if (!payload.host) {
+        alert("Please select a Target Host first.");
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+        return;
+    }
   } else if (type === 'vectordb') {
     payload.host = formData.get('vectordb_host');
     payload.port = formData.get('vectordb_port');
@@ -402,7 +477,7 @@ window.testConnection = async function(type) {
        return;
     }
     payload.host = nodesStr; 
-    payload.port = 22;
+    payload.port = "22";
   }
 
   const btn = event.target.tagName === 'BUTTON' ? event.target : event.target.closest('button');
@@ -537,39 +612,3 @@ window.copyContent = function(btn) {
         setTimeout(() => btn.innerHTML = original, 2000);
     });
 };
-
-async function detectHardware() {
-  const statusEl = document.getElementById('hardware-detection-status');
-  if (statusEl) statusEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Detecting hardware on nodes...';
-  
-  const targetNodesInput = document.querySelector('textarea[name="target_nodes"]');
-  const nodes = targetNodesInput ? targetNodesInput.value.split('\n').map(s => s.trim()).filter(s => s) : [];
-
-  try {
-    const response = await fetch('/deployment/api/detect-hardware', {
-       method: 'POST',
-       headers: { 'Content-Type': 'application/json' },
-       body: JSON.stringify({ nodes })
-    });
-    const result = await response.json();
-    
-    if (result.status === 'success') {
-       if (statusEl) {
-           statusEl.innerHTML = `<i class="fas fa-check-circle text-green-600 mr-2"></i> ${result.details}`;
-           statusEl.classList.remove('text-slate-500');
-           statusEl.classList.add('text-green-600');
-       }
-       
-       const radio = document.querySelector(`input[name="platform"][value="${result.platform}"]`);
-       if (radio) {
-           radio.checked = true;
-           validateStep(); // Re-validate to enable Next button
-       }
-    } else {
-       if (statusEl) statusEl.innerHTML = '<span class="text-red-500">Detection failed.</span>';
-    }
-  } catch (e) {
-     console.error(e);
-     if (statusEl) statusEl.innerHTML = '<span class="text-red-500">Network Error during detection.</span>';
-  }
-}

@@ -38,15 +38,24 @@ const deploymentService = {
         headers: { Authorization: `Bearer ${token}` }
       };
       
-      if (serviceDetails.type === 'ssh') {
-        const response = await apiClient.post('/api/v1/deploy/verify-ssh', serviceDetails, axiosConfig);
-        return response.data;
-      }
-      
-      // Keep mock for others for now or route them if backend supports
-      return { success: true, message: 'Connection successful (Mock for non-SSH)' };
+      const response = await apiClient.post('/api/v1/deploy/test-connection', serviceDetails, axiosConfig);
+      return response.data;
     } catch (error) {
       logger.error('Error testing connection:', error);
+      throw error;
+    }
+  },
+
+  // Discover models from remote vLLM service
+  discoverModels: async (token, { host, port }) => {
+    try {
+      const axiosConfig = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+      const response = await apiClient.post('/api/v1/deploy/vllm-models', { host, port }, axiosConfig);
+      return response.data;
+    } catch (error) {
+      logger.error('Error discovering models:', error);
       throw error;
     }
   },
@@ -82,8 +91,11 @@ const deploymentService = {
   // Save target nodes
   saveNodes: async (token, nodes) => {
     try {
-      // Backend doesn't have /deploy/nodes yet
-      return { success: true };
+      const axiosConfig = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+      const response = await apiClient.post('/api/v1/deploy/nodes', { nodes }, axiosConfig);
+      return response.data;
     } catch (error) {
       logger.error('Error saving nodes:', error);
       throw error;
@@ -93,8 +105,11 @@ const deploymentService = {
   // Get target nodes
   getNodes: async (token) => {
     try {
-      // Backend doesn't have /deploy/nodes yet
-      return { nodes: [] };
+      const axiosConfig = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+      const response = await apiClient.get('/api/v1/deploy/nodes', axiosConfig);
+      return response.data;
     } catch (error) {
       logger.error('Error fetching nodes:', error);
       throw error;

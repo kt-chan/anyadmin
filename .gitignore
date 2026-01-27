@@ -142,4 +142,5 @@ vite.config.ts.timestamp-*
 tests/backend/__pycache__
 
 # rsa keys
+backend/deployments/tars
 backend/keys

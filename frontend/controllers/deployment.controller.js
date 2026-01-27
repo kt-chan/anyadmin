@@ -60,6 +60,17 @@ const deploymentController = {
     }
   },
 
+  // API: Discover Models (Remote)
+  discoverModels: async (req, res) => {
+    try {
+      const token = req.session.user?.token;
+      const result = await deploymentService.discoverModels(token, req.body);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
   // API: Save Model Config
   saveModel: async (req, res) => {
     try {

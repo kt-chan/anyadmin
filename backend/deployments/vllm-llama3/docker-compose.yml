@@ -6,8 +6,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - /data/llama3:/model
-    command: --model /model --max-model-len 4096
+      - ~/data/model/llama3:/model
+    command: --model /model --max-model-len 4096 --gpu-memory-utilization 0.85 --served-model-name Qwen3-1.7B
     
     deploy:
       resources:

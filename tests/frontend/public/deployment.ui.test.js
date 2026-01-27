@@ -41,11 +41,21 @@ describe('Deployment Wizard UI Logic', () => {
            <input type="radio" name="mode" value="new" checked>
            
            <!-- Initially disabled and none checked (or checked=false) for platform -->
-           <input type="radio" name="platform" value="nvidia" disabled>
-           <input type="radio" name="platform" value="ascend" disabled>
+           <input type="radio" name="platform" value="nvidia">
+           <input type="radio" name="platform" value="ascend">
         </div>
         
-        <div id="step-3" class="step-content"></div>
+        <div id="step-3" class="step-content">
+            <select id="model-select">
+                <option value="">Select a Model</option>
+                <option value="deepseek-ai/deepseek-llama-70b">DeepSeek-Llama-70B</option>
+            </select>
+            <input id="model-name-input" type="text">
+            <select id="inference-host-select">
+                 <option value="1.1.1.1">1.1.1.1</option>
+            </select>
+            <input id="inference-port-input" type="number" value="8000">
+        </div>
         <div id="step-4" class="step-content"></div>
         <div id="step-5" class="step-content">
              <ul id="config-summary"></ul>
@@ -71,7 +81,7 @@ describe('Deployment Wizard UI Logic', () => {
     expect(nextBtn.disabled).toBe(true);
   });
 
-  test('Step 1 -> Step 2: Detection triggers and auto-selects platform', async () => {
+  test('Step 1 -> Step 2: Manual Selection of Platform', async () => {
     const nextBtn = document.getElementById('next-btn');
     const verifyBtn = document.getElementById('verify-ssh-btn');
     
@@ -84,18 +94,56 @@ describe('Deployment Wizard UI Logic', () => {
     nextBtn.click();
     await new Promise(resolve => setTimeout(resolve, 10));
 
-    // 3. Check if detectHardware was called (via fetch)
-    expect(fetch).toHaveBeenCalledWith(
+    // 3. Check that detectHardware was NOT called
+    expect(fetch).not.toHaveBeenCalledWith(
         expect.stringContaining('detect-hardware'),
         expect.anything()
     );
 
-    // 4. Check if Platform Ascend is selected (as per mock)
+    // 4. Verify radios are enabled (not disabled)
     const ascendRadio = document.querySelector('input[value="ascend"]');
-    expect(ascendRadio.checked).toBe(true);
+    expect(ascendRadio.disabled).toBe(false);
 
-    // 5. Check status message
-    const statusEl = document.getElementById('hardware-detection-status');
-    expect(statusEl.innerHTML).toContain('Detected Ascend');
-  });
-});
+    // 5. Select a platform manually
+    ascendRadio.checked = true;
+    ascendRadio.dispatchEvent(new Event('change', { bubbles: true }));
+
+    // 6. Check validation (Next button should be enabled after selection)
+    // Note: In the real app, validateStep checks validation. 
+    // We assume validateStep is attached to change event.
+    // However, since we mock the DOM, we need to ensure validateStep is triggered.
+    // In the setup, we call require deployment.js which attaches listeners.
+    
+        // Check if next button is enabled
+    
+        // (It might depend on how validateStep is implemented in the JS file vs the DOM state here)
+    
+        expect(nextBtn.disabled).toBe(false);
+    
+      });
+    
+    
+    
+      test('Step 3: Model selection prefills model name', () => {
+    
+        const modelSelect = document.getElementById('model-select');
+    
+        const nameInput = document.getElementById('model-name-input');
+    
+        
+    
+        // Simulate selection
+    
+        modelSelect.value = 'deepseek-ai/deepseek-llama-70b';
+    
+        modelSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    
+    
+    
+        expect(nameInput.value).toBe('deepseek-llama-70b');
+    
+      });
+    
+    });
+    
+    

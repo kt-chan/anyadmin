@@ -339,7 +339,7 @@ analyze this view pug  @frontend\views\deployment.pug, then you have to rewrite 
 And you have to follow Coding Guide provided in final section of below context.
 
 *** funcitonal features enrichment Objective ***
-1. rescan @frontend/views/deployment.pug , add a subsection "RAG App - AnyZearch" with host selection and service port and connectivity test, 
+1. rescan @frontend/views/deployment.pug , add a subsection "RAG App - AnythingLLM" with host selection and service port and connectivity test, 
 2. make the  "向量数据库类型" and "文档解析服务" as optional service by adding a checkbox to enable it.
 3.  Update related frontend and backend codes to fit for this changes. do not make confuse the connectivity test in step 1 for ssh and step 3 for inference engine (e.g. vllm)
 4.  Write unit test for this update.

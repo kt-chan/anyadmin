@@ -19,12 +19,12 @@ type ServiceStatus struct {
 func GetServicesHealth() []ServiceStatus {
 	mockdata.Mu.Lock()
 	defer mockdata.Mu.Unlock()
-	
+
 	results := make([]ServiceStatus, 0)
 
 	// Core Service (Mock)
 	results = append(results, ServiceStatus{
-		Name:   "anyzearch-admin-core",
+		Name:   "AnythingLLM-admin-core",
 		Type:   "Core",
 		Status: "Running",
 		Health: "Healthy",

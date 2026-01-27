@@ -12,11 +12,11 @@ func main() {
 	global.InitConfig()
 	// Initialize Mock Data Store instead of real DB
 	mockdata.InitData()
-	
-r := server.NewRouter()
+
+	r := server.NewRouter()
 
 	address := "0.0.0.0:" + global.ServerPort
-	log.Printf("Anyzearch Admin Backend (Mock Mode) starting on %s\n", address)
+	log.Printf("AnythingLLM Admin Backend (Mock Mode) starting on %s\n", address)
 	if err := r.Run(address); err != nil {
 		log.Fatal("Server failed to start:", err)
 	}

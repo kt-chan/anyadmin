@@ -196,6 +196,17 @@ function initWizard() {
   updateWizardUI(); // Initialize UI state
 }
 
+window.toggleSection = function(id, isChecked) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (isChecked) {
+    el.classList.remove('hidden');
+  } else {
+    el.classList.add('hidden');
+  }
+  validateStep();
+};
+
 function validateStep() {
   const nextBtn = document.getElementById('next-btn');
   if (!nextBtn) return;
@@ -209,16 +220,21 @@ function validateStep() {
   // Exclude hidden, radio, checkbox, and buttons
   const inputs = currentStepEl.querySelectorAll('input:not([type="hidden"]):not([type="radio"]):not([type="checkbox"]), select, textarea');
   inputs.forEach(input => {
+    // Skip validation if the input is inside a hidden section
+    if (input.offsetParent === null) return;
+
     if (!input.value || input.value.trim() === '') {
       isValid = false;
     }
   });
 
-  // 2. Check Radio Groups
+  // 2. Check Radio Groups (Only if visible)
   const radios = currentStepEl.querySelectorAll('input[type="radio"]');
   if (radios.length > 0) {
     const groups = new Set();
-    radios.forEach(r => groups.add(r.name));
+    radios.forEach(r => {
+        if (r.offsetParent !== null) groups.add(r.name);
+    });
     
     groups.forEach(groupName => {
       const groupRadios = currentStepEl.querySelectorAll(`input[name="${groupName}"]`);
@@ -314,7 +330,9 @@ function updateSummary() {
     { label: 'Mode', value: formData.get('mode') },
     { label: 'Platform', value: formData.get('platform') },
     { label: 'Model', value: formData.get('model_path') || 'Not set' },
-    { label: 'Vector DB', value: formData.get('vector_db') }
+    { label: 'Vector DB', value: formData.get('enable_vectordb') ? formData.get('vector_db') : 'Disabled' },
+    { label: 'Parser', value: formData.get('enable_parser') ? 'Mineru' : 'Disabled' },
+    { label: 'RAG App', value: formData.get('enable_rag') ? 'AnythingLLM' : 'Disabled' }
   ];
 
   summaryData.forEach(item => {
@@ -491,6 +509,9 @@ window.testConnection = async function(type) {
   } else if (type === 'parser') {
     payload.host = formData.get('parser_host');
     payload.port = formData.get('parser_port');
+  } else if (type === 'rag_app') {
+    payload.host = formData.get('rag_host');
+    payload.port = formData.get('rag_port');
   } else if (type === 'ssh') {
     const nodesStr = formData.get('target_nodes');
     if (!nodesStr || !nodesStr.trim()) {

@@ -176,63 +176,100 @@ block content
                   .integration-only.hidden.mt-4
                      button(type="button", onclick="testConnection('inference')", class="text-blue-600 text-sm font-bold hover:underline") <i class="fas fa-plug mr-1"></i> 测试连接
 
-              //- STEP 4: Vector DB & Parser
+              //- STEP 4: Knowledge Base & RAG App
               #step-4.step-content
-                h3(class="font-bold text-lg mb-6") 4. 知识库方案
+                h3(class="font-bold text-lg mb-6") 4. 知识库与应用服务
+
+                //- RAG App Section (New)
+                .mb-8.border.border-slate-200.rounded-xl.p-4.bg-white
+                  .flex.items-center.justify-between.mb-4
+                    label.flex.items-center.gap-2.cursor-pointer
+                      input#enable-rag(type="checkbox", name="enable_rag", class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500", checked, onchange="toggleSection('rag-config', this.checked)")
+                      span.font-bold.text-slate-700 启用 RAG 应用 (AnythingLLM)
+                  
+                  #rag-config
+                    .bg-slate-50.p-4.rounded-lg.border.border-slate-200
+                      .flex.items-center.gap-3.mb-4
+                          i(class="fas fa-search text-slate-400")
+                          div.flex-1
+                              div.font-bold.text-sm AnythingLLM Web App
+                              div.text-xs.text-slate-500 Enterprise Search Interface
+
+                      .grid.grid-cols-2.gap-4
+                          div
+                              label.block.text-xs.font-medium.text-slate-500.mb-1 应用 Host
+                              select(name="rag_host", class="node-selector w-full text-sm rounded-md border-2 border-slate-300")
+                                option(value="") Select Target Node
+                          div
+                              label.block.text-xs.font-medium.text-slate-500.mb-1 应用 Port
+                              input(type="number", name="rag_port", value="3001", class="w-full text-sm rounded-md border-2 border-slate-300")
+                      
+                      .mt-3
+                         button(type="button", onclick="testConnection('rag_app')", class="text-blue-600 text-xs font-bold hover:underline") <i class="fas fa-plug mr-1"></i> 测试连接
+
+                //- Vector DB Section
+                .mb-8.border.border-slate-200.rounded-xl.p-4.bg-white
+                  .flex.items-center.justify-between.mb-4
+                    label.flex.items-center.gap-2.cursor-pointer
+                      input#enable-vectordb(type="checkbox", name="enable_vectordb", class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500", onchange="toggleSection('vectordb-config', this.checked)")
+                      span.font-bold.text-slate-700 启用向量数据库 (Vector Database)
+                    
+                  #vectordb-config.hidden
+                    .grid.grid-cols-4.gap-4.mb-4
+                      label.cursor-pointer
+                        input(type="radio", name="vector_db", value="lancedb", class="peer sr-only", checked)
+                        div(class="text-center p-3 border rounded-lg peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-slate-50 transition") LanceDB
+                      label.cursor-pointer
+                        input(type="radio", name="vector_db", value="milvus", class="peer sr-only")
+                        div(class="text-center p-3 border rounded-lg peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-slate-50 transition") Milvus
+                      label.cursor-pointer
+                        input(type="radio", name="vector_db", value="chroma", class="peer sr-only")
+                        div(class="text-center p-3 border rounded-lg peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-slate-50 transition") Chroma
+                      label.cursor-pointer
+                        input(type="radio", name="vector_db", value="pgvector", class="peer sr-only")
+                        div(class="text-center p-3 border rounded-lg peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-slate-50 transition") PgVector
+
+                    .p-4.bg-slate-50.rounded-lg.border.border-slate-200
+                      .grid.grid-cols-2.gap-4
+                        div
+                          label.block.text-xs.font-medium.text-slate-500.mb-1 数据库 Host
+                          select(name="vectordb_host", class="node-selector w-full text-sm rounded-md border-2 border-slate-300")
+                            option(value="") Select Target Node
+                        div
+                          label.block.text-xs.font-medium.text-slate-500.mb-1 数据库 Port
+                          input(type="number", name="vectordb_port", value="19530", class="w-full text-sm rounded-md border-2 border-slate-300")
+                      
+                      .integration-only.hidden.mt-3
+                         button(type="button", onclick="testConnection('vectordb')", class="text-blue-600 text-xs font-bold hover:underline") <i class="fas fa-plug mr-1"></i> 测试连接
+
+                //- Parser Section
+                .mb-8.border.border-slate-200.rounded-xl.p-4.bg-white
+                  .flex.items-center.justify-between.mb-4
+                    label.flex.items-center.gap-2.cursor-pointer
+                      input#enable-parser(type="checkbox", name="enable_parser", class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500", onchange="toggleSection('parser-config', this.checked)")
+                      span.font-bold.text-slate-700 启用文档解析服务 (Document Parser)
+
+                  #parser-config.hidden
+                    .bg-slate-50.p-4.rounded-lg.border.border-slate-200
+                      .flex.items-center.gap-3.mb-4
+                          i(class="fas fa-file-alt text-slate-400")
+                          div.flex-1
+                              div.font-bold.text-sm Mineru (PDF/Docx Parser)
+                              div.text-xs.text-slate-500 Primary parsing engine
+
+                      .grid.grid-cols-2.gap-4
+                          div
+                              label.block.text-xs.font-medium.text-slate-500.mb-1 服务 Host
+                              select(name="parser_host", class="node-selector w-full text-sm rounded-md border-2 border-slate-300")
+                                option(value="") Select Target Node
+                          div
+                              label.block.text-xs.font-medium.text-slate-500.mb-1 服务 Port
+                              input(type="number", name="parser_port", value="8888", class="w-full text-sm rounded-md border-2 border-slate-300")
+                      
+                      .integration-only.hidden.mt-3
+                         button(type="button", onclick="testConnection('parser')", class="text-blue-600 text-xs font-bold hover:underline") <i class="fas fa-plug mr-1"></i> 测试连接
+
                 
-                .mb-8
-                  label.block.text-sm.font-bold.text-slate-700.mb-4 向量数据库类型
-                  .grid.grid-cols-4.gap-4
-                    label.cursor-pointer
-                      input(type="radio", name="vector_db", value="lancedb", class="peer sr-only", checked)
-                      div(class="text-center p-3 border rounded-lg peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-slate-50") LanceDB
-                    label.cursor-pointer
-                      input(type="radio", name="vector_db", value="milvus", class="peer sr-only")
-                      div(class="text-center p-3 border rounded-lg peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-slate-50") Milvus
-                    label.cursor-pointer
-                      input(type="radio", name="vector_db", value="chroma", class="peer sr-only")
-                      div(class="text-center p-3 border rounded-lg peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-slate-50") Chroma
-                    label.cursor-pointer
-                      input(type="radio", name="vector_db", value="pgvector", class="peer sr-only")
-                      div(class="text-center p-3 border rounded-lg peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-slate-50") PgVector
-
-                  //- Dynamic fields based on DB selection (Simplified for prototype)
-                  .mt-4.p-4.bg-slate-50.rounded-lg.border.border-slate-200
-                    .grid.grid-cols-2.gap-4
-                      div
-                        label.block.text-xs.font-medium.text-slate-500.mb-1 数据库 Host
-                        select(name="vectordb_host", class="node-selector w-full text-sm rounded-md border-2 border-slate-300")
-                          option(value="") Select Target Node
-                      div
-                        label.block.text-xs.font-medium.text-slate-500.mb-1 数据库 Port
-                        input(type="number", name="vectordb_port", value="19530", class="w-full text-sm rounded-md border-2 border-slate-300")
-                    
-                    //- Test Connection for Vector DB
-                    .integration-only.hidden.mt-3
-                       button(type="button", onclick="testConnection('vectordb')", class="text-blue-600 text-xs font-bold hover:underline") <i class="fas fa-plug mr-1"></i> 测试连接
-
-                .border-t.pt-6
-                  label.block.text-sm.font-bold.text-slate-700.mb-2 文档解析服务
-                  .bg-slate-50.p-4.rounded-lg.border.border-slate-200
-                    .flex.items-center.gap-3.mb-4
-                        i(class="fas fa-file-alt text-slate-400")
-                        div.flex-1
-                            div.font-bold.text-sm Mineru (PDF/Docx Parser)
-                            div.text-xs.text-slate-500 Primary parsing engine
-
-                    .grid.grid-cols-2.gap-4
-                        div
-                            label.block.text-xs.font-medium.text-slate-500.mb-1 服务 Host
-                            select(name="parser_host", class="node-selector w-full text-sm rounded-md border-2 border-slate-300")
-                              option(value="") Select Target Node
-                        div
-                            label.block.text-xs.font-medium.text-slate-500.mb-1 服务 Port
-                            input(type="number", name="parser_port", value="8888", class="w-full text-sm rounded-md border-2 border-slate-300")
-                    
-                    //- Test Connection for Parser
-                    .integration-only.hidden.mt-3
-                       button(type="button", onclick="testConnection('parser')", class="text-blue-600 text-xs font-bold hover:underline") <i class="fas fa-plug mr-1"></i> 测试连接
-
               //- STEP 5: Review & Generate
               #step-5.step-content
                 h3(class="font-bold text-lg mb-6") 5. 确认并生成

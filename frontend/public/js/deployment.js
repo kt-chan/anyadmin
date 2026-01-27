@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- State ---
 let currentStep = 1;
 let sshVerified = false;
+let inferenceVerified = false;
 const totalSteps = 5;
 
 // --- Node Management ---
@@ -90,16 +91,21 @@ window.refreshModels = async function(isManual = false) {
             opt.textContent = model.id; // Use ID as display name
             modelSelect.appendChild(opt);
         });
+        inferenceVerified = true;
     } else {
          const opt = document.createElement('option');
          opt.value = "";
          opt.textContent = "No models found or connection failed";
          modelSelect.appendChild(opt);
+         inferenceVerified = false;
     }
+    validateStep();
 
   } catch (e) {
     console.error(e);
     modelSelect.innerHTML = '<option value="">Error fetching models</option>';
+    inferenceVerified = false;
+    validateStep();
   } finally {
     modelSelect.disabled = false;
     if(btn) btn.classList.remove('fa-spin');
@@ -117,7 +123,17 @@ function initWizard() {
   const hostSelect = document.getElementById('inference-host-select');
   if (hostSelect) {
       hostSelect.addEventListener('change', () => {
+          inferenceVerified = false;
+          validateStep();
           if (currentStep === 3) refreshModels();
+      });
+  }
+  
+  const portInput = document.getElementById('inference-port-input');
+  if (portInput) {
+      portInput.addEventListener('input', () => {
+          inferenceVerified = false;
+          validateStep();
       });
   }
 
@@ -216,6 +232,11 @@ function validateStep() {
      const nodes = document.querySelector('textarea[name="target_nodes"]');
      if (nodes && !nodes.value.trim()) isValid = false;
      if (!sshVerified) isValid = false;
+  }
+  
+  // 4. Special Case: Inference Connection (Step 3)
+  if (currentStep === 3) {
+      if (!inferenceVerified) isValid = false;
   }
 
   nextBtn.disabled = !isValid;
@@ -500,6 +521,9 @@ window.testConnection = async function(type) {
       if (type === 'ssh') {
         sshVerified = true;
         validateStep();
+      } else if (type === 'inference') {
+        inferenceVerified = true;
+        validateStep();
       }
     } else {
       alert('Error: ' + result.message);
@@ -507,6 +531,9 @@ window.testConnection = async function(type) {
       btn.classList.add('text-red-600');
       if (type === 'ssh') {
         sshVerified = false;
+        validateStep();
+      } else if (type === 'inference') {
+        inferenceVerified = false;
         validateStep();
       }
     }

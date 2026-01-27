@@ -143,4 +143,5 @@ tests/backend/__pycache__
 
 # rsa keys
 backend/deployments/tars
+backend/deployments/dockers/images
 backend/keys

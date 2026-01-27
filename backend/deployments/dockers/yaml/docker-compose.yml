@@ -1,0 +1,60 @@
+version: '3.8'
+services:
+  inference:
+    image: vllm/vllm-openai:latest
+    container_name: vllm
+    ports:
+      - "8000:8000"
+    volumes:
+      - ~/data/model/Qwen3-1.7B:/model
+    command: --model /model --max-model-len 4096 --gpu-memory-utilization 0.85 --served-model-name Qwen3-1.7B
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  anything-llm:
+    image: mintplexlabs/anythingllm:1.8.5
+    container_name: anything-llm
+    cap_add:
+      - SYS_ADMIN
+    restart: unless-stopped
+    environment:
+      - SERVER_PORT=3001
+      - STORAGE_DIR=/app/server/storage
+      
+      # LLM Configuration for vLLM
+      - LLM_PROVIDER=generic-openai
+      - GENERIC_OPEN_AI_BASE_PATH=http://host.docker.internal:8000/v1
+      - GENERIC_OPEN_AI_MODEL_PREF=Qwen3-1.7B
+      - GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT=4098
+      - GENERIC_OPEN_AI_MAX_TOKENS=2048
+      - GENERIC_OPEN_AI_API_KEY=AnyThing0f02d8295easdfadsaQBr0uz3sHAAb
+
+      # # Embedding Configuration (Can remain Ollama or change)
+      # - EMBEDDING_ENGINE=ollama
+      # - EMBEDDING_BASE_PATH=http://host.docker.internal:11434
+      # - EMBEDDING_MODEL_PREF=nomic-embed-text:latest
+      
+      # # Vector Database
+      - VECTOR_DB=lancedb
+      
+      # Administration
+      - AUTH_TOKEN=@hwKT1986
+      - JWT_SECRET=677c14ce-49cc-4471-a489-6446f5f6aedb
+      
+      # Optional: Disable telemetry
+      - DISABLE_TELEMETRY=true
+    volumes:
+      - ~/data/anythingllm/storage:/app/server/storage
+      - ~/data/anythingllm/collector/hotdir/:/app/collector/hotdir
+      - ~/data/anythingllm/collector/outputs/:/app/collector/outputs
+    ports:
+      - "3001:3001"
+    extra_hosts:
+      - host.docker.internal:host-gateway

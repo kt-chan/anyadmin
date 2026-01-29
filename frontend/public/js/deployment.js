@@ -1,6 +1,17 @@
 document.addEventListener('DOMContentLoaded', () => {
   initWizard();
   initTabs();
+  
+  // Check if we should default to Nodes Status tab
+  fetch('/deployment/api/nodes')
+    .then(res => res.json())
+    .then(result => {
+        if (result.success && result.data && result.data.length > 0) {
+            const nodesTabBtn = document.querySelector('button[data-target="tab-nodes-content"]');
+            if (nodesTabBtn) nodesTabBtn.click();
+        }
+    })
+    .catch(err => console.error('Error checking nodes for default tab:', err));
 });
 
 // --- Tabs ---

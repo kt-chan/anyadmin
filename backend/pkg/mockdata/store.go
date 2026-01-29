@@ -78,55 +78,6 @@ func InitData() {
 		}
 	}
 
-	// Initialize DeploymentNodes if empty
-	if len(DeploymentNodes) == 0 {
-		DeploymentNodes = []string{"1.1.1.1:20", "1.1.1.2:20", "1.1.1.3:20"}
-	}
-
-	// Initialize ImportTasks if empty
-	if len(ImportTasks) == 0 {
-		ImportTasks = []global.ImportTask{
-			{
-				Name:       "文档全量同步",
-				SourceType: "NFS",
-				SourcePath: "/mnt/nfs/docs/v1",
-				Status:     "Processing",
-				Progress:   56,
-				TotalFiles: 15000,
-				Processed:  8432,
-			},
-			{
-				Name:       "图片资源归档",
-				SourceType: "S3",
-				SourcePath: "s3://company-assets/images",
-				Status:     "Paused",
-				Progress:   42,
-				TotalFiles: 5000,
-				Processed:  2100,
-			},
-		}
-	}
-
-	// Initialize BackupRecords if empty
-	if len(BackupRecords) == 0 {
-		BackupRecords = []global.BackupRecord{
-			{
-				Name:   "backup_20240520_full.tar.gz",
-				Path:   "/backups/backup_20240520_full.tar.gz",
-				Size:   107374182400, // 100GB
-				Type:   "Full",
-				Status: "Success",
-			},
-			{
-				Name:   "backup_20240519_inc.tar.gz",
-				Path:   "/backups/backup_20240519_inc.tar.gz",
-				Size:   10737418240, // 10GB
-				Type:   "Incremental",
-				Status: "Success",
-			},
-		}
-	}
-
 	// Initialize MgmtHost and MgmtPort if empty
 	if MgmtHost == "" {
 		MgmtHost = "172.20.0.1"

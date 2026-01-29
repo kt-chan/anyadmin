@@ -148,6 +148,7 @@ backend/deployments/dockers/images
 # Ignore SSH Private and Public Keys anywhere in the project
 **/id_rsa
 **/id_rsa.pub
+**/data.json
 backend/keys
 
 

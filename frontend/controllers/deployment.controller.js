@@ -91,6 +91,21 @@ const deploymentController = {
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }
+  },
+
+  // API: Check Agent Status
+  checkStatus: async (req, res) => {
+    try {
+      const token = req.session.user?.token;
+      const ip = req.query.ip;
+      if (!ip) {
+          return res.status(400).json({ success: false, message: "IP required" });
+      }
+      const result = await deploymentService.checkAgentStatus(token, ip);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
   }
 };
 

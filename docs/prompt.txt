@@ -359,10 +359,12 @@ analyze this view pug  @frontend\views\deployment.pug, then you have to rewrite 
 And you have to follow Coding Guide provided in final section of below context.
 
 *** funcitonal features enrichment Objective ***
-1. rescan @frontend/views/deployment.pug , add a subsection "RAG App - AnythingLLM" with host selection and service port and connectivity test, 
-2. make the  "向量数据库类型" and "文档解析服务" as optional service by adding a checkbox to enable it.
-3.  Update related frontend and backend codes to fit for this changes. do not make confuse the connectivity test in step 1 for ssh and step 3 for inference engine (e.g. vllm)
-4.  Write unit test for this update.
+1. develop a lightweight agent in GO that that handles both telemetry (metrics/logs) and control (process management) with the ability to interact with the host's init system (systemd) , docker compose / docker, and the target proccesses.
+2. first, scan @frontend/views/deployment.pug , analyze all the paramters setting through the configuration proccesses, to understand the control target (e.g. name, ip and ports)
+2. second, develop a lightweight agent which to be sent to target remote server, run it in the remote host, and make the agent to send heartbeats back to management host
+3. third, enhanced the frontend code and backend service to listen to the heartbeats from the agent.
+4. once you get the heartbeats, it means agent deployed successfully, and you should redirect to dashboard page.
+4. Write unit test for this update.
 
 **Coding Guide**  
 - this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, and backend code in GO.
@@ -371,3 +373,25 @@ And you have to follow Coding Guide provided in final section of below context.
 - Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers before termination.  
 - Write unit tests to verify any update systematically by accessing the frontend app and backend fastapi services code changes.
 - Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
+
+## Task 10
+
+analyze this view pug  @frontend\views\deployment.pug, then you have to rewrite and enrich this view pug as well as the corresponding frontend and backend services for below funcitonal features enrichment objective. And you have to follow Coding Guide provided in final section of below context.
+
+*** funcitonal features enrichment Objective ***
+1. rescan the whole project. replace the mockdata with acutal Implementation at @backend\pkg\api\deploy.go, given that you have provided the deployment configuration which has the remote host ip and port, and you can access the remote server.
+2. ssh into the target machine, create user anyadmin if not exits, create home directory ~/anyadmin if not exist, and grant it with sudo rights.
+3. you have provided go installation package in @backend\deployments\tars\os\ubuntu\amd64\jammy\go1.25.6.linux-amd64.tar.gz, you should copy this into target remote host, checksum it, and install the GO runtime
+4. deploy the agent developed, and run it to send heartbeats back to management node
+5. you should deploy the agent for both req.Mode. new deployment means the remote host need to setup the service with new installation, and integrate_existing means 
+  the services installation can be skipped, but both req.mode need to deploy the agent to service control
+6. enhance related frontend logics and backend service to support this deployment.
+
+**Coding Guide**  
+- this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, and backend code in GO binnary.
+- The remote host is up and running at 172.20.0.10 on port 22, and passwordless ssh is configured. You can test against it.
+- Launch the apps / processes with seperate process and redirect the output to logs, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers before termination.  
+- Write unit tests to verify any update systematically by accessing the frontend app and backend fastapi services code changes.
+- Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
+

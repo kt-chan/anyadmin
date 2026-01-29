@@ -428,8 +428,17 @@ window.generateDeployment = async function() {
       verifyArea.className = "mt-6 pt-6 border-t border-slate-200 text-center";
       verifyArea.innerHTML = `
         <h4 class="text-sm font-bold text-slate-700 mb-2">Post-Deployment Verification</h4>
-        <p class="text-xs text-slate-500 mb-4">Once you have applied the scripts above, verify the connectivity.</p>
-        <button id="verify-btn" onclick="verifyDeployment()" class="px-6 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 transition">
+        <p class="text-xs text-slate-500 mb-4">Run the generated scripts on your target node, then wait for the agent to connect.</p>
+        
+        <div id="agent-status-container" class="mb-4 p-4 bg-blue-50 border border-blue-100 rounded-lg max-w-md mx-auto">
+            <div class="flex items-center justify-center gap-3">
+                <i class="fas fa-satellite-dish fa-spin text-blue-600"></i>
+                <span class="text-sm font-bold text-blue-800" id="agent-status-text">Waiting for Agent Heartbeat...</span>
+            </div>
+            <p class="text-xs text-blue-600 mt-1" id="agent-target-ip">Target: ...</p>
+        </div>
+
+        <button id="verify-btn" onclick="verifyDeployment()" class="px-6 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 transition hidden">
            <i class="fas fa- stethoscope mr-2"></i> Verify Services
         </button>
         <div id="verification-results" class="mt-4 bg-slate-800 rounded-lg p-4 hidden text-left max-w-md mx-auto"></div>
@@ -437,6 +446,9 @@ window.generateDeployment = async function() {
       resultsContainer.appendChild(verifyArea);
 
       resultsContainer.scrollIntoView({ behavior: 'smooth' });
+
+      // Start polling for agent
+      startAgentPolling(data);
 
     } else {
       alert('Error generating deployment: ' + (result.message || 'Unknown error'));
@@ -468,6 +480,70 @@ window.exportConfiguration = function() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 };
+
+function startAgentPolling(data) {
+  // Extract target IP from data
+  // data.target_nodes is "IP:Port\nIP:Port"
+  if (!data.target_nodes) return;
+  const firstNode = data.target_nodes.split('\n')[0].trim();
+  if (!firstNode) return;
+  
+  const ip = firstNode.split(':')[0];
+  document.getElementById('agent-target-ip').innerText = `Target: ${ip}`;
+  
+  pollAgent(ip);
+}
+
+async function pollAgent(ip) {
+  const statusText = document.getElementById('agent-status-text');
+  const container = document.getElementById('agent-status-container');
+  let attempts = 0;
+  const maxAttempts = 60; // 1 minute (assuming 1s interval) - usually longer but for demo/test
+  
+  const interval = setInterval(async () => {
+    attempts++;
+    try {
+      const res = await fetch(`/deployment/api/status?ip=${ip}`);
+      if (res.ok) {
+        const result = await res.json();
+        if (result.success && result.data && result.data.status === 'online') {
+            clearInterval(interval);
+            
+            // Success State
+            container.className = "mb-4 p-4 bg-green-50 border border-green-100 rounded-lg max-w-md mx-auto";
+            statusText.parentElement.innerHTML = `
+                <i class="fas fa-check-circle text-green-600"></i>
+                <span class="text-sm font-bold text-green-800">Agent Connected!</span>
+            `;
+            statusText.innerText = "Agent Connected!";
+            
+            // Redirect countdown
+            let count = 3;
+            const redirectMsg = document.createElement('p');
+            redirectMsg.className = "text-xs text-green-600 mt-2 font-bold";
+            container.appendChild(redirectMsg);
+            
+            const redirectInterval = setInterval(() => {
+                redirectMsg.innerText = `Redirecting to Dashboard in ${count}s...`;
+                if (count <= 0) {
+                    clearInterval(redirectInterval);
+                    window.location.href = '/dashboard';
+                }
+                count--;
+            }, 1000);
+        }
+      }
+    } catch (e) {
+      console.log("Waiting for agent...", e);
+    }
+    
+    if (attempts >= maxAttempts) {
+        clearInterval(interval);
+        statusText.innerText = "Agent connection timed out.";
+        container.className = "mb-4 p-4 bg-red-50 border border-red-100 rounded-lg max-w-md mx-auto";
+    }
+  }, 2000);
+}
 
 function createResultsContainer() {
   const step5 = document.getElementById('step-5');
@@ -600,17 +676,59 @@ window.verifyDeployment = async function() {
   resultsDiv.innerHTML = '';
   resultsDiv.classList.remove('hidden');
 
-  const services = ['Inference Engine', 'Vector Database', 'Document Parser'];
+  // Get current config to know what to verify
+  const config = getProcessedConfig();
   
-  for (const service of services) {
+  // Define checks
+  const checks = [];
+  
+  // Inference Engine
+  if (config.inference_host && config.inference_port) {
+      checks.push({ name: 'Inference Engine', type: 'inference', host: config.inference_host, port: config.inference_port });
+  }
+  
+  // RAG App
+  if (config.enable_rag && config.rag_host && config.rag_port) {
+      checks.push({ name: 'RAG Application', type: 'rag_app', host: config.rag_host, port: config.rag_port });
+  }
+  
+  // Vector DB
+  if (config.enable_vectordb && config.vectordb_host && config.vectordb_port) {
+      checks.push({ name: 'Vector Database', type: 'vectordb', host: config.vectordb_host, port: config.vectordb_port });
+  }
+  
+  // Parser
+  if (config.enable_parser && config.parser_host && config.parser_port) {
+      checks.push({ name: 'Document Parser', type: 'parser', host: config.parser_host, port: config.parser_port });
+  }
+
+  if (checks.length === 0) {
+      resultsDiv.innerHTML = '<p class="text-sm text-slate-500">No additional services to verify.</p>';
+  }
+
+  for (const check of checks) {
     const el = document.createElement('div');
     el.className = 'flex justify-between items-center py-2 border-b border-slate-700 last:border-0';
-    el.innerHTML = `<span class="text-slate-300 text-sm">${service}</span> <span class="text-xs text-yellow-500"><i class="fas fa-circle-notch fa-spin"></i> Checking...</span>`;
+    el.innerHTML = `<span class="text-slate-300 text-sm">${check.name}</span> <span class="text-xs text-yellow-500"><i class="fas fa-circle-notch fa-spin"></i> Checking...</span>`;
     resultsDiv.appendChild(el);
     
-    await new Promise(r => setTimeout(r, 800));
-    
-    el.innerHTML = `<span class="text-slate-300 text-sm">${service}</span> <span class="text-xs text-green-400"><i class="fas fa-check-circle"></i> Online</span>`;
+    // Perform actual check
+    try {
+        const response = await fetch('/deployment/api/test-connection', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: check.type, host: check.host, port: check.port })
+        });
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            el.innerHTML = `<span class="text-slate-300 text-sm">${check.name}</span> <span class="text-xs text-green-400"><i class="fas fa-check-circle"></i> Online</span>`;
+        } else {
+            el.innerHTML = `<span class="text-slate-300 text-sm">${check.name}</span> <span class="text-xs text-red-400"><i class="fas fa-times-circle"></i> Failed (${result.message})</span>`;
+        }
+    } catch (e) {
+        el.innerHTML = `<span class="text-slate-300 text-sm">${check.name}</span> <span class="text-xs text-red-400"><i class="fas fa-exclamation-triangle"></i> Error</span>`;
+    }
   }
 
   btn.innerHTML = '<i class="fas fa-check-double mr-2"></i> Verified';

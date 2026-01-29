@@ -3,12 +3,14 @@ package main
 import (
 	"log"
 
-	"anyadmin-backend/internal/global"
-	"anyadmin-backend/internal/mockdata"
-	"anyadmin-backend/internal/server"
+	"anyadmin-backend/pkg/global"
+	"anyadmin-backend/pkg/mockdata"
+	"anyadmin-backend/pkg/server"
+	"anyadmin-backend/pkg/utils"
 )
 
 func main() {
+	utils.InitLogger()
 	global.InitConfig()
 	// Initialize Mock Data Store instead of real DB
 	mockdata.InitData()

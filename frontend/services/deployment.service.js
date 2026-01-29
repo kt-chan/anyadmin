@@ -97,6 +97,25 @@ const deploymentService = {
       logger.error('Error detecting hardware:', error);
       throw error;
     }
+  },
+
+  // Check agent status
+  checkAgentStatus: async (token, ip) => {
+    try {
+      const axiosConfig = {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { ip }
+      };
+      const response = await apiClient.get('/api/v1/deploy/status', axiosConfig);
+      return response.data;
+    } catch (error) {
+      // Don't log full error for 404 (not found yet) to avoid noise
+      if (error.response && error.response.status === 404) {
+          return { success: false, message: "Agent not yet online" };
+      }
+      logger.error('Error checking agent status:', error);
+      throw error;
+    }
   }
 };
 

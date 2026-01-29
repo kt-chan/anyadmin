@@ -342,42 +342,49 @@ function updateSummary() {
   });
 }
 
-// --- Tab Logic ---
-window.switchTab = function(tabName) {
-  const wizardContent = document.getElementById('tab-wizard-content');
-  const modelsContent = document.getElementById('tab-models-content');
-  const wizardBtn = document.getElementById('tab-wizard-btn');
-  const modelsBtn = document.getElementById('tab-models-btn');
-
-  if (tabName === 'wizard') {
-    wizardContent.classList.remove('hidden');
-    modelsContent.classList.add('hidden');
-    
-    wizardBtn.classList.add('bg-blue-50', 'text-blue-600');
-    wizardBtn.classList.remove('text-slate-500');
-    
-    modelsBtn.classList.remove('bg-blue-50', 'text-blue-600');
-    modelsBtn.classList.add('text-slate-500');
-  } else {
-    wizardContent.classList.add('hidden');
-    modelsContent.classList.remove('hidden');
-
-    modelsBtn.classList.add('bg-blue-50', 'text-blue-600');
-    modelsBtn.classList.remove('text-slate-500');
-
-    wizardBtn.classList.remove('bg-blue-50', 'text-blue-600');
-    wizardBtn.classList.add('text-slate-500');
-    
-    loadModels(); 
-  }
-};
-
 // --- API Interactions ---
 
-window.generateDeployment = async function() {
+function getProcessedConfig() {
   const form = document.getElementById('wizard-form');
+  if (!form) return {};
   const formData = new FormData(form);
   const data = Object.fromEntries(formData.entries());
+
+  // 1. Handle model_name and model_path
+  // User wants model_name to be the value of model_path, and model_path removed.
+  if (data.model_path) {
+    data.model_name = data.model_path;
+  }
+  delete data.model_path;
+
+  // 2. Conditional inclusion based on checkboxes
+  // If a section is disabled, remove its related fields
+  if (!data.enable_rag) {
+    delete data.rag_host;
+    delete data.rag_port;
+  }
+  
+  if (!data.enable_vectordb) {
+    delete data.vector_db;
+    delete data.vectordb_host;
+    delete data.vectordb_port;
+  }
+
+  if (!data.enable_parser) {
+    delete data.parser_host;
+    delete data.parser_port;
+  }
+
+  // Convert checkbox values to boolean if they exist (FormData puts "on" or nothing)
+  data.enable_rag = !!data.enable_rag;
+  data.enable_vectordb = !!data.enable_vectordb;
+  data.enable_parser = !!data.enable_parser;
+
+  return data;
+}
+
+window.generateDeployment = async function() {
+  const data = getProcessedConfig();
 
   const generateBtn = document.querySelector('button[onclick="generateDeployment()"]');
   const originalText = generateBtn ? generateBtn.innerHTML : 'Generate';
@@ -443,6 +450,23 @@ window.generateDeployment = async function() {
         generateBtn.disabled = false;
     }
   }
+};
+
+window.exportConfiguration = function() {
+  const data = getProcessedConfig();
+  
+  // Format the JSON with 2-space indentation for readability
+  const jsonStr = JSON.stringify(data, null, 2);
+  
+  const blob = new Blob([jsonStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "deployment_config.json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 };
 
 function createResultsContainer() {
@@ -595,52 +619,6 @@ window.verifyDeployment = async function() {
      btn.disabled = false;
   }, 3000);
 };
-
-// --- Model Manager ---
-
-async function loadModels() {
-  const listEl = document.getElementById('model-list');
-  listEl.innerHTML = '<li class="p-4 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i>Loading...</li>';
-
-  try {
-    const response = await fetch('/deployment/api/models');
-    const result = await response.json();
-    
-    if (result.success && result.data) {
-      renderModelList(result.data);
-    } else {
-      listEl.innerHTML = '<li class="p-4 text-center text-red-500">Failed to load models</li>';
-    }
-  } catch (err) {
-    console.error(err);
-    listEl.innerHTML = '<li class="p-4 text-center text-red-500">Network Error</li>';
-  }
-}
-
-function renderModelList(models) {
-  const listEl = document.getElementById('model-list');
-  listEl.innerHTML = '';
-
-  models.forEach(model => {
-    const li = document.createElement('li');
-    li.className = "p-4 hover:bg-slate-50 cursor-pointer transition border-l-4 border-transparent hover:border-blue-500";
-    li.onclick = () => selectModel(model);
-    
-    li.innerHTML = `
-      <div class="flex justify-between items-center mb-1">
-        <span class="font-bold text-slate-700 text-sm">${model.name}</span>
-        <span class="text-xs ${model.status === 'loaded' ? 'text-green-600 bg-green-100' : 'text-slate-500 bg-slate-100'} px-2 py-0.5 rounded-full">${model.status}</span>
-      </div>
-      <div class="text-xs text-slate-400 truncate">${model.platform}</div>
-    `;
-    listEl.appendChild(li);
-  });
-}
-
-function selectModel(model) {
-  const el = document.getElementById('selected-model-name');
-  if(el) el.innerText = model.name;
-}
 
 // Helper
 function escapeHtml(text) {

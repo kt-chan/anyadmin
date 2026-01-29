@@ -60,34 +60,6 @@ const deploymentService = {
     }
   },
 
-  // Get list of models
-  getModels: async (token) => {
-    try {
-      const axiosConfig = {
-        headers: { Authorization: `Bearer ${token}` }
-      };
-      const response = await apiClient.get('/api/v1/configs/inference', axiosConfig);
-      return response.data;
-    } catch (error) {
-      logger.error('Error fetching models:', error);
-      throw error;
-    }
-  },
-
-  // Save model configuration
-  saveModelConfig: async (token, config) => {
-    try {
-      const axiosConfig = {
-        headers: { Authorization: `Bearer ${token}` }
-      };
-      const response = await apiClient.post('/api/v1/configs/inference', config, axiosConfig);
-      return response.data;
-    } catch (error) {
-      logger.error('Error saving model config:', error);
-      throw error;
-    }
-  },
-
   // Save target nodes
   saveNodes: async (token, nodes) => {
     try {

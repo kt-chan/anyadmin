@@ -21,15 +21,6 @@ block content
             h2(class="text-2xl font-bold text-slate-800") 机器节点和部署管理
             p(class="text-slate-500 text-sm") 管理 AI 基础设施部署
 
-          //- Tab Switcher
-          div(class="bg-white p-1 rounded-xl border border-slate-200 shadow-sm flex")
-            button#tab-wizard-btn(class="px-4 py-2 rounded-lg text-sm font-bold bg-blue-50 text-blue-600 transition", onclick="switchTab('wizard')") 
-              i.fas.fa-magic.mr-2
-              | 部署向导
-            button#tab-models-btn(class="px-4 py-2 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 transition", onclick="switchTab('models')")
-              i.fas.fa-sliders-h.mr-2
-              | 模型参数
-
         //- TAB 1: Deployment Wizard
         #tab-wizard-content
           .bg-white.rounded-2xl.shadow-sm.border.border-slate-100.overflow-hidden.max-w-5xl.mx-auto
@@ -68,7 +59,7 @@ block content
                 .grid.grid-cols-2.gap-6
                   div
                     label.block.text-sm.font-medium.text-slate-700.mb-1 管理面板 Host
-                    input(type="text", name="mgmt_host", value="192.168.1.100", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
+                    input(type="text", name="mgmt_host", value="172.20.0.1", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
                   div
                     label.block.text-sm.font-medium.text-slate-700.mb-1 管理面板 Port
                     input(type="number", name="mgmt_port", value="3000", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
@@ -282,8 +273,8 @@ block content
                 .flex.gap-4
                   button(type="button", onclick="generateDeployment()", class="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 shadow-lg shadow-green-200 transition")
                     i(class="fas fa-rocket mr-2") 
-                    | 生成部署脚本
-                  button(type="button", class="flex-1 bg-white border-2 border-slate-300 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-50 transition")
+                    | 启动部署
+                  button(type="button", onclick="exportConfiguration()", class="flex-1 bg-white border-2 border-slate-300 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-50 transition")
                     i(class="fas fa-download mr-2") 
                     | 导出配置文件
 
@@ -299,59 +290,6 @@ block content
               button#next-btn(type="button", disabled, class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition ml-auto disabled:opacity-50 disabled:cursor-not-allowed")
                 | 下一步
                 i(class="fas fa-arrow-right ml-2")
-
-        //- TAB 2: Model Management
-        #tab-models-content(class="hidden")
-          .grid.grid-cols-3.gap-6.max-w-6xl.mx-auto
-            //- Left: Model List
-            .col-span-1.bg-white.rounded-2xl.shadow-sm.border.border-slate-100.overflow-hidden.h-fit
-              .p-4.border-b.border-slate-100.flex.justify-between.items-center
-                h3.font-bold.text-slate-700 模型列表
-                button(class="text-blue-600 text-sm hover:bg-blue-50 p-1 rounded")
-                  i.fas.fa-sync-alt
-              
-              ul#model-list.divide-y.divide-slate-100.max-h-96.overflow-y-auto
-                //- JS populated
-                li.p-4.text-center.text-slate-400 加载中...
-
-              .p-4.border-t.border-slate-100
-                button(class="w-full py-2 border border-dashed border-2 border-slate-300 text-slate-500 rounded-lg text-sm hover:border-blue-500 hover:text-blue-600 transition")
-                  i.fas.fa-plus.mr-2
-                  | 注册新模型
-
-            //- Right: Configuration Panel
-            .col-span-2.bg-white.rounded-2xl.shadow-sm.border.border-slate-100.p-8
-              header.flex.justify-between.items-start.mb-6
-                div
-                  h3.text-xl.font-bold.text-slate-800#selected-model-name Llama-2-7b-chat
-                  div.flex.items-center.gap-2.mt-1
-                    span(class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-bold") Running
-                    span.text-xs.text-slate-400 Platform: Nvidia/vLLM
-                div
-                   button(class="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800")
-                     i.fas.fa-save.mr-2
-                     | 保存更改
-
-              form#model-config-form.space-y-6
-                div
-                  h4.font-bold.text-sm.text-slate-700.mb-3 推理参数 (Inference)
-                  .grid.grid-cols-2.gap-4
-                    div
-                      label.block.text-xs.text-slate-500.mb-1 Temperature
-                      input(type="range", min="0", max="1", step="0.1", class="w-full")
-                    div
-                      label.block.text-xs.text-slate-500.mb-1 Top P
-                      input(type="number", value="0.9", class="w-full rounded border-slate-200 text-sm")
-                
-                div
-                  h4.font-bold.text-sm.text-slate-700.mb-3 资源分配 (Resources)
-                  .grid.grid-cols-2.gap-4
-                    div
-                      label.block.text-xs.text-slate-500.mb-1 GPU Memory Util
-                      input(type="text", value="0.9", class="w-full rounded border-slate-200 text-sm")
-                    div
-                      label.block.text-xs.text-slate-500.mb-1 Tensor Parallel Size
-                      input(type="number", value="1", class="w-full rounded border-slate-200 text-sm")
 
 block scripts
   script(src="/js/deployment.js")

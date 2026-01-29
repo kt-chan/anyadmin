@@ -351,3 +351,23 @@ And you have to follow Coding Guide provided in final section of below context.
 - Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers before termination.  
 - Write unit tests to verify any update systematically by accessing the frontend app and backend fastapi services code changes.
 - Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
+
+
+## Task 10
+
+analyze this view pug  @frontend\views\deployment.pug, then you have to rewrite and enrich this view pug as well as the corresponding frontend and backend services for below funcitonal features enrichment objective.
+And you have to follow Coding Guide provided in final section of below context.
+
+*** funcitonal features enrichment Objective ***
+1. rescan @frontend/views/deployment.pug , add a subsection "RAG App - AnythingLLM" with host selection and service port and connectivity test, 
+2. make the  "向量数据库类型" and "文档解析服务" as optional service by adding a checkbox to enable it.
+3.  Update related frontend and backend codes to fit for this changes. do not make confuse the connectivity test in step 1 for ssh and step 3 for inference engine (e.g. vllm)
+4.  Write unit test for this update.
+
+**Coding Guide**  
+- this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, and backend code in GO.
+- Use batch syntax checking to identify and fix multiple issues at once.  
+- Launch the apps / processes with seperate process and redirect the output to logs, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers before termination.  
+- Write unit tests to verify any update systematically by accessing the frontend app and backend fastapi services code changes.
+- Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 

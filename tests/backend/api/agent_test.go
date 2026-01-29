@@ -13,11 +13,13 @@ import (
 )
 
 type HeartbeatRequest struct {
-	NodeIP      string  `json:"node_ip"`
-	Hostname    string  `json:"hostname"`
-	Status      string  `json:"status"`
-	CPUUsage    float64 `json:"cpu_usage"`
-	MemoryUsage float64 `json:"memory_usage"`
+	NodeIP       string  `json:"node_ip"`
+	Hostname     string  `json:"hostname"`
+	Status       string  `json:"status"`
+	CPUUsage     float64 `json:"cpu_usage"`
+	MemoryUsage  float64 `json:"memory_usage"`
+	DockerStatus string  `json:"docker_status"`
+	Services     []map[string]string `json:"services"`
 }
 
 func setupRouter() *gin.Engine {
@@ -37,6 +39,10 @@ func TestAgentHeartbeat(t *testing.T) {
 		Status:      "online",
 		CPUUsage:    20.0,
 		MemoryUsage: 40.0,
+		DockerStatus: "active",
+		Services: []map[string]string{
+			{"name": "vllm-server", "state": "running"},
+		},
 	}
 	body, _ := json.Marshal(payload)
 
@@ -52,6 +58,9 @@ func TestAgentHeartbeat(t *testing.T) {
 	assert.True(t, exists)
 	assert.Equal(t, "test-node", status.Hostname)
 	assert.Equal(t, 20.0, status.CPUUsage)
+	assert.Equal(t, "active", status.DockerStatus)
+	assert.Len(t, status.Services, 1)
+	assert.Equal(t, "vllm-server", status.Services[0].Name)
 
 	// 3. Check via API
 	w2 := httptest.NewRecorder()
@@ -65,6 +74,9 @@ func TestAgentHeartbeat(t *testing.T) {
 	data := response["data"].(map[string]interface{})
 	
 	assert.Equal(t, "test-node", data["hostname"])
+	assert.Equal(t, "active", data["docker_status"])
+	services := data["services"].([]interface{})
+	assert.Len(t, services, 1)
 }
 
 func TestCheckAgentStatusNotFound(t *testing.T) {

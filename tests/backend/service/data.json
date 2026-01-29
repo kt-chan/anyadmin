@@ -1,0 +1,132 @@
+{
+  "users": [
+    {
+      "id": 0,
+      "createdAt": "0001-01-01T00:00:00Z",
+      "updatedAt": "0001-01-01T00:00:00Z",
+      "deletedAt": null,
+      "username": "admin",
+      "password": "password",
+      "role": "admin"
+    },
+    {
+      "id": 0,
+      "createdAt": "0001-01-01T00:00:00Z",
+      "updatedAt": "0001-01-01T00:00:00Z",
+      "deletedAt": null,
+      "username": "operator_01",
+      "password": "password",
+      "role": "operator"
+    }
+  ],
+  "import_tasks": [
+    {
+      "id": 0,
+      "createdAt": "0001-01-01T00:00:00Z",
+      "updatedAt": "0001-01-01T00:00:00Z",
+      "deletedAt": null,
+      "name": "文档全量同步",
+      "sourceType": "NFS",
+      "sourcePath": "/mnt/nfs/docs/v1",
+      "status": "Processing",
+      "progress": 56,
+      "totalFiles": 15000,
+      "processed": 8432,
+      "message": ""
+    },
+    {
+      "id": 0,
+      "createdAt": "0001-01-01T00:00:00Z",
+      "updatedAt": "0001-01-01T00:00:00Z",
+      "deletedAt": null,
+      "name": "图片资源归档",
+      "sourceType": "S3",
+      "sourcePath": "s3://company-assets/images",
+      "status": "Paused",
+      "progress": 42,
+      "totalFiles": 5000,
+      "processed": 2100,
+      "message": ""
+    }
+  ],
+  "backup_records": [
+    {
+      "id": 0,
+      "createdAt": "0001-01-01T00:00:00Z",
+      "updatedAt": "0001-01-01T00:00:00Z",
+      "deletedAt": null,
+      "name": "backup_20240520_full.tar.gz",
+      "path": "/backups/backup_20240520_full.tar.gz",
+      "size": 107374182400,
+      "type": "Full",
+      "status": "Success",
+      "message": ""
+    },
+    {
+      "id": 0,
+      "createdAt": "0001-01-01T00:00:00Z",
+      "updatedAt": "0001-01-01T00:00:00Z",
+      "deletedAt": null,
+      "name": "backup_20240519_inc.tar.gz",
+      "path": "/backups/backup_20240519_inc.tar.gz",
+      "size": 10737418240,
+      "type": "Incremental",
+      "status": "Success",
+      "message": ""
+    }
+  ],
+  "inference_cfgs": [
+    {
+      "id": 0,
+      "createdAt": "0001-01-01T00:00:00Z",
+      "updatedAt": "0001-01-01T00:00:00Z",
+      "deletedAt": null,
+      "name": "llama-3-8b-instruct",
+      "engine": "MindIE",
+      "modelPath": "/models/llama3",
+      "ip": "10.0.1.5",
+      "port": "8000",
+      "maxConcurrency": 64,
+      "tokenLimit": 8192,
+      "batchSize": 0,
+      "gpuMemory": 0
+    },
+    {
+      "id": 0,
+      "createdAt": "0001-01-01T00:00:00Z",
+      "updatedAt": "0001-01-01T00:00:00Z",
+      "deletedAt": null,
+      "name": "bge-large-zh-v1.5",
+      "engine": "Embedding",
+      "modelPath": "",
+      "ip": "10.0.1.5",
+      "port": "8001",
+      "maxConcurrency": 0,
+      "tokenLimit": 0,
+      "batchSize": 0,
+      "gpuMemory": 0
+    },
+    {
+      "id": 0,
+      "createdAt": "0001-01-01T00:00:00Z",
+      "updatedAt": "0001-01-01T00:00:00Z",
+      "deletedAt": null,
+      "name": "milvus-standalone",
+      "engine": "Vector DB",
+      "modelPath": "",
+      "ip": "10.0.1.8",
+      "port": "19530",
+      "maxConcurrency": 0,
+      "tokenLimit": 0,
+      "batchSize": 0,
+      "gpuMemory": 0
+    }
+  ],
+  "deployment_nodes": [
+    "1.1.1.1:20",
+    "1.1.1.2:20",
+    "1.1.1.3:20"
+  ],
+  "mgmt_host": "172.20.0.1",
+  "mgmt_port": "8080"
+}

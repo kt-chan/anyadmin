@@ -42,16 +42,24 @@ func DeployService(c *gin.Context) {
 	}
 
 	// Always deploy agent to target nodes to ensure control/telemetry
-	if req.TargetNodes != "" {
+	if (req.TargetNodes != "" && req.MgmtHost != "" && req.MgmtPort != "") {
 		nodes := strings.Split(req.TargetNodes, "\n")
+		var validNodes []string
 		for _, node := range nodes {
 			node = strings.TrimSpace(node)
 			if node == "" {
 				continue
 			}
+			validNodes = append(validNodes, node)
 			// Async deployment
 			go service.DeployAgent(node, req.MgmtHost, req.MgmtPort, req.Mode)
 		}
+
+		mockdata.Mu.Lock()
+		mockdata.MgmtHost = req.MgmtHost
+		mockdata.MgmtPort = req.MgmtPort
+		mockdata.DeploymentNodes = validNodes
+		mockdata.Mu.Unlock()
 	}
 
 	// Mode specific logging or additional actions
@@ -61,23 +69,63 @@ func DeployService(c *gin.Context) {
 		log.Printf("[接入服务] 正在登记现有服务: %s (%s:%s)", req.ModelName, req.InferenceHost, req.InferencePort)
 	}
 
-	// 将配置持久化到数据库 (Mock Store)
-	config := inferenceConfig
-	config.CreatedAt = time.Now()
-	config.UpdatedAt = time.Now()
+	// Prepare configurations to save
+	var configsToSave []global.InferenceConfig
+	configsToSave = append(configsToSave, inferenceConfig)
+
+	if req.EnableRAG {
+		configsToSave = append(configsToSave, global.InferenceConfig{
+			Name:   "AnythingLLM",
+			Engine: "RAG App",
+			IP:     req.RAGHost,
+			Port:   req.RAGPort,
+		})
+	}
+
+	if req.EnableVectorDB {
+		configsToSave = append(configsToSave, global.InferenceConfig{
+			Name:   req.VectorDBType,
+			Engine: "Vector DB",
+			IP:     req.VectorDBHost,
+			Port:   req.VectorDBPort,
+		})
+	}
+
+	if req.EnableParser {
+		configsToSave = append(configsToSave, global.InferenceConfig{
+			Name:   "Mineru",
+			Engine: "Parser",
+			IP:     req.ParserHost,
+			Port:   req.ParserPort,
+		})
+	}
 
 	mockdata.Mu.Lock()
-	found := false
-	for i, cfg := range mockdata.InferenceCfgs {
-		if cfg.Name == config.Name {
-			mockdata.InferenceCfgs[i] = config
-			found = true
-			break
+	// To sync exactly with user configuration, we filter out existing wizard-managed components
+	// and replace them with the current ones.
+	var newInferenceCfgs []global.InferenceConfig
+	
+	// Keep non-wizard components (if any exist that don't match our roles)
+	// For simplicity in this mock, we'll just replace based on the example target which shows only wizard items.
+	// But to be safe, we can filter by Engine types we manage.
+	managedEngines := map[string]bool{
+		"vLLM": true, "MindIE": true, "RAG App": true, "Vector DB": true, "Parser": true, "Unknown": true,
+	}
+
+	for _, cfg := range mockdata.InferenceCfgs {
+		if !managedEngines[cfg.Engine] {
+			newInferenceCfgs = append(newInferenceCfgs, cfg)
 		}
 	}
-	if !found {
-		mockdata.InferenceCfgs = append(mockdata.InferenceCfgs, config)
+
+	// Add new configurations
+	for _, config := range configsToSave {
+		config.CreatedAt = time.Now()
+		config.UpdatedAt = time.Now()
+		newInferenceCfgs = append(newInferenceCfgs, config)
 	}
+	
+	mockdata.InferenceCfgs = newInferenceCfgs
 	mockdata.Mu.Unlock()
 	
 	// Persist to file
@@ -85,10 +133,10 @@ func DeployService(c *gin.Context) {
 
 	// 记录审计日志
 	action := "服务部署"
-	detail := "发起部署任务: " + config.Name
+	detail := "发起部署任务: " + inferenceConfig.Name
 	if req.Mode == "integrate_existing" {
 		action = "服务接入"
-		detail = "接入现有服务: " + config.Name + " (" + config.IP + ":" + config.Port + ")"
+		detail = "接入现有服务: " + inferenceConfig.Name + " (" + inferenceConfig.IP + ":" + inferenceConfig.Port + ")"
 	}
 	service.RecordLog(c.GetString("username"), action, detail, "Info")
 
@@ -97,7 +145,7 @@ func DeployService(c *gin.Context) {
 		"container_id": "pending",
 		"artifacts": gin.H{ // Mock artifacts for frontend display
 			"deploy_script.sh": "#!/bin/bash\n# Deployment Script\n# Deployment is now handled automatically by the backend via SSH.\n# You can check the server logs for progress.",
-			"config.yaml":      fmt.Sprintf("model: %s\nengine: %s\nhost: %s\nport: %s", config.Name, config.Engine, config.IP, config.Port),
+			"config.yaml":      fmt.Sprintf("model: %s\nengine: %s\nhost: %s\nport: %s", inferenceConfig.Name, inferenceConfig.Engine, inferenceConfig.IP, inferenceConfig.Port),
 		},
 	})
 }
@@ -269,4 +317,39 @@ func TestServiceConnection(c *gin.Context) {
 	conn.Close()
 
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Connection established successfully"})
+}
+
+type AgentControlRequest struct {
+	IP     string `json:"ip" binding:"required"`
+	Action string `json:"action" binding:"required"` // start, stop, restart
+}
+
+func ControlAgent(c *gin.Context) {
+	var req AgentControlRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := service.ControlAgent(req.IP, req.Action); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Agent %s %sed", req.IP, req.Action)})
+}
+
+func RemoveNode(c *gin.Context) {
+	ip := c.Query("ip")
+	if ip == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "IP is required"})
+		return
+	}
+
+	if err := service.DeleteNode(ip); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Node removed successfully"})
 }

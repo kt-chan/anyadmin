@@ -78,53 +78,8 @@
   "inference_cfgs": [
     {
       "id": 0,
-      "createdAt": "0001-01-01T00:00:00Z",
-      "updatedAt": "0001-01-01T00:00:00Z",
-      "deletedAt": null,
-      "name": "llama-3-8b-instruct",
-      "engine": "MindIE",
-      "modelPath": "/models/llama3",
-      "ip": "10.0.1.5",
-      "port": "8000",
-      "maxConcurrency": 64,
-      "tokenLimit": 8192,
-      "batchSize": 0,
-      "gpuMemory": 0
-    },
-    {
-      "id": 0,
-      "createdAt": "0001-01-01T00:00:00Z",
-      "updatedAt": "0001-01-01T00:00:00Z",
-      "deletedAt": null,
-      "name": "bge-large-zh-v1.5",
-      "engine": "Embedding",
-      "modelPath": "",
-      "ip": "10.0.1.5",
-      "port": "8001",
-      "maxConcurrency": 0,
-      "tokenLimit": 0,
-      "batchSize": 0,
-      "gpuMemory": 0
-    },
-    {
-      "id": 0,
-      "createdAt": "0001-01-01T00:00:00Z",
-      "updatedAt": "0001-01-01T00:00:00Z",
-      "deletedAt": null,
-      "name": "milvus-standalone",
-      "engine": "Vector DB",
-      "modelPath": "",
-      "ip": "10.0.1.8",
-      "port": "19530",
-      "maxConcurrency": 0,
-      "tokenLimit": 0,
-      "batchSize": 0,
-      "gpuMemory": 0
-    },
-    {
-      "id": 0,
-      "createdAt": "2026-01-29T15:46:34.0291387+08:00",
-      "updatedAt": "2026-01-29T15:46:34.0291387+08:00",
+      "createdAt": "2026-01-29T18:14:14.8474771+08:00",
+      "updatedAt": "2026-01-29T18:14:14.8474771+08:00",
       "deletedAt": null,
       "name": "Qwen3-1.7B",
       "engine": "vLLM",
@@ -135,9 +90,26 @@
       "tokenLimit": 0,
       "batchSize": 0,
       "gpuMemory": 0
+    },
+    {
+      "id": 0,
+      "createdAt": "2026-01-29T18:14:14.8474771+08:00",
+      "updatedAt": "2026-01-29T18:14:14.8474771+08:00",
+      "deletedAt": null,
+      "name": "AnythingLLM",
+      "engine": "RAG App",
+      "modelPath": "",
+      "ip": "172.20.0.10",
+      "port": "3001",
+      "maxConcurrency": 0,
+      "tokenLimit": 0,
+      "batchSize": 0,
+      "gpuMemory": 0
     }
   ],
   "deployment_nodes": [
     "172.20.0.10"
-  ]
+  ],
+  "mgmt_host": "172.20.0.1",
+  "mgmt_port": "8080"
 }

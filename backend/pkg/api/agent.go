@@ -1,17 +1,21 @@
 package api
 
 import (
+	"anyadmin-backend/pkg/global"
 	"anyadmin-backend/pkg/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
 type HeartbeatRequest struct {
-	NodeIP      string  `json:"node_ip"`
-	Hostname    string  `json:"hostname"`
-	Status      string  `json:"status"`
-	CPUUsage    float64 `json:"cpu_usage"`
-	MemoryUsage float64 `json:"memory_usage"`
+	NodeIP         string                       `json:"node_ip"`
+	Hostname       string                       `json:"hostname"`
+	Status         string                       `json:"status"`
+	CPUUsage       float64                      `json:"cpu_usage"`
+	MemoryUsage    float64                      `json:"memory_usage"`
+	DockerStatus   string                       `json:"docker_status"`
+	DeploymentTime string                       `json:"deployment_time"`
+	Services       []global.DockerServiceStatus `json:"services"`
 }
 
 // ReceiveHeartbeat handles the POST request from the agent
@@ -22,7 +26,7 @@ func ReceiveHeartbeat(c *gin.Context) {
 		return
 	}
 
-	service.HandleHeartbeat(req.NodeIP, req.Hostname, req.Status, req.CPUUsage, req.MemoryUsage)
+	service.HandleHeartbeat(req.NodeIP, req.Hostname, req.Status, req.CPUUsage, req.MemoryUsage, req.DockerStatus, req.DeploymentTime, req.Services)
 
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }

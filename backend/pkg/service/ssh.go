@@ -19,10 +19,35 @@ import (
 )
 
 var (
-	keyDir  = "./keys"
+	keyDir  = ""
 	keyName = "id_rsa"
 	keyMu   sync.Mutex
 )
+
+func init() {
+	// Find backend directory to locate keys
+	cwd, _ := os.Getwd()
+	checkPaths := []string{
+		filepath.Join(cwd, "backend"),
+		filepath.Join(cwd, "..", "backend"),
+		filepath.Join(cwd, "..", "..", "backend"),
+		filepath.Join(cwd, "..", "..", "..", "backend"),
+		cwd,
+	}
+
+	for _, p := range checkPaths {
+		if _, err := os.Stat(filepath.Join(p, "go.mod")); err == nil {
+			data, _ := os.ReadFile(filepath.Join(p, "go.mod"))
+			if strings.Contains(string(data), "module anyadmin-backend") {
+				keyDir = filepath.Join(p, "keys")
+				break
+			}
+		}
+	}
+	if keyDir == "" {
+		keyDir = "./keys" // Fallback
+	}
+}
 
 // EnsureKeys checks for keys and generates them if missing.
 func EnsureKeys() error {

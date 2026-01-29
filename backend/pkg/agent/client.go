@@ -14,32 +14,46 @@ import (
 	"time"
 )
 
+// DockerServiceStatus represents the status of a specific docker container
+type DockerServiceStatus struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Image  string `json:"image"`
+	Status string `json:"status"`
+	State  string `json:"state"`
+	Uptime string `json:"uptime"`
+}
+
 // HeartbeatRequest defines the structure of the heartbeat payload
 type HeartbeatRequest struct {
-	NodeIP       string  `json:"node_ip"`
-	Hostname     string  `json:"hostname"`
-	OS           string  `json:"os"`
-	Arch         string  `json:"arch"`
-	Status       string  `json:"status"`
-	CPUUsage     float64 `json:"cpu_usage"`
-	MemoryUsage  float64 `json:"memory_usage"`
-	DockerStatus string  `json:"docker_status"`
+	NodeIP         string                `json:"node_ip"`
+	Hostname       string                `json:"hostname"`
+	OS             string                `json:"os"`
+	Arch           string                `json:"arch"`
+	Status         string                `json:"status"`
+	CPUUsage       float64               `json:"cpu_usage"`
+	MemoryUsage    float64               `json:"memory_usage"`
+	DockerStatus   string                `json:"docker_status"`
+	DeploymentTime string                `json:"deployment_time"`
+	Services       []DockerServiceStatus `json:"services"`
 }
 
 // SendHeartbeat sends a heartbeat to the management server
-func SendHeartbeat(mgmtURL, nodeIP, hostname string) error {
+func SendHeartbeat(mgmtURL, nodeIP, hostname, deploymentTime string) error {
 	cpu, _ := getCPUUsage()
 	mem, _ := getMemoryUsage()
 
 	payload := HeartbeatRequest{
-		NodeIP:       nodeIP,
-		Hostname:     hostname,
-		OS:           runtime.GOOS,
-		Arch:         runtime.GOARCH,
-		Status:       "online",
-		CPUUsage:     cpu,
-		MemoryUsage:  mem,
-		DockerStatus: checkDocker(),
+		NodeIP:         nodeIP,
+		Hostname:       hostname,
+		OS:             runtime.GOOS,
+		Arch:           runtime.GOARCH,
+		Status:         "online",
+		CPUUsage:       cpu,
+		MemoryUsage:    mem,
+		DockerStatus:   checkDocker(),
+		DeploymentTime: deploymentTime,
+		Services:       getDockerServices(),
 	}
 
 	data, err := json.Marshal(payload)
@@ -106,10 +120,10 @@ func ParseProcStat(content string) (uint64, uint64, error) {
 				if err != nil {
 					return 0, 0, err
 				}
-			total += val
-			if i == 3 { // idle is the 4th value (index 3)
-				idle = val
-			}
+				total += val
+				if i == 3 { // idle is the 4th value (index 3)
+					idle = val
+				}
 			}
 			return idle, total, nil
 		}
@@ -169,11 +183,108 @@ func ParseMemInfo(content string) (float64, error) {
 }
 
 func checkDocker() string {
+
 	// Simple check using 'docker info'
+
 	// Note: cmd.Run() returns error if exit code is non-zero
+
 	cmd := exec.Command("docker", "info")
+
 	if err := cmd.Run(); err != nil {
+
 		return "inactive"
+
 	}
+
 	return "active"
+
+}
+
+func getDockerServices() []DockerServiceStatus {
+
+	// Use docker ps with format to get key information
+
+	// Format: ID, Names, Image, Status, State, RunningFor (Uptime)
+
+	cmd := exec.Command("docker", "ps", "--format", "{{.ID}}|{{.Names}}|{{.Image}}|{{.Status}}|{{.State}}|{{.RunningFor}}")
+
+	output, err := cmd.Output()
+
+	if err != nil {
+
+		return nil
+
+	}
+
+	return ParseDockerPsOutput(string(output))
+
+}
+
+// ParseDockerPsOutput parses the output of docker ps --format ...
+
+func ParseDockerPsOutput(output string) []DockerServiceStatus {
+
+	// Target services to monitor
+
+	targets := []string{"vllm", "anysearch", "anyzearch", "anythingllm", "anything-llm", "milvus", "lancedb", "chroma", "pgvector", "mineru"}
+
+	var services []DockerServiceStatus
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+
+	for _, line := range lines {
+
+		if line == "" {
+
+			continue
+
+		}
+
+		parts := strings.Split(line, "|")
+
+		if len(parts) < 6 {
+
+			continue
+
+		}
+
+		name := parts[1]
+
+		isTarget := false
+
+		for _, t := range targets {
+
+			if strings.Contains(strings.ToLower(name), t) {
+
+				isTarget = true
+
+				break
+
+			}
+
+		}
+
+		if isTarget {
+
+			services = append(services, DockerServiceStatus{
+
+				ID: parts[0],
+
+				Name: parts[1],
+
+				Image: parts[2],
+
+				Status: parts[3],
+
+				State: parts[4],
+
+				Uptime: parts[5],
+			})
+
+		}
+
+	}
+
+	return services
+
 }

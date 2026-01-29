@@ -16,13 +16,22 @@ block content
     main(class="ml-64 flex-1 p-8 bg-slate-50 min-h-screen")
       #page-deployment.page-content.active
         //- Tabs Header
-        header(class="mb-8 flex justify-between items-center")
+        header(class="mb-6 flex justify-between items-center")
           div
             h2(class="text-2xl font-bold text-slate-800") 机器节点和部署管理
             p(class="text-slate-500 text-sm") 管理 AI 基础设施部署
 
+        //- Tabs Navigation
+        nav#deployment-tabs(class="flex gap-8 mb-8 border-b border-slate-200")
+          button(data-target="tab-wizard-content", class="tab-btn pb-4 font-bold text-sm border-b-2 border-blue-600 text-blue-600 transition-all") 
+            i.fas.fa-magic.mr-2
+            | 部署向导
+          button(data-target="tab-nodes-content", class="tab-btn pb-4 font-bold text-sm border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition-all") 
+            i.fas.fa-server.mr-2
+            | 节点状态
+
         //- TAB 1: Deployment Wizard
-        #tab-wizard-content
+        #tab-wizard-content.tab-pane
           .bg-white.rounded-2xl.shadow-sm.border.border-slate-100.overflow-hidden.max-w-5xl.mx-auto
             //- Wizard Progress
             .bg-slate-50.p-6.border-b.border-slate-100
@@ -290,6 +299,22 @@ block content
               button#next-btn(type="button", disabled, class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition ml-auto disabled:opacity-50 disabled:cursor-not-allowed")
                 | 下一步
                 i(class="fas fa-arrow-right ml-2")
+
+        //- TAB 2: Nodes Status
+        #tab-nodes-content.tab-pane.hidden
+          .mb-6.flex.justify-between.items-center
+            div
+              h3(class="text-lg font-bold text-slate-700") 节点运行状态
+              p(class="text-xs text-slate-500") 实时监控节点资源及 Docker 引擎状态
+            button(onclick="refreshNodesDashboard()", class="bg-white border border-slate-200 px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition shadow-sm")
+              i.fas.fa-sync-alt.mr-2
+              | 刷新列表
+
+          .grid.grid-cols-1.gap-6#nodes-grid
+            //- Will be populated by JS
+            .bg-white.p-12.rounded-2xl.shadow-sm.border.border-slate-100.text-center
+              i.fas.fa-spinner.fa-spin.text-3xl.text-blue-500.mb-4
+              p.text-slate-500 加载节点状态中...
 
 block scripts
   script(src="/js/deployment.js")

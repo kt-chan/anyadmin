@@ -96,6 +96,15 @@ type DeploymentConfig struct {
 	ParserPort     string `json:"parser_port,omitempty"`
 }
 
+type DockerServiceStatus struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Image  string `json:"image"`
+	Status string `json:"status"`
+	State  string `json:"state"`
+	Uptime string `json:"uptime"`
+}
+
 func InitConfig() {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")

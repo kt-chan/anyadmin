@@ -44,6 +44,8 @@ func NewRouter() *gin.Engine {
 			// Node Management
 			auth.GET("/deploy/nodes", api.GetNodes)
 			auth.POST("/deploy/nodes", api.SaveNodes)
+			auth.DELETE("/deploy/nodes", api.RemoveNode)
+			auth.POST("/deploy/agent/control", api.ControlAgent)
 			
 			auth.GET("/import/tasks", api.GetImportTasks)
 			auth.POST("/import/tasks", api.CreateImportTask)

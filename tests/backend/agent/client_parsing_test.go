@@ -70,3 +70,35 @@ Cached:          3000000 kB
 	}
 }
 
+func TestParseDockerPsOutput(t *testing.T) {
+	output := `1234567890ab|vllm-server|vllm/vllm-openai:latest|Up 2 hours|running|2 hours ago
+abcdef123456|anythingllm|mintplexlabs/anythingllm:latest|Up 5 minutes|running|5 minutes ago
+7890abcdef12|nginx|nginx:latest|Up 10 days|running|10 days ago`
+
+	services := agent.ParseDockerPsOutput(output)
+
+	// Should only find vllm and anythingllm, not nginx
+	if len(services) != 2 {
+		t.Errorf("expected 2 services, got %d", len(services))
+	}
+
+	foundVllm := false
+	foundAnythingLLM := false
+
+	for _, s := range services {
+		if s.Name == "vllm-server" {
+			foundVllm = true
+		}
+		if s.Name == "anythingllm" {
+			foundAnythingLLM = true
+		}
+	}
+
+	if !foundVllm {
+		t.Errorf("vllm-server not found in results")
+	}
+	if !foundAnythingLLM {
+		t.Errorf("anythingllm not found in results")
+	}
+}
+

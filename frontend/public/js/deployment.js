@@ -1,6 +1,292 @@
 document.addEventListener('DOMContentLoaded', () => {
   initWizard();
+  initTabs();
 });
+
+// --- Tabs ---
+let nodesRefreshInterval = null;
+
+function initTabs() {
+  const tabs = document.querySelectorAll('.tab-btn');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.target;
+      
+      // Update Tab UI
+      tabs.forEach(t => {
+        t.classList.remove('border-blue-600', 'text-blue-600');
+        t.classList.add('border-transparent', 'text-slate-400');
+      });
+      tab.classList.remove('border-transparent', 'text-slate-400');
+      tab.classList.add('border-blue-600', 'text-blue-600');
+      
+      // Update Content UI
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
+      document.getElementById(target).classList.remove('hidden');
+      
+      // Handle Auto-Refresh for Nodes Tab
+      if (target === 'tab-nodes-content') {
+        refreshNodesDashboard();
+        if (!nodesRefreshInterval) {
+            nodesRefreshInterval = setInterval(() => {
+                // Instead of full refresh which causes flicker, update individual nodes
+                const nodes = document.querySelectorAll('[id^="status-badge-"]');
+                nodes.forEach(n => {
+                    const ip = n.id.replace('status-badge-', '').replace(/-/g, '.');
+                    updateNodeStatusInDashboard(ip);
+                });
+            }, 5000); // Update every 5s for smooth transition to warning
+        }
+      } else {
+        if (nodesRefreshInterval) {
+            clearInterval(nodesRefreshInterval);
+            nodesRefreshInterval = null;
+        }
+      }
+    });
+  });
+}
+
+async function refreshNodesDashboard() {
+  const grid = document.getElementById('nodes-grid');
+  if (!grid) return;
+  
+  try {
+    const res = await fetch('/deployment/api/nodes');
+    const result = await res.json();
+    if (result.success && result.data) {
+        grid.innerHTML = '';
+        const nodes = result.data;
+        
+        for (const node of nodes) {
+            const ip = node.split(':')[0];
+            const card = document.createElement('div');
+            card.className = "bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden";
+            card.innerHTML = `
+                <div class="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center">
+                            <i class="fas fa-server"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-800">${ip}</h4>
+                            <div class="text-[10px] text-slate-400 font-mono">SSH Port: ${node.split(':')[1] || '22'}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div id="status-badge-${ip.replace(/\./g, '-')}" class="px-3 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-400 uppercase">
+                            Checking...
+                        </div>
+                        <div class="flex gap-1">
+                            <button onclick="handleAgentAction('${ip}', 'start')" title="Start Agent" class="w-8 h-8 rounded-lg bg-white border border-slate-200 text-green-600 hover:bg-green-50 transition flex items-center justify-center">
+                                <i class="fas fa-play text-xs"></i>
+                            </button>
+                            <button onclick="handleAgentAction('${ip}', 'stop')" title="Stop Agent" class="w-8 h-8 rounded-lg bg-white border border-slate-200 text-yellow-600 hover:bg-yellow-50 transition flex items-center justify-center">
+                                <i class="fas fa-stop text-xs"></i>
+                            </button>
+                            <button onclick="handleAgentAction('${ip}', 'delete')" title="Delete Node" class="w-8 h-8 rounded-lg bg-white border border-slate-200 text-red-600 hover:bg-red-50 transition flex items-center justify-center">
+                                <i class="fas fa-trash-alt text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6" id="node-details-${ip.replace(/\./g, '-')}">
+                    <div class="animate-pulse flex space-x-4">
+                        <div class="flex-1 space-y-4 py-1">
+                            <div class="h-4 bg-slate-100 rounded w-3/4"></div>
+                            <div class="space-y-2">
+                                <div class="h-4 bg-slate-100 rounded"></div>
+                                <div class="h-4 bg-slate-100 rounded w-5/6"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-6 pb-6" id="node-services-${ip.replace(/\./g, '-')}"></div>
+                <div id="node-footer-${ip.replace(/\./g, '-')}" class="px-6 pb-6 border-t border-slate-50 hidden"></div>
+            `;
+            grid.appendChild(card);
+            
+            // Start individual node update
+            updateNodeStatusInDashboard(ip);
+        }
+    }
+  } catch (e) {
+    grid.innerHTML = '<div class="p-8 text-red-500">Failed to load nodes.</div>';
+  }
+}
+
+async function updateNodeStatusInDashboard(ip) {
+  const safeIp = ip.replace(/\./g, '-');
+  const badge = document.getElementById(`status-badge-${safeIp}`);
+  const details = document.getElementById(`node-details-${safeIp}`);
+  const services = document.getElementById(`node-services-${safeIp}`);
+  
+  try {
+    const res = await fetch(`/deployment/api/status?ip=${ip}`);
+    const result = await res.json();
+    
+    if (result.success && result.data) {
+        const agent = result.data;
+        const lastSeen = new Date(agent.last_seen);
+        const now = new Date();
+        const diffSeconds = Math.floor((now - lastSeen) / 1000);
+
+        let statusClass = "bg-green-100 text-green-600";
+        let statusText = "Online";
+        let isWarning = false;
+        let isDown = false;
+
+        if (diffSeconds > 30) {
+            statusClass = "bg-red-100 text-red-600";
+            statusText = "Down";
+            isDown = true;
+        } else if (diffSeconds > 10) {
+            statusClass = "bg-yellow-100 text-yellow-600";
+            statusText = "Warning";
+            isWarning = true;
+        }
+        
+        if (agent.status === 'online' || isWarning || isDown) {
+            badge.className = `px-3 py-1 rounded-full text-[10px] font-bold ${statusClass} uppercase`;
+            badge.innerText = `${statusText} (${diffSeconds}s ago)`;
+            
+            details.innerHTML = `
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 ${isDown ? 'opacity-50' : ''}">
+                    <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">CPU Usage</div>
+                    <div class="text-xl font-bold text-slate-800">${agent.cpu_usage.toFixed(1)}%</div>
+                    <div class="w-full bg-slate-200 h-1.5 rounded-full mt-2">
+                        <div class="bg-blue-500 h-1.5 rounded-full" style="width: ${agent.cpu_usage}%"></div>
+                    </div>
+                </div>
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 ${isDown ? 'opacity-50' : ''}">
+                    <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">Memory Usage</div>
+                    <div class="text-xl font-bold text-slate-800">${agent.memory_usage.toFixed(1)}%</div>
+                    <div class="w-full bg-slate-200 h-1.5 rounded-full mt-2">
+                        <div class="bg-indigo-500 h-1.5 rounded-full" style="width: ${agent.memory_usage}%"></div>
+                    </div>
+                </div>
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                    <div class="flex justify-between items-center mb-1">
+                        <div class="text-[10px] text-slate-400 font-bold uppercase">Docker Engine</div>
+                        ${agent.docker_status !== 'active' && !isDown ? `
+                            <button onclick="handleAgentAction('${ip}', 'fix-docker')" class="text-[10px] text-blue-600 hover:underline font-bold">
+                                <i class="fas fa-wrench mr-1"></i>FIX
+                            </button>
+                        ` : ''}
+                    </div>
+                    <div class="text-sm font-bold ${agent.docker_status === 'active' && !isDown ? 'text-green-600' : 'text-red-600'} mt-1">
+                        ${isDown ? 'UNKNOWN' : agent.docker_status.toUpperCase()}
+                    </div>
+                    <div class="text-[10px] text-slate-400 mt-1">${agent.hostname} (${agent.os || 'Linux'})</div>
+                </div>
+            `;
+            
+            if (agent.services && agent.services.length > 0) {
+                services.innerHTML = `
+                    <h5 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Running Services</h5>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        ${agent.services.map(svc => {
+                            let svcState = svc.state;
+                            let svcColor = svc.state === 'running' ? 'bg-green-500' : 'bg-red-500';
+                            
+                            if (isDown) {
+                                svcState = 'unknown';
+                                svcColor = 'bg-slate-400';
+                            } else if (isWarning) {
+                                svcColor = 'bg-yellow-500';
+                            }
+
+                            return `
+                                <div class="flex items-center gap-3 p-3 border border-slate-100 rounded-lg ${isDown ? 'bg-slate-50' : ''}">
+                                    <div class="w-8 h-8 rounded bg-slate-50 flex items-center justify-center text-slate-400">
+                                        <i class="fas fa-box"></i>
+                                    </div>
+                                    <div class="flex-1 overflow-hidden">
+                                        <div class="text-xs font-bold text-slate-700 truncate">${svc.name}</div>
+                                        <div class="text-[10px] text-slate-400 truncate">${isDown ? '---' : svc.uptime}</div>
+                                    </div>
+                                    <div class="w-2 h-2 rounded-full ${svcColor}"></div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                
+            } else {
+                services.innerHTML = '';
+            }
+
+            const footer = document.getElementById(`node-footer-${safeIp}`);
+            if (agent.deployment_time && footer) {
+                const depDate = new Date(agent.deployment_time);
+                footer.classList.remove('hidden');
+                footer.innerHTML = `
+                    <div class="mt-4 p-3 bg-blue-50/50 rounded-lg border border-blue-100/50 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-history text-blue-400 text-xs"></i>
+                            <span class="text-[10px] font-bold text-slate-500 uppercase">Last Agent Deployment</span>
+                        </div>
+                        <span class="text-[10px] font-mono text-blue-600">${depDate.toLocaleString()}</span>
+                    </div>
+                `;
+            } else if (footer) {
+                footer.classList.add('hidden');
+            }
+        }
+    } else {
+        badge.className = "px-3 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-600 uppercase";
+        badge.innerText = "Offline";
+        details.innerHTML = '<div class="col-span-3 text-center py-4 text-slate-400 italic">No agent detected.</div>';
+    }
+  } catch (e) {
+    badge.innerText = "Error";
+    details.innerHTML = '<div class="col-span-3 text-center py-4 text-red-400">Error fetching status.</div>';
+  }
+}
+
+window.handleAgentAction = async function(ip, action) {
+  if (action === 'delete') {
+    if (!confirm(`Are you sure you want to remove node ${ip}? This will only remove it from the management list.`)) {
+        return;
+    }
+  }
+
+  // Find the button to show loading state
+  const btn = event.currentTarget;
+  const originalHtml = btn.innerHTML;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin text-xs"></i>';
+  btn.disabled = true;
+
+  try {
+    let res;
+    if (action === 'delete') {
+        res = await fetch(`/deployment/api/nodes?ip=${ip}`, { method: 'DELETE' });
+    } else {
+        res = await fetch('/deployment/api/agent/control', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ip, action })
+        });
+    }
+
+    const result = await res.json();
+    if (res.ok && (result.success || result.data || result.message)) {
+        if (action === 'delete') {
+            refreshNodesDashboard();
+        } else {
+            // Give it a moment then update status
+            setTimeout(() => updateNodeStatusInDashboard(ip), 2000);
+        }
+    } else {
+        alert('Error: ' + (result.error || result.message || 'Action failed'));
+    }
+  } catch (e) {
+    alert('Network error');
+  } finally {
+    btn.innerHTML = originalHtml;
+    btn.disabled = false;
+  }
+};
 
 // --- State ---
 let currentStep = 1;
@@ -23,27 +309,37 @@ async function saveTargetNodes() {
   } catch (e) { console.error('Failed to save nodes', e); }
 }
 
-async function fetchNodesAndPopulate() {
+window.fetchNodesAndPopulate = async function() {
   try {
     const res = await fetch('/deployment/api/nodes');
     const result = await res.json();
-    if (result.success && result.data) {
-        const nodes = result.data;
-        const selectors = document.querySelectorAll('select.node-selector');
-        selectors.forEach(sel => {
-            const currentVal = sel.value;
-            sel.innerHTML = '<option value="">Select Target Node</option>';
-            nodes.forEach(node => {
-                const opt = document.createElement('option');
-                // Strip port for service selection (e.g. "172.20.0.10:22" -> "172.20.0.10")
-                const ipOnly = node.split(':')[0];
-                opt.value = ipOnly;
-                opt.textContent = ipOnly;
-                sel.appendChild(opt);
-            });
-            if (nodes.includes(currentVal)) sel.value = currentVal;
+    let nodes = (result.success && Array.isArray(result.data)) ? result.data : [];
+    
+    // Supplement with current textarea input if in wizard
+    const targetNodesInput = document.querySelector('textarea[name="target_nodes"]');
+    if (targetNodesInput) {
+        const wizardNodes = targetNodesInput.value.split('\n').map(s => s.trim()).filter(s => s);
+        wizardNodes.forEach(wn => {
+            if (!nodes.includes(wn)) nodes.push(wn);
         });
     }
+
+    const selectors = document.querySelectorAll('select.node-selector');
+    selectors.forEach(sel => {
+        const currentVal = sel.value;
+        sel.innerHTML = '<option value="">Select Target Node</option>';
+        nodes.forEach(node => {
+            const opt = document.createElement('option');
+            // Strip port for service selection (e.g. "172.20.0.10:22" -> "172.20.0.10")
+            const ipOnly = node.split(':')[0];
+            opt.value = ipOnly;
+            opt.textContent = ipOnly;
+            sel.appendChild(opt);
+        });
+        if (nodes.includes(currentVal) || nodes.some(n => n.startsWith(currentVal + ':'))) {
+            sel.value = currentVal;
+        }
+    });
   } catch (e) { console.error('Failed to fetch nodes', e); }
 }
 
@@ -140,15 +436,6 @@ function initWizard() {
   if (nextBtn) {
     nextBtn.addEventListener('click', async () => {
         if (currentStep < totalSteps) {
-        if (currentStep === 1) {
-            const btnHtml = nextBtn.innerHTML;
-            nextBtn.disabled = true;
-            nextBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-            await saveTargetNodes();
-            nextBtn.disabled = false;
-            nextBtn.innerHTML = btnHtml;
-        }
-        
         currentStep++;
         updateWizardUI();
 
@@ -401,51 +688,54 @@ window.generateDeployment = async function() {
     });
     
     const result = await response.json();
-    if (result.success && result.data && result.data.artifacts) {
+    if (result.success && result.data) {
       
       const resultsContainer = document.getElementById('generation-results') || createResultsContainer();
       resultsContainer.innerHTML = ''; 
       resultsContainer.classList.remove('hidden');
 
-      // 1. Artifacts List
-      Object.entries(result.data.artifacts).forEach(([filename, content]) => {
-        const fileBlock = document.createElement('div');
-        fileBlock.className = "mb-4 bg-slate-900 rounded-lg overflow-hidden";
-        fileBlock.innerHTML = `
-          <div class="flex justify-between items-center bg-slate-800 px-4 py-2">
-            <span class="text-xs font-mono text-slate-300">${filename}</span>
-            <button onclick="copyContent(this)" class="text-xs text-blue-400 hover:text-blue-300">
-              <i class="far fa-copy mr-1"></i> Copy
-            </button>
-          </div>
-          <pre class="p-4 text-xs text-green-400 font-mono overflow-x-auto whitespace-pre-wrap max-h-64 scrollbar-thin">${escapeHtml(content)}</pre>
-        `;
-        resultsContainer.appendChild(fileBlock);
-      });
-
-      // 2. Verify Button Area
+      // 1. Verification Area
       const verifyArea = document.createElement('div');
       verifyArea.className = "mt-6 pt-6 border-t border-slate-200 text-center";
       verifyArea.innerHTML = `
-        <h4 class="text-sm font-bold text-slate-700 mb-2">Post-Deployment Verification</h4>
-        <p class="text-xs text-slate-500 mb-4">Run the generated scripts on your target node, then wait for the agent to connect.</p>
+        <h4 class="text-sm font-bold text-slate-700 mb-2">部署进度验证</h4>
+        <p class="text-xs text-slate-500 mb-4">正在等待节点 Agent 建立连接并上报心跳。成功后将自动跳转至仪表板。</p>
         
         <div id="agent-status-container" class="mb-4 p-4 bg-blue-50 border border-blue-100 rounded-lg max-w-md mx-auto">
             <div class="flex items-center justify-center gap-3">
                 <i class="fas fa-satellite-dish fa-spin text-blue-600"></i>
-                <span class="text-sm font-bold text-blue-800" id="agent-status-text">Waiting for Agent Heartbeat...</span>
+                <span class="text-sm font-bold text-blue-800" id="agent-status-text">等待 Agent 心跳...</span>
             </div>
-            <p class="text-xs text-blue-600 mt-1" id="agent-target-ip">Target: ...</p>
+            <p class="text-xs text-blue-600 mt-1" id="agent-target-ip">目标地址: ...</p>
+            
+            <div id="agent-stats" class="hidden mt-3 grid grid-cols-2 gap-2 border-t border-blue-100 pt-2">
+                <div class="text-center">
+                    <div class="text-[10px] text-blue-400 uppercase">CPU 使用率</div>
+                    <div class="text-sm font-bold text-blue-700" id="agent-cpu">- %</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-[10px] text-blue-400 uppercase">内存使用率</div>
+                    <div class="text-sm font-bold text-blue-700" id="agent-mem">- %</div>
+                </div>
+            </div>
         </div>
 
-        <button id="verify-btn" onclick="verifyDeployment()" class="px-6 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 transition hidden">
-           <i class="fas fa- stethoscope mr-2"></i> Verify Services
-        </button>
-        <div id="verification-results" class="mt-4 bg-slate-800 rounded-lg p-4 hidden text-left max-w-md mx-auto"></div>
+        <!-- Services Status Container -->
+        <div id="services-status-container" class="hidden mt-6 text-left max-w-2xl mx-auto">
+            <div class="flex items-center justify-between mb-3">
+                <h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider">运行中的服务 (Agent 已检测)</h5>
+                <span id="docker-badge" class="px-2 py-0.5 rounded text-[10px] font-bold"></span>
+            </div>
+            <div id="services-list" class="grid grid-cols-1 gap-2">
+                <p class="text-xs text-slate-400 italic">检测服务中...</p>
+            </div>
+        </div>
       `;
       resultsContainer.appendChild(verifyArea);
 
-      resultsContainer.scrollIntoView({ behavior: 'smooth' });
+      if (resultsContainer.scrollIntoView) {
+          resultsContainer.scrollIntoView({ behavior: 'smooth' });
+      }
 
       // Start polling for agent
       startAgentPolling(data);
@@ -497,8 +787,13 @@ function startAgentPolling(data) {
 async function pollAgent(ip) {
   const statusText = document.getElementById('agent-status-text');
   const container = document.getElementById('agent-status-container');
+  const statsDiv = document.getElementById('agent-stats');
+  const servicesContainer = document.getElementById('services-status-container');
+  const servicesList = document.getElementById('services-list');
+  const dockerBadge = document.getElementById('docker-badge');
+  
   let attempts = 0;
-  const maxAttempts = 60; // 1 minute (assuming 1s interval) - usually longer but for demo/test
+  const maxAttempts = 300; // 10 minutes (assuming 2s interval) - give it time for full deployment
   
   const interval = setInterval(async () => {
     attempts++;
@@ -506,31 +801,71 @@ async function pollAgent(ip) {
       const res = await fetch(`/deployment/api/status?ip=${ip}`);
       if (res.ok) {
         const result = await res.json();
-        if (result.success && result.data && result.data.status === 'online') {
-            clearInterval(interval);
+        if (result.success && result.data) {
+            const agent = result.data;
             
-            // Success State
-            container.className = "mb-4 p-4 bg-green-50 border border-green-100 rounded-lg max-w-md mx-auto";
-            statusText.parentElement.innerHTML = `
-                <i class="fas fa-check-circle text-green-600"></i>
-                <span class="text-sm font-bold text-green-800">Agent Connected!</span>
-            `;
-            statusText.innerText = "Agent Connected!";
-            
-            // Redirect countdown
-            let count = 3;
-            const redirectMsg = document.createElement('p');
-            redirectMsg.className = "text-xs text-green-600 mt-2 font-bold";
-            container.appendChild(redirectMsg);
-            
-            const redirectInterval = setInterval(() => {
-                redirectMsg.innerText = `Redirecting to Dashboard in ${count}s...`;
-                if (count <= 0) {
-                    clearInterval(redirectInterval);
-                    window.location.href = '/dashboard';
+            if (agent.status === 'online') {
+                // container.className = "mb-4 p-4 bg-green-50 border border-green-100 rounded-lg max-w-md mx-auto";
+                statusText.innerText = "Agent 已上线";
+                statusText.parentElement.querySelector('i').className = "fas fa-check-circle text-green-600";
+                
+                // Update Stats
+                if (statsDiv) {
+                    statsDiv.classList.remove('hidden');
+                    document.getElementById('agent-cpu').innerText = `${agent.cpu_usage.toFixed(1)}%`;
+                    document.getElementById('agent-mem').innerText = `${agent.memory_usage.toFixed(1)}%`;
                 }
-                count--;
-            }, 1000);
+
+                // Update Docker Status
+                if (servicesContainer) {
+                    servicesContainer.classList.remove('hidden');
+                    if (agent.docker_status === 'active') {
+                        dockerBadge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700";
+                        dockerBadge.innerText = "DOCKER ACTIVE";
+                    } else {
+                        dockerBadge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700";
+                        dockerBadge.innerText = "DOCKER INACTIVE";
+                    }
+
+                    // Update Services
+                    if (agent.services && agent.services.length > 0) {
+                        servicesList.innerHTML = '';
+                        agent.services.forEach(svc => {
+                            const svcEl = document.createElement('div');
+                            svcEl.className = "flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg shadow-sm";
+                            
+                            const isRunning = svc.state === 'running';
+                            const statusColor = isRunning ? 'text-green-500' : 'text-red-500';
+                            
+                            svcEl.innerHTML = `
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-500">
+                                        <i class="fas fa-box text-xs"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-bold text-slate-700">${svc.name}</div>
+                                        <div class="text-[10px] text-slate-400 font-mono">${svc.image}</div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-[10px] font-bold ${statusColor} uppercase">${svc.state}</div>
+                                    <div class="text-[10px] text-slate-400">${svc.uptime}</div>
+                                </div>
+                            `;
+                            servicesList.appendChild(svcEl);
+                        });
+
+                        // All verified, redirect to dashboard
+                        clearInterval(interval);
+                        statusText.innerText = "部署验证成功！正在跳转仪表板...";
+                        setTimeout(() => {
+                            window.location.href = '/dashboard';
+                        }, 2000);
+                    } else if (agent.docker_status === 'active') {
+                        servicesList.innerHTML = '<p class="text-xs text-slate-400 italic">尚未检测到目标服务。正在启动中...</p>';
+                    }
+                }
+            }
         }
       }
     } catch (e) {

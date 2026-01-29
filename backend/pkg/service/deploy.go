@@ -5,13 +5,58 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"log"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strconv"
 	"strings"
-
+	"time"
+	"anyadmin-backend/pkg/mockdata"
 	"anyadmin-backend/pkg/global"
 
 	"golang.org/x/crypto/ssh"
 )
+
+func getBackendDir() string {
+	cwd, _ := os.Getwd()
+	checkPaths := []string{
+		filepath.Join(cwd, "backend"),
+		filepath.Join(cwd, "..", "backend"),
+		filepath.Join(cwd, "..", "..", "backend"),
+		filepath.Join(cwd, "..", "..", "..", "backend"),
+		cwd,
+	}
+
+	for _, p := range checkPaths {
+		if _, err := os.Stat(filepath.Join(p, "go.mod")); err == nil {
+			data, _ := os.ReadFile(filepath.Join(p, "go.mod"))
+			if strings.Contains(string(data), "module anyadmin-backend") {
+				return p
+			}
+		}
+	}
+	return ""
+}
+
+// RebuildAgent recompiles the agent for Linux AMD64
+func RebuildAgent() error {
+	backendDir := getBackendDir()
+	if backendDir == "" {
+		cwd, _ := os.Getwd()
+		return fmt.Errorf("could not find backend directory (anyadmin-backend) from %s", cwd)
+	}
+
+	cmd := exec.Command("go", "build", "-o", "./dist/agent_linux", "./cmd/agent/main.go")
+	cmd.Dir = backendDir
+	cmd.Env = append(os.Environ(), "GOOS=linux", "GOARCH=amd64")
+	
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to rebuild agent in %s: %w, output: %s", backendDir, err, output)
+	}
+	return nil
+}
 
 // GenerateAndStart is kept for compatibility
 func GenerateAndStart(config global.InferenceConfig) (string, string, error) {
@@ -77,13 +122,13 @@ func ensureUser(client *ssh.Client) error {
 		return nil // User exists
 	}
 
-	// Create user with sudo access
+	// Create user with sudo and docker access
 	// -m: create home directory
 	// -s: shell
-	// -G: groups (sudo)
-	cmd := fmt.Sprintf("useradd -m -s /bin/bash -G sudo %s", username)
+	// -G: groups (sudo, docker)
+	cmd := fmt.Sprintf("useradd -m -s /bin/bash -G sudo,docker %s || (usermod -aG sudo %s && usermod -aG docker %s)", username, username, username)
 	if _, err := ExecuteCommand(client, cmd); err != nil {
-		return fmt.Errorf("failed to add user: %w", err)
+		return fmt.Errorf("failed to ensure user groups: %w", err)
 	}
 
 	// Ensure passwordless sudo for convenience (optional but recommended for agents)
@@ -97,8 +142,9 @@ func ensureUser(client *ssh.Client) error {
 }
 
 func installGo(client *ssh.Client) error {
+	backendDir := getBackendDir()
 	// Source path
-	localPath := "./deployments/tars/os/ubuntu/amd64/jammy/go1.25.6.linux-amd64.tar.gz"
+	localPath := filepath.Join(backendDir, "deployments/tars/os/ubuntu/amd64/jammy/go1.25.6.linux-amd64.tar.gz")
 	remotePath := "/tmp/go.tar.gz"
 
 	// 1. Calculate local hash
@@ -142,37 +188,73 @@ func installGo(client *ssh.Client) error {
 }
 
 func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) error {
-	localPath := "./dist/agent_linux"
+	log.Printf("Deploying agent to %s with Management Server: %s:%s", nodeIP, mgmtHost, mgmtPort)
+	// Rebuild agent before deploying to ensure latest changes
+	if err := RebuildAgent(); err != nil {
+		log.Printf("Warning: Failed to rebuild agent, using existing binary: %v", err)
+	}
+
+	backendDir := getBackendDir()
+	localPath := filepath.Join(backendDir, "dist/agent_linux")
 	// Self-contained in user home
 	remoteBin := "/home/anyadmin/bin/anyadmin-agent"
+	remoteConfig := "/home/anyadmin/bin/config.json"
 	logDir := "/home/anyadmin/logs"
 
 	// 1. Prepare Directories
-	// Create bin and logs directories and ensure ownership of the entire home dir
 	prepCmd := fmt.Sprintf("mkdir -p /home/anyadmin/bin %s && chown -R anyadmin:anyadmin /home/anyadmin", logDir)
 	if _, err := ExecuteCommand(client, prepCmd); err != nil {
 		return fmt.Errorf("failed to prepare agent directories: %w", err)
 	}
 
-	// 2. Copy Binary
+	// 2. Create Config File
+	configContent := fmt.Sprintf(`{"mgmt_url": "http://%s:%s", "node_ip": "%s", "deployment_time": "%s"}`, 
+		mgmtHost, mgmtPort, nodeIP, time.Now().Format(time.RFC3339))
+	localConfigPath := filepath.Join(os.TempDir(), fmt.Sprintf("config_%s.json", strings.ReplaceAll(nodeIP, ".", "_")))
+	if err := os.WriteFile(localConfigPath, []byte(configContent), 0644); err != nil {
+		return fmt.Errorf("failed to create local config file: %w", err)
+	}
+	defer os.Remove(localConfigPath)
+
+	// 3. Copy Binary and Config
 	if err := CopyFile(client, localPath, remoteBin); err != nil {
 		return fmt.Errorf("failed to copy agent binary: %w", err)
 	}
-	// Ensure executable and owned by anyadmin (CopyFile might create it as root)
-	ExecuteCommand(client, fmt.Sprintf("chmod +x %s && chown anyadmin:anyadmin %s", remoteBin, remoteBin))
+	if err := CopyFile(client, localConfigPath, remoteConfig); err != nil {
+		return fmt.Errorf("failed to copy agent config: %w", err)
+	}
 
-	// 3. Run Agent
-	// Command to run:
-	// nohup /home/anyadmin/bin/anyadmin-agent -server http://<mgmt>:port -ip <nodeIP> > /home/anyadmin/logs/agent.log 2>&1 &
+	// Ensure executable and owned by anyadmin
+	ExecuteCommand(client, fmt.Sprintf("chmod +x %s && chown anyadmin:anyadmin %s %s", remoteBin, remoteBin, remoteConfig))
+
+	// 4. Run Agent
+	// The agent now looks for config.json in the same directory by default (or we can specify it)
+	// We'll run it from the bin directory using absolute paths for everything
+	remoteBinAbs := "/home/anyadmin/bin/anyadmin-agent"
 	
-	agentCmd := fmt.Sprintf("%s -server http://%s:%s -ip %s", remoteBin, mgmtHost, mgmtPort, nodeIP)
-	
-	// Wrap in runuser and nohup
-	fullCmd := fmt.Sprintf("runuser -l anyadmin -c 'nohup %s > %s/agent.log 2>&1 &'", agentCmd, logDir)
+	// Wrap in runuser and nohup. Use -c "cd ... && nohup ...."
+	// We use /usr/bin/nohup to be safe, and redirect output.
+	fullCmd := fmt.Sprintf("runuser -l anyadmin -c 'cd /home/anyadmin/bin && /usr/bin/nohup %s > %s/agent.log 2>&1 &'", remoteBinAbs, logDir)
 	
 	if _, err := ExecuteCommand(client, fullCmd); err != nil {
-		return fmt.Errorf("failed to start agent: %w", err)
+		return fmt.Errorf("failed to execute start command: %w", err)
 	}
+
+	// 5. Verify process started
+	log.Printf("Verifying agent start on %s...", nodeIP)
+	time.Sleep(5 * time.Second)
+	// Use a more robust check that returns a number
+	countStr, err := ExecuteCommand(client, "ps ax | grep anyadmin-agent | grep -v grep | wc -l")
+	if err != nil {
+		return fmt.Errorf("failed to check agent process: %w", err)
+	}
+	
+	count, _ := strconv.Atoi(strings.TrimSpace(countStr))
+	if count == 0 {
+		logTail, _ := ExecuteCommand(client, fmt.Sprintf("tail -n 20 %s/agent.log", logDir))
+		return fmt.Errorf("agent failed to start or died immediately on %s. Log tail:\n%s", nodeIP, logTail)
+	}
+	log.Printf("Agent successfully started on %s (count: %d)", nodeIP, count)
 
 	return nil
 }
@@ -190,4 +272,127 @@ func calculateHash(filePath string) (string, error) {
 	}
 
 	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+// ControlAgent manages the agent process on a remote node
+func ControlAgent(nodeIP, action string) error {
+	user := "admin"
+	nodeHost := nodeIP
+	nodePort := "22"
+	if strings.Contains(nodeIP, ":") {
+		parts := strings.Split(nodeIP, ":")
+		nodeHost = parts[0]
+		nodePort = parts[1]
+	}
+
+	client, err := GetSSHClient(nodeHost, nodePort)
+	if err != nil {
+		return fmt.Errorf("SSH connection failed: %w", err)
+	}
+	defer client.Close()
+
+	switch action {
+	case "start":
+		// Check if already running
+		_, err := ExecuteCommand(client, "pgrep -f anyadmin-agent")
+		if err == nil {
+			RecordLog(user, "Agent Control", "Agent already running on "+nodeIP, "Info")
+			return nil
+		}
+
+		mockdata.Mu.Lock()
+		mgmtHost := mockdata.MgmtHost
+		mgmtPort := mockdata.MgmtPort
+		mockdata.Mu.Unlock()
+
+		if mgmtHost == "" {
+			mockdata.LoadFromFile()
+			mockdata.Mu.Lock()
+			mgmtHost = mockdata.MgmtHost
+			mgmtPort = mockdata.MgmtPort
+			mockdata.Mu.Unlock()
+		}
+		if mgmtHost == "" {
+			mgmtHost = "172.20.0.1"
+			mgmtPort = "8080"
+		}
+
+		// Ensure clean start
+		ExecuteCommand(client, "pkill -f anyadmin-agent")
+		ExecuteCommand(client, "rm -f /home/anyadmin/bin/anyadmin-agent /home/anyadmin/bin/config.json")
+
+		if err := deployAndRunAgent(client, nodeHost, mgmtHost, mgmtPort); err != nil {
+			return fmt.Errorf("failed to start agent: %w", err)
+		}
+		RecordLog(user, "Agent Control", "Started agent on "+nodeIP, "Info")
+
+	case "stop":
+		ExecuteCommand(client, "pkill -f anyadmin-agent")
+		RecordLog(user, "Agent Control", "Stopped agent on "+nodeIP, "Info")
+
+	case "restart":
+		ExecuteCommand(client, "pkill -f anyadmin-agent")
+		ExecuteCommand(client, "rm -f /home/anyadmin/bin/anyadmin-agent /home/anyadmin/bin/config.json")
+		
+		mockdata.Mu.Lock()
+		mgmtHost := mockdata.MgmtHost
+		mgmtPort := mockdata.MgmtPort
+		mockdata.Mu.Unlock()
+
+		if mgmtHost == "" {
+			mockdata.LoadFromFile()
+			mockdata.Mu.Lock()
+			mgmtHost = mockdata.MgmtHost
+			mgmtPort = mockdata.MgmtPort
+			mockdata.Mu.Unlock()
+		}
+		if mgmtHost == "" {
+			mgmtHost = "172.20.0.1"
+			mgmtPort = "8080"
+		}
+
+		if err := deployAndRunAgent(client, nodeHost, mgmtHost, mgmtPort); err != nil {
+			return fmt.Errorf("failed to restart agent: %w", err)
+		}
+		RecordLog(user, "Agent Control", "Restarted agent on "+nodeIP, "Info")
+
+	case "fix-docker":
+		// 1. Add anyadmin to docker group
+		ExecuteCommand(client, "usermod -aG docker anyadmin")
+		// 2. Restart docker service
+		ExecuteCommand(client, "systemctl restart docker || service docker restart")
+		// 3. Restart agent to pick up group membership
+		return ControlAgent(nodeIP, "restart")
+
+	default:
+		return fmt.Errorf("unsupported action: %s", action)
+	}
+
+	return nil
+}
+
+// DeleteNode removes a node from the management list
+func DeleteNode(nodeIP string) error {
+	mockdata.Mu.Lock()
+	defer mockdata.Mu.Unlock()
+
+	newNodes := []string{}
+	found := false
+	for _, node := range mockdata.DeploymentNodes {
+		if node == nodeIP || strings.HasPrefix(node, nodeIP+":") {
+			found = true
+			continue
+		}
+		newNodes = append(newNodes, node)
+	}
+
+	if !found {
+		return fmt.Errorf("node not found: %s", nodeIP)
+	}
+
+	mockdata.DeploymentNodes = newNodes
+	mockdata.SaveToFile()
+	
+	RecordLog("admin", "Node Management", "Deleted node: "+nodeIP, "Info")
+	return nil
 }

@@ -3,6 +3,7 @@ package mockdata
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"anyadmin-backend/pkg/global"
@@ -13,10 +14,14 @@ var (
 	ImportTasks   []global.ImportTask
 	BackupRecords []global.BackupRecord
 	InferenceCfgs []global.InferenceConfig
-    
-    // Deployment Nodes
-    DeploymentNodes []string
-	
+
+	// Deployment Nodes
+	DeploymentNodes []string
+
+	// Management Info
+	MgmtHost string
+	MgmtPort string
+
 	// Mutex for thread-safe updates
 	Mu sync.Mutex
 
@@ -24,12 +29,33 @@ var (
 	DataFile = "data.json"
 )
 
+func init() {
+	// Find data.json in backend directory
+	cwd, _ := os.Getwd()
+	checkPaths := []string{
+		filepath.Join(cwd, "backend", "data.json"),
+		filepath.Join(cwd, "..", "backend", "data.json"),
+		filepath.Join(cwd, "..", "..", "backend", "data.json"),
+		filepath.Join(cwd, "..", "..", "..", "backend", "data.json"),
+		filepath.Join(cwd, "data.json"),
+	}
+
+	for _, p := range checkPaths {
+		if _, err := os.Stat(p); err == nil {
+			DataFile = p
+			break
+		}
+	}
+}
+
 type DataStore struct {
-	Users           []global.User           `json:"users"`
-	ImportTasks     []global.ImportTask     `json:"import_tasks"`
-	BackupRecords   []global.BackupRecord   `json:"backup_records"`
+	Users           []global.User            `json:"users"`
+	ImportTasks     []global.ImportTask      `json:"import_tasks"`
+	BackupRecords   []global.BackupRecord    `json:"backup_records"`
 	InferenceCfgs   []global.InferenceConfig `json:"inference_cfgs"`
-	DeploymentNodes []string                `json:"deployment_nodes"`
+	DeploymentNodes []string                 `json:"deployment_nodes"`
+	MgmtHost        string                   `json:"mgmt_host"`
+	MgmtPort        string                   `json:"mgmt_port"`
 }
 
 func InitData() {
@@ -55,33 +81,6 @@ func InitData() {
 	// Initialize DeploymentNodes if empty
 	if len(DeploymentNodes) == 0 {
 		DeploymentNodes = []string{"1.1.1.1:20", "1.1.1.2:20", "1.1.1.3:20"}
-	}
-
-	// Initialize InferenceCfgs if empty
-	if len(InferenceCfgs) == 0 {
-		InferenceCfgs = []global.InferenceConfig{
-			{
-				Name:           "llama-3-8b-instruct",
-				Engine:         "MindIE",
-				ModelPath:      "/models/llama3",
-				IP:             "10.0.1.5",
-				Port:           "8000",
-				MaxConcurrency: 64,
-				TokenLimit:     8192,
-			},
-			{
-				Name:      "bge-large-zh-v1.5",
-				Engine:    "Embedding",
-				IP:        "10.0.1.5",
-				Port:      "8001",
-			},
-			{
-				Name:   "milvus-standalone",
-				Engine: "Vector DB",
-				IP:     "10.0.1.8",
-				Port:   "19530",
-			},
-		}
 	}
 
 	// Initialize ImportTasks if empty
@@ -128,6 +127,14 @@ func InitData() {
 		}
 	}
 
+	// Initialize MgmtHost and MgmtPort if empty
+	if MgmtHost == "" {
+		MgmtHost = "172.20.0.1"
+	}
+	if MgmtPort == "" {
+		MgmtPort = "8080"
+	}
+
 	SaveToFile()
 }
 
@@ -141,6 +148,8 @@ func SaveToFile() error {
 		BackupRecords:   BackupRecords,
 		InferenceCfgs:   InferenceCfgs,
 		DeploymentNodes: DeploymentNodes,
+		MgmtHost:        MgmtHost,
+		MgmtPort:        MgmtPort,
 	}
 
 	file, err := os.Create(DataFile)
@@ -175,6 +184,8 @@ func LoadFromFile() error {
 	BackupRecords = data.BackupRecords
 	InferenceCfgs = data.InferenceCfgs
 	DeploymentNodes = data.DeploymentNodes
+	MgmtHost = data.MgmtHost
+	MgmtPort = data.MgmtPort
 
 	return nil
 }

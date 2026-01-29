@@ -141,8 +141,20 @@ vite.config.ts.timestamp-*
 # pycache
 tests/backend/__pycache__
 
-# rsa keys
+# bytes
 backend/deployments/tars
 backend/deployments/dockers/images
+
+# Ignore SSH Private and Public Keys anywhere in the project
+**/id_rsa
+**/id_rsa.pub
 backend/keys
 
+
+# Ignore all Executables
+*.exe
+
+# Ignore all Compressed Archives
+*.tar
+*.gz
+*.tar.gz

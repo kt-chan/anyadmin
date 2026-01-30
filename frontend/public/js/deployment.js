@@ -187,6 +187,7 @@ async function updateNodeStatusInDashboard(ip) {
             // Extract GPU metrics if possible
             let gpuUtil = 0;
             let gpuMemPercent = 0;
+            let gpuMemDisplay = "- / -";
             if (agent.gpu_status) {
                 const utilMatch = agent.gpu_status.match(/Util: (\d+)%/);
                 if (utilMatch) gpuUtil = parseInt(utilMatch[1]);
@@ -196,13 +197,17 @@ async function updateNodeStatusInDashboard(ip) {
                     const used = parseInt(memMatch[1]);
                     const total = parseInt(memMatch[2]);
                     if (total > 0) gpuMemPercent = Math.round((used / total) * 100);
+                    gpuMemDisplay = `${(used/1024).toFixed(1)} / ${(total/1024).toFixed(1)} GB`;
                 }
             }
 
             details.innerHTML = `
                 <!-- CPU -->
                 <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 ${isDown ? 'opacity-50' : ''}">
-                    <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">CPU Usage</div>
+                    <div class="flex justify-between items-center mb-1">
+                         <div class="text-[10px] text-slate-400 font-bold uppercase">CPU Usage</div>
+                         <div class="text-[9px] text-slate-400 font-mono">${agent.cpu_capacity ? (isNaN(agent.cpu_capacity) ? agent.cpu_capacity : agent.cpu_capacity + ' Cores') : '-'}</div>
+                    </div>
                     <div class="text-xl font-bold text-slate-800">${agent.cpu_usage.toFixed(1)}%</div>
                     <div class="w-full bg-slate-200 h-1 rounded-full mt-2">
                         <div class="bg-blue-500 h-1 rounded-full" style="width: ${agent.cpu_usage}%"></div>
@@ -211,7 +216,10 @@ async function updateNodeStatusInDashboard(ip) {
 
                 <!-- Memory -->
                 <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 ${isDown ? 'opacity-50' : ''}">
-                    <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">Memory Usage</div>
+                    <div class="flex justify-between items-center mb-1">
+                        <div class="text-[10px] text-slate-400 font-bold uppercase">Memory Usage</div>
+                        <div class="text-[9px] text-slate-400 font-mono">${agent.memory_capacity || '-'}</div>
+                    </div>
                     <div class="text-xl font-bold text-slate-800">${agent.memory_usage.toFixed(1)}%</div>
                     <div class="w-full bg-slate-200 h-1 rounded-full mt-2">
                         <div class="bg-indigo-500 h-1 rounded-full" style="width: ${agent.memory_usage}%"></div>
@@ -229,7 +237,10 @@ async function updateNodeStatusInDashboard(ip) {
 
                 <!-- GPU Mem -->
                 <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 ${isDown ? 'opacity-50' : ''}">
-                    <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">GPU Memory</div>
+                    <div class="flex justify-between items-center mb-1">
+                        <div class="text-[10px] text-slate-400 font-bold uppercase">GPU Memory</div>
+                        <div class="text-[9px] text-slate-400 font-mono">${gpuMemDisplay}</div>
+                    </div>
                     <div class="text-xl font-bold text-slate-800">${gpuMemPercent}%</div>
                     <div class="w-full bg-slate-200 h-1 rounded-full mt-2">
                         <div class="bg-amber-500 h-1 rounded-full" style="width: ${gpuMemPercent}%"></div>

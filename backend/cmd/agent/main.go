@@ -24,6 +24,8 @@ func init() {
 
 type Config struct {
 	MgmtURL        string `json:"mgmt_url"`
+	MgmtHost       string `json:"mgmt_host"`
+	MgmtPort       string `json:"mgmt_port"`
 	NodeIP         string `json:"node_ip"`
 	DeploymentTime string `json:"deployment_time"`
 }
@@ -49,7 +51,11 @@ func main() {
 	cfg, err := loadConfig(configFile)
 	if err == nil {
 		log.Printf("Loaded config from %s", configFile)
-		mgmtURL = cfg.MgmtURL
+		if cfg.MgmtHost != "" && cfg.MgmtPort != "" {
+			mgmtURL = "http://" + cfg.MgmtHost + ":" + cfg.MgmtPort
+		} else {
+			mgmtURL = cfg.MgmtURL
+		}
 		nodeIP = cfg.NodeIP
 		deploymentTime = cfg.DeploymentTime
 	} else {

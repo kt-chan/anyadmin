@@ -165,6 +165,20 @@ const apiController = {
             timestamp: new Date().toISOString()
         };
         return response.success(res, debugData, '调试信息获取成功');
+    },
+
+    // 计算VLLM配置
+    calculateVllmConfig: async (req, res) => {
+        try {
+            const token = req.session.user?.token;
+            // Since the frontend expects the direct structure from the backend, we return it directly
+            const result = await dashboardService.calculateVllmConfig(token, req.body);
+            return res.json(result);
+        } catch (err) {
+            // Forward error status if available
+            const status = err.response?.status || 500;
+            return res.status(status).json({ error: err.message });
+        }
     }
 };
 

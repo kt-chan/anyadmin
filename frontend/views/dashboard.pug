@@ -199,26 +199,26 @@ block content
                 | 模型推理配置
               div(class="space-y-4")
                 div
-                  label(class="text-[10px] uppercase text-slate-400 font-bold block mb-1") Max Concurrency 并发限制
-                  input(type="range" class="w-full accent-blue-500 bg-slate-800" min="1" max="256" value=config.concurrency onchange="updateConcurrency(this.value)")
-                  div(class="flex justify-between text-[10px] font-mono mt-1 text-slate-500")
-                    span 1
-                    span #{config.concurrency} (Current)
-                    span 256
-                
-                div
-                  label(class="text-[10px] uppercase text-slate-400 font-bold block mb-1") Token Limit 上下文长度
-                  select(class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs focus:ring-2 focus:ring-blue-500" onchange="updateTokenLimit(this.value)")
-                    each option in config.tokenOptions
-                      option(value=option.value selected=option.selected)= option.label
-                
+                  label(class="text-[10px] uppercase text-slate-400 font-bold block mb-1") Optimization Mode 优化模式
+                  select(class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs focus:ring-2 focus:ring-blue-500" id="optimization-mode")
+                    option(value="balanced" selected=config.mode==='balanced') Balanced (平衡模式)
+                    option(value="max_token" selected=config.mode==='max_token') Max Token (长文本优先)
+                    option(value="max_concurrency" selected=config.mode==='max_concurrency') Max Concurrency (高并发优先)
+                  p(class="text-[10px] text-slate-500 mt-1") * 自动调整并发数和显存分配策略
+
                 div(class="pt-4 border-t border-slate-800 space-y-2")
                   div(class="flex justify-between items-center text-xs")
-                    span(class="text-slate-400") 动态批处理 (Dynamic Batching)
-                    span(class=`px-2 py-0.5 rounded text-[10px] ${config.dynamicBatching ? 'bg-green-900/50 text-green-400' : 'bg-gray-700 text-gray-400'}`)= config.dynamicBatching ? 'ON' : 'OFF'
-                  div(class="flex justify-between items-center text-xs")
                     span(class="text-slate-400") 硬件加速类型
-                    span(class="text-slate-200")= config.hardwareAcceleration
+                    span(class="text-slate-200" id="hardware-acceleration-display")= config.hardwareAcceleration
+                
+                //- 建议配置显示区域
+                div(id="vllm-suggestions" class="hidden mt-3 pt-3 border-t border-slate-800")
+                  div(class="flex justify-between items-center mb-2")
+                    span(class="text-blue-400 text-xs font-bold") 
+                      i(class="fas fa-magic mr-1")
+                      | 建议配置
+                    span(id="suggestion-gpu" class="text-[10px] text-slate-500")
+                  div(id="suggestion-content" class="space-y-1 text-[10px] font-mono text-slate-300")
                 
                 button(class="w-full mt-4 bg-blue-600 py-3 rounded-xl text-sm font-bold hover:bg-blue-500 transition shadow-lg shadow-blue-500/30" onclick="saveConfigAndRestart()")
                   | 保存配置并重启服务
@@ -243,4 +243,6 @@ block content
 
 
 block scripts
+  script.
+    window.servicesData = !{JSON.stringify(services)};
   script(src="/js/dashboard.js")

@@ -30,7 +30,9 @@ type HeartbeatRequest struct {
 	Hostname       string                `json:"hostname"`
 	Status         string                `json:"status"`
 	CPUUsage       float64               `json:"cpu_usage"`
+	CPUCapacity    string                `json:"cpu_capacity"` // e.g. "16 vCPUs"
 	MemoryUsage    float64               `json:"memory_usage"`
+	MemoryCapacity string                `json:"memory_capacity"` // e.g. "32 GB"
 	DockerStatus   string                `json:"docker_status"`
 	DeploymentTime string                `json:"deployment_time"`
 	OSSpec         string                `json:"os_spec"`
@@ -44,13 +46,17 @@ func SendHeartbeat(mgmtURL, nodeIP, hostname, deploymentTime string) error {
 	mem, _ := getMemoryUsage()
 	gpu := getGPUStatus()
 	osSpec := getOSDescription()
+	cpuCap := getCPUCapacity()
+	memCap := getMemoryCapacity()
 
 	payload := HeartbeatRequest{
 		NodeIP:         nodeIP,
 		Hostname:       hostname,
 		Status:         "online",
 		CPUUsage:       cpu,
+		CPUCapacity:    cpuCap,
 		MemoryUsage:    mem,
+		MemoryCapacity: memCap,
 		DockerStatus:   checkDocker(),
 		DeploymentTime: deploymentTime,
 		OSSpec:         osSpec,
@@ -76,6 +82,49 @@ func SendHeartbeat(mgmtURL, nodeIP, hostname, deploymentTime string) error {
 
 	log.Printf("Heartbeat sent successfully to %s", mgmtURL)
 	return nil
+}
+
+// getCPUCapacity returns the number of CPU cores using nproc
+func getCPUCapacity() string {
+	if runtime.GOOS != "linux" {
+		return fmt.Sprintf("%d vCPUs", runtime.NumCPU())
+	}
+	cmd := exec.Command("nproc")
+	output, err := cmd.Output()
+	if err != nil {
+		return fmt.Sprintf("%d vCPUs", runtime.NumCPU())
+	}
+	return strings.TrimSpace(string(output))
+}
+
+// getMemoryCapacity returns the total system memory using free -h
+func getMemoryCapacity() string {
+	if runtime.GOOS != "linux" {
+		return "Unknown"
+	}
+	// Command: free -h | grep Mem: | awk '{print $2}'
+	cmd := exec.Command("bash", "-c", "free -h | grep Mem: | awk '{print $2}'")
+	output, err := cmd.Output()
+	if err != nil {
+		// Fallback to reading /proc/meminfo if command fails
+		data, err := os.ReadFile("/proc/meminfo")
+		if err != nil {
+			return "Unknown"
+		}
+		
+		lines := strings.Split(string(data), "\n")
+		for _, line := range lines {
+			if strings.HasPrefix(line, "MemTotal:") {
+				parts := strings.Fields(line)
+				if len(parts) >= 2 {
+					kb, _ := strconv.ParseFloat(parts[1], 64)
+					return fmt.Sprintf("%.1f GB", kb/(1024*1024))
+				}
+			}
+		}
+		return "Unknown"
+	}
+	return strings.TrimSpace(string(output))
 }
 
 func getOSDescription() string {

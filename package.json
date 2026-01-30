@@ -10,7 +10,7 @@
     "dev": "npm-run-all --parallel start:backend start:frontend",
     "test": "npm-run-all --parallel test:frontend test:backend",
     "test:frontend": "jest tests/frontend",
-    "test:backend": "cd backend && go test ./internal/service/..."
+    "test:backend": "cd backend && go test ./pkg/..."
   },
   "dependencies": {
     "@tailwindcss/cli": "^4.1.18",

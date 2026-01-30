@@ -96,6 +96,24 @@ func TestRemoteServiceControlAndHealth(t *testing.T) {
 	router.ServeHTTP(w3, req3)
 
 	assert.Equal(t, http.StatusOK, w3.Code, "Remote restart on vllm should succeed")
+
+	// 4. Test New Service Restart Endpoint
+	router.POST("/api/v1/services/restart", func(c *gin.Context) {
+		c.Set("username", "admin")
+		api.RestartService(c)
+	})
+
+	restartReq := map[string]interface{}{
+		"name":    "vllm",
+		"type":    "Container",
+		"node_ip": "172.20.0.10",
+	}
+	rBody, _ := json.Marshal(restartReq)
+	w4 := httptest.NewRecorder()
+	req4, _ := http.NewRequest("POST", "/api/v1/services/restart", bytes.NewBuffer(rBody))
+	req4.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w4, req4)
+	assert.Equal(t, http.StatusOK, w4.Code, "Service restart should succeed")
 }
 
 func TestAnythingLLMControl(t *testing.T) {

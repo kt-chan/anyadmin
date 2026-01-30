@@ -143,6 +143,7 @@ tests/backend/__pycache__
 
 # bytes
 backend/deployments/tars
+backend/deployments/models
 backend/deployments/dockers/images
 
 # Ignore SSH Private and Public Keys anywhere in the project

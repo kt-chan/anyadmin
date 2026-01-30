@@ -208,7 +208,7 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 	}
 
 	// 2. Create Config File
-	configContent := fmt.Sprintf(`{"mgmt_url": "http://%s:%s", "node_ip": "%s", "deployment_time": "%s"}`, 
+	configContent := fmt.Sprintf(`{"mgmt_host": "%s", "mgmt_port": "%s", "node_ip": "%s", "deployment_time": "%s"}`, 
 		mgmtHost, mgmtPort, nodeIP, time.Now().Format(time.RFC3339))
 	localConfigPath := filepath.Join(os.TempDir(), fmt.Sprintf("config_%s.json", strings.ReplaceAll(nodeIP, ".", "_")))
 	if err := os.WriteFile(localConfigPath, []byte(configContent), 0644); err != nil {

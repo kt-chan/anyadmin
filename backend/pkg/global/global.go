@@ -20,6 +20,7 @@ type InferenceConfig struct {
 	ModelPath      string  `json:"modelPath"`
 	IP             string  `json:"ip"`
 	Port           string  `json:"port"`
+	Mode           string  `json:"mode"` // max_token, max_concurrency, balanced
 	MaxConcurrency int     `json:"maxConcurrency"`
 	TokenLimit     int     `json:"tokenLimit"`
 	BatchSize      int     `json:"batchSize"`

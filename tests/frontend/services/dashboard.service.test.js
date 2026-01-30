@@ -33,6 +33,8 @@ describe('Dashboard Service', () => {
       expect(result).toHaveProperty('services');
       expect(result).toHaveProperty('backupInfo');
       expect(result).toHaveProperty('config');
+      expect(result.config).toHaveProperty('mode');
+      expect(result.config.mode).toBe('balanced');
       expect(result).toHaveProperty('auditLogs');
     });
 
@@ -61,6 +63,21 @@ describe('Dashboard Service', () => {
       const result = await dashboardService.saveConfig(token, configData);
       expect(logger.info).toHaveBeenCalledWith('Saving config', configData);
       expect(result).toBe(true);
+    });
+  });
+
+  describe('calculateVllmConfig', () => {
+    it('should call backend api correctly', async () => {
+      const mockData = { model_name: 'test', node_ip: '1.2.3.4' };
+      const mockResponse = { data: { vllm_config: {} } };
+      apiClient.post.mockResolvedValue(mockResponse);
+
+      const result = await dashboardService.calculateVllmConfig(token, mockData);
+
+      expect(apiClient.post).toHaveBeenCalledWith('/api/v1/configs/vllm-calculate', mockData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      expect(result).toEqual(mockResponse.data);
     });
   });
 });

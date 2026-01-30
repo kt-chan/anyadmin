@@ -13,7 +13,9 @@ type AgentStatus struct {
 	LastSeen       time.Time                    `json:"last_seen"`
 	Status         string                       `json:"status"`
 	CPUUsage       float64                      `json:"cpu_usage"`
+	CPUCapacity    string                       `json:"cpu_capacity"`
 	MemoryUsage    float64                      `json:"memory_usage"`
+	MemoryCapacity string                       `json:"memory_capacity"`
 	DockerStatus   string                       `json:"docker_status"`
 	DeploymentTime string                       `json:"deployment_time"`
 	OSSpec         string                       `json:"os_spec"`
@@ -28,7 +30,7 @@ var (
 )
 
 // HandleHeartbeat updates the status of an agent
-func HandleHeartbeat(ip, hostname, status string, cpu, mem float64, dockerStatus, deploymentTime, osSpec, gpuStatus string, services []global.DockerServiceStatus) {
+func HandleHeartbeat(ip, hostname, status string, cpu float64, cpuCap string, mem float64, memCap string, dockerStatus, deploymentTime, osSpec, gpuStatus string, services []global.DockerServiceStatus) {
 	statusMutex.Lock()
 	defer statusMutex.Unlock()
 
@@ -38,7 +40,9 @@ func HandleHeartbeat(ip, hostname, status string, cpu, mem float64, dockerStatus
 		LastSeen:       time.Now(),
 		Status:         status,
 		CPUUsage:       cpu,
+		CPUCapacity:    cpuCap,
 		MemoryUsage:    mem,
+		MemoryCapacity: memCap,
 		DockerStatus:   dockerStatus,
 		DeploymentTime: deploymentTime,
 		OSSpec:         osSpec,

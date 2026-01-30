@@ -54,19 +54,41 @@ const dashboardService = {
         type: l.username === 'system' ? 'system' : 'user'
       }));
 
-      // Mocked backup info and config as they are not in GetDashboardStats
-      // In a real app, these might be separate calls or included in stats
+      // Mocked backup info
       const backupInfo = {
         lastBackup: { time: '2024-05-20 02:00', type: '全量' },
         availablePoints: 12
       };
 
-      const configData = {
+      // Fetch inference configs
+      let inferenceConfig = {
+        mode: 'balanced',
         concurrency: 64,
+        tokenLimit: 8192
+      };
+      try {
+        const configResp = await apiClient.get('/api/v1/configs/inference', config);
+        if (configResp.data && configResp.data.length > 0) {
+          // Use the first config or specific one if we had logic to select
+          const backendCfg = configResp.data[0];
+          inferenceConfig = {
+            mode: backendCfg.mode || 'balanced',
+            concurrency: backendCfg.maxConcurrency || 64,
+            tokenLimit: backendCfg.tokenLimit || 8192
+          };
+        }
+      } catch (err) {
+        logger.warn('Failed to fetch inference config, using default', err.message);
+      }
+
+      const configData = {
+        mode: inferenceConfig.mode,
+        concurrency: inferenceConfig.concurrency,
         tokenOptions: [
-          { value: 4096, label: '4K', selected: false },
-          { value: 8192, label: '8K', selected: true },
-          { value: 16384, label: '16K', selected: false }
+          { value: 4096, label: '4K', selected: inferenceConfig.tokenLimit === 4096 },
+          { value: 8192, label: '8K', selected: inferenceConfig.tokenLimit === 8192 },
+          { value: 16384, label: '16K', selected: inferenceConfig.tokenLimit === 16384 },
+          { value: 32768, label: '32K', selected: inferenceConfig.tokenLimit === 32768 }
         ],
         dynamicBatching: true,
         hardwareAcceleration: system.npuUsage > 0 ? 'Ascend NPU' : (system.gpuUsage > 0 ? 'NVIDIA GPU' : 'CPU')
@@ -97,6 +119,19 @@ const dashboardService = {
     logger.info('Saving config', configData);
     // Mock saving
     return true;
+  },
+
+  calculateVllmConfig: async (token, data) => {
+    try {
+      const config = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+      const response = await apiClient.post('/api/v1/configs/vllm-calculate', data, config);
+      return response.data;
+    } catch (error) {
+      logger.error('Error calculating vLLM config', error);
+      throw error;
+    }
   }
 };
 

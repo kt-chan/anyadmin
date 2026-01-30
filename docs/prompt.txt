@@ -451,4 +451,26 @@ analyze this view pug  @frontend\views\dashboard.pug, then you have to rewrite a
 - Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers before termination.  
 - Write unit tests to verify any update systematically by accessing the frontend app and backend fastapi services code changes.
 - Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
+- All the unit test should be put under /test folder
+- All the loggging should be put under /logs folder
 
+## Task 14
+
+analyze this view pug  @frontend\views\dashboard.pug, then you have to rewrite and enrich this view pug as well as the corresponding frontend and backend services for below funcitonal features enrichment objective. And you have to follow Coding Guide provided in final section of below context.
+
+*** funcitonal features enrichment Objective ***
+1. scan @backend\pkg\utils\vllmconfig.go and frontend\views\dashboard.pug and @backend\pkg\service\agent.go, analyze the logic for model configuration for vllm
+2. update 模型推理配置 in dashboard, such that it support quick setup for  "优化模式：max_token（最大长度）、max_concurrency（最大并发）、balanced（平衡）specified in vllmconfig.go
+3. with the dropdown option selection in "Optimization Mode 优化模式" changed, it should trigger vllm configuration calculate again in vllmconfig.go with input paremters (GPU memory, Model Type) provided in the agent heartbeat, then populate the suggested value back to dashboard
+4. backend\deployments\models containing the model download, which is in the .gitignore, so you need to list the directory to get the "backend\deployments\models\Qwen3-1.7B\config.json"
+5. write unit test for this new feature, and regression test all unit test.
+
+**Coding Guide**  
+- this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, and backend code in GO binnary.
+- The remote host is up and running at 172.20.0.10 on port 22, and passwordless ssh is configured. You can test against it.
+- Launch the apps / processes with seperate process and redirect the output to logs, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers before termination.  
+- Write unit tests to verify any update systematically by accessing the frontend app and backend fastapi services code changes.
+- Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
+- All the unit test should be put under /test folder
+- All the loggging should be put under /logs folder

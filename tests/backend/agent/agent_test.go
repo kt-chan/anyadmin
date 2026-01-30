@@ -32,7 +32,7 @@ func TestSendHeartbeat(t *testing.T) {
 	defer server.Close()
 
 	// Call the function
-	err := agent.SendHeartbeat(server.URL, "127.0.0.1", "test-host")
+	err := agent.SendHeartbeat(server.URL, "127.0.0.1", "test-host", "24m")
 	if err != nil {
 		t.Errorf("SendHeartbeat failed: %v", err)
 	}

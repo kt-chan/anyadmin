@@ -9,7 +9,8 @@ const apiController = {
     // 保存配置
     saveConfig: async (req, res) => {
         try {
-            await dashboardService.saveConfig(req.body);
+            const token = req.session.user?.token;
+            await dashboardService.saveConfig(token, req.body);
             return response.success(res, { timestamp: new Date().toISOString() }, '配置已保存');
         } catch (err) {
             return response.error(res, '保存配置失败', 500, err);
@@ -65,7 +66,8 @@ const apiController = {
     // 获取服务状态
     getServicesStatus: async (req, res) => {
         try {
-            const services = await servicesService.getServicesStatus();
+            const token = req.session.user?.token;
+            const services = await servicesService.getServicesStatus(token);
             const formattedServices = services.map(service => ({
                 id: service.id,
                 name: service.name,

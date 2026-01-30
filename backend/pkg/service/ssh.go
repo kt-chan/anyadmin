@@ -49,6 +49,13 @@ func init() {
 	}
 }
 
+// SetKeyDir sets the directory for SSH keys. Useful for testing.
+func SetKeyDir(dir string) {
+	keyMu.Lock()
+	defer keyMu.Unlock()
+	keyDir = dir
+}
+
 // EnsureKeys checks for keys and generates them if missing.
 func EnsureKeys() error {
 	keyMu.Lock()

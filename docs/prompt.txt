@@ -445,14 +445,14 @@ analyze this view pug  @frontend\views\dashboard.pug, then you have to rewrite a
 4. write unit tests, and make sure it pass. rerun all unit test to assure your changes do not break existing unit tests.
 
 **Coding Guide**  
-- this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, and backend code in GO binnary.
+- this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and agent code are both in GO binnary.
 - The remote host is up and running at 172.20.0.10 on port 22, and passwordless ssh is configured. You can test against it.
+- You have to recompile the agent and redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
 - Launch the apps / processes with seperate process and redirect the output to logs, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
-- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers before termination.  
 - Write unit tests to verify any update systematically by accessing the frontend app and backend fastapi services code changes.
 - Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
-- All the unit test should be put under /test folder
-- All the loggging should be put under /logs folder
+- All the unit test should be put under /tests folder, and all the loggging should be put under /logs folder
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers (frontend 3000, backend 8080) before termination.  
 
 ## Task 14
 
@@ -466,11 +466,11 @@ analyze this view pug  @frontend\views\dashboard.pug, then you have to rewrite a
 5. write unit test for this new feature, and regression test all unit test.
 
 **Coding Guide**  
-- this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, and backend code in GO binnary.
-- The remote host is up and running at 172.20.0.10 on port 22, and passwordless ssh is configured. You can test against it.
+- this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and agent code are both in GO binnary.
+- The remote host is up and running at 172.20.0.10 on port 22, and passwordless ssh is configured. You should always deploy agent to this ip for unit test.
+- You have to recompile the agent and redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
 - Launch the apps / processes with seperate process and redirect the output to logs, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
-- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers before termination.  
 - Write unit tests to verify any update systematically by accessing the frontend app and backend fastapi services code changes.
 - Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
-- All the unit test should be put under /test folder
-- All the loggging should be put under /logs folder
+- All the unit test should be put under /tests folder, and all the loggging should be put under /logs folder
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers (frontend 3000, backend 8080) before termination.  

@@ -22,7 +22,7 @@ async function saveConfigAndRestart() {
     
     try {
       // 1. Save Config
-      const saveResponse = await fetch('/api/v1/configs/inference', {
+      const saveResponse = await fetch('/api/config/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -33,22 +33,6 @@ async function saveConfigAndRestart() {
 
       if (!saveResponse.ok) throw new Error('Failed to save config');
 
-      // 2. Restart Service (assuming 'vllm' or specific agent service)
-      // We need to know which service to restart. For now, restart the Agent or a known service.
-      // Ideally this info comes from the backend or context. 
-      // We will restart all relevant agents.
-      // For this prototype, we'll just trigger a general restart call or rely on the fact
-      // that config change might trigger something in a real system.
-      // But the requirement says "restart with new configuration".
-      
-      // Let's call restart for the 'Agent' type which hosts the inference
-      // We need node IP. This is a bit tricky without context. 
-      // We will restart the first available Agent found in the table or just alert success for now
-      // as strictly triggering restart requires selecting a specific node.
-      
-      // However, the button is global. Let's assume it restarts the inference service.
-      // We'll call a hypothetical 'inference' service restart or just reload page.
-      
       alert('配置已保存。请手动重启相关服务以应用更改，或稍候...');
       location.reload();
 
@@ -62,7 +46,7 @@ async function saveConfigAndRestart() {
 async function restartService(serviceName, nodeIP, serviceType) {
   if (confirm(`确定要重启服务 ${serviceName} 吗？`)) {
     try {
-      const response = await fetch('/api/v1/services/restart', {
+      const response = await fetch('/api/service/restart', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -89,7 +73,7 @@ async function restartService(serviceName, nodeIP, serviceType) {
 async function stopService(serviceName, nodeIP, serviceType) {
   if (confirm(`确定要停止服务 ${serviceName} 吗？`)) {
     try {
-      const response = await fetch('/api/v1/services/stop', {
+      const response = await fetch('/api/service/stop', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

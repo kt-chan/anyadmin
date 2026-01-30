@@ -11,12 +11,12 @@ describe('Auth Service', () => {
 
   it('should authenticate user successfully', async () => {
     const mockUser = { username: 'admin', role: 'admin' };
-    apiClient.post.mockResolvedValue({ data: mockUser });
+    apiClient.post.mockResolvedValue({ data: { user: mockUser, token: 'fake-token' } });
 
     const result = await authService.authenticate('admin', 'password');
     
-    expect(apiClient.post).toHaveBeenCalledWith('/auth/login', { username: 'admin', password: 'password' });
-    expect(result).toEqual(mockUser);
+    expect(apiClient.post).toHaveBeenCalledWith('/api/v1/login', { username: 'admin', password: 'password' });
+    expect(result).toEqual({ ...mockUser, token: 'fake-token' });
   });
 
   it('should return null on failed authentication', async () => {
@@ -27,7 +27,7 @@ describe('Auth Service', () => {
 
     const result = await authService.authenticate('admin', 'wrongpassword');
     
-    expect(apiClient.post).toHaveBeenCalledWith('/auth/login', { username: 'admin', password: 'wrongpassword' });
+    expect(apiClient.post).toHaveBeenCalledWith('/api/v1/login', { username: 'admin', password: 'wrongpassword' });
     expect(result).toBeNull();
   });
 });

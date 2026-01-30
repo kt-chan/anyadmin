@@ -155,4 +155,20 @@ func TestAnythingLLMControl(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code, "Start operation on AnythingLLM should succeed")
 	})
+
+	// Test DELETE (Remove) service
+	t.Run("RemoveAnythingLLM", func(t *testing.T) {
+		control := map[string]interface{}{
+			"name":    "AnythingLLM",
+			"action":  "rm", // Corresponds to docker rm
+			"node_ip": "172.20.0.10",
+		}
+		cBody, _ := json.Marshal(control)
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/api/v1/container/control", bytes.NewBuffer(cBody))
+		req.Header.Set("Content-Type", "application/json")
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code, "Remove (rm) operation on AnythingLLM should succeed")
+	})
 }

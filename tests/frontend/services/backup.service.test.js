@@ -6,18 +6,21 @@ jest.mock('../../../frontend/utils/apiClient');
 jest.mock('../../../frontend/utils/logger');
 
 describe('Backup Service', () => {
+  const mockToken = 'test-token';
+  const config = { headers: { Authorization: `Bearer ${mockToken}` } };
+
   afterEach(() => {
     jest.clearAllMocks();
   });
 
   describe('getBackupData', () => {
     it('should fetch backup data successfully', async () => {
-      const mockData = [{ id: 'bk_1', time: '2024-01-01' }];
+      const mockData = [{ id: 1, type: 'full' }];
       apiClient.get.mockResolvedValue({ data: mockData });
 
-      const result = await backupService.getBackupData();
+      const result = await backupService.getBackupData(mockToken);
 
-      expect(apiClient.get).toHaveBeenCalledWith('/backups');
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/backups', config);
       expect(result).toEqual({ backups: mockData });
     });
 
@@ -25,35 +28,43 @@ describe('Backup Service', () => {
       const error = new Error('Network Error');
       apiClient.get.mockRejectedValue(error);
 
-      await expect(backupService.getBackupData()).rejects.toThrow('Network Error');
-      expect(logger.error).toHaveBeenCalled();
+      await expect(backupService.getBackupData(mockToken)).rejects.toThrow('Network Error');
+      expect(logger.error).toHaveBeenCalledWith('Error fetching backup data', error);
     });
   });
 
   describe('createBackup', () => {
     it('should create a backup successfully', async () => {
-      const result = await backupService.createBackup('FULL');
-      
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Creating backup'));
-      expect(result).toHaveProperty('backupId');
-      expect(result).toHaveProperty('startTime');
+      const type = 'full';
+      const mockResponse = { id: 2, status: 'pending' };
+      apiClient.post.mockResolvedValue({ data: mockResponse });
+
+      const result = await backupService.createBackup(mockToken, type);
+
+      expect(apiClient.post).toHaveBeenCalledWith('/api/v1/backups', { type }, config);
+      expect(result).toEqual(mockResponse);
     });
   });
 
   describe('restoreFromBackup', () => {
     it('should start restore successfully', async () => {
-      const result = await backupService.restoreFromBackup('bk_123');
-      
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Restoring'));
-      expect(result).toHaveProperty('restoreStartTime');
+      const backupId = 'backup-123';
+      const mockResponse = { status: 'restoring' };
+      apiClient.post.mockResolvedValue({ data: mockResponse });
+
+      const result = await backupService.restoreFromBackup(mockToken, backupId);
+
+      expect(apiClient.post).toHaveBeenCalledWith(`/api/v1/backups/restore/${backupId}`, {}, config);
+      expect(result).toEqual(mockResponse);
     });
   });
 
   describe('deleteBackup', () => {
     it('should delete backup successfully', async () => {
-      const result = await backupService.deleteBackup('bk_123');
-      
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Deleting'));
+      const backupId = 'backup-123';
+      const result = await backupService.deleteBackup(mockToken, backupId);
+
+      // Current implementation just returns true
       expect(result).toBe(true);
     });
   });

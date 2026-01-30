@@ -25,23 +25,27 @@ describe('Deployment Service SSH Features', () => {
 
   describe('testConnection', () => {
     it('should call verify-ssh endpoint for ssh type', async () => {
+      const payload = { host: '127.0.0.1:22', type: 'ssh' };
       apiClient.post.mockResolvedValue({ data: { status: 'success' } });
-      
-      const payload = { type: 'ssh', host: '127.0.0.1:22' };
+
       const result = await deploymentService.testConnection('mock-token', payload);
       
-      expect(apiClient.post).toHaveBeenCalledWith('/api/v1/deploy/verify-ssh', payload, expect.objectContaining({
+      expect(apiClient.post).toHaveBeenCalledWith('/api/v1/deploy/test-connection', payload, expect.objectContaining({
         headers: { Authorization: 'Bearer mock-token' }
       }));
       expect(result).toEqual({ status: 'success' });
     });
 
-    it('should use mock for non-ssh types', async () => {
-      const payload = { type: 'inference' };
-      const result = await deploymentService.testConnection('mock-token', payload);
-      
-      expect(apiClient.post).not.toHaveBeenCalled();
-      expect(result.success).toBe(true);
+    it('should call test-connection for other types', async () => {
+       const payload = { type: 'inference' };
+       apiClient.post.mockResolvedValue({ data: { success: true } });
+
+       const result = await deploymentService.testConnection('mock-token', payload);
+       
+       expect(apiClient.post).toHaveBeenCalledWith('/api/v1/deploy/test-connection', payload, expect.objectContaining({
+         headers: { Authorization: 'Bearer mock-token' }
+       }));
+       expect(result).toEqual({ success: true });
     });
   });
 });

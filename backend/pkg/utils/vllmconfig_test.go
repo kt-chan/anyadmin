@@ -88,3 +88,38 @@ func TestCalculateVLLMConfig(t *testing.T) {
 		t.Errorf("Expected EnablePrefixCaching to be true")
 	}
 }
+
+func TestCalculateVLLMConfigSmallMemory(t *testing.T) {
+	// Test that GPU utilization is adjusted for small memory (< 8GB)
+	params := CalculateConfigParams{
+		ModelNameOrPath: "Qwen3-1.7B",
+		GPUMemoryGB:     6.0, // Less than 8GB
+		Mode:            "balanced",
+		GPUUtilization:  0.9,
+	}
+
+	config, _, err := CalculateVLLMConfig(params)
+	if err != nil {
+		t.Fatalf("CalculateVLLMConfig failed: %v", err)
+	}
+
+	expectedUtil := 0.85
+	if config.GPUMemoryUtil != expectedUtil {
+		t.Errorf("Expected GPU memory utilization to be %.2f for 6GB memory, got %.2f", expectedUtil, config.GPUMemoryUtil)
+	}
+
+	// Test that it's NOT adjusted if already different from 0.9
+	params.GPUUtilization = 0.8
+	config, _, _ = CalculateVLLMConfig(params)
+	if config.GPUMemoryUtil != 0.8 {
+		t.Errorf("Expected GPU memory utilization to remain 0.8, got %.2f", config.GPUMemoryUtil)
+	}
+
+	// Test that it's NOT adjusted for >= 8GB
+	params.GPUMemoryGB = 8.0
+	params.GPUUtilization = 0.9
+	config, _, _ = CalculateVLLMConfig(params)
+	if config.GPUMemoryUtil != 0.9 {
+		t.Errorf("Expected GPU memory utilization to remain 0.9 for 8GB memory, got %.2f", config.GPUMemoryUtil)
+	}
+}

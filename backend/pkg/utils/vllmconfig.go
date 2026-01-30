@@ -73,6 +73,11 @@ func CalculateVLLMConfig(params CalculateConfigParams) (VLLMConfig, ModelConfig,
 		params.GPUUtilization = 0.9
 	}
 
+	// 如果内存小于8GB且利用率为默认值0.9，则调低至0.85以更保守
+	if params.GPUMemoryGB < 8 && params.GPUUtilization == 0.9 {
+		params.GPUUtilization = 0.85
+	}
+
 	// 尝试加载模型配置
 	modelConfig, err := loadModelConfig(params.ModelNameOrPath)
 	if err != nil {
@@ -117,7 +122,7 @@ func main() {
 	model := flag.String("model", "", "模型名称或本地路径（格式：author/model-name 或 /path/to/model）")
 	gpuMemoryStr := flag.String("gpu_memory", "8G", "GPU内存（如：8G、16G、24G）")
 	mode := flag.String("mode", "balanced", "优化模式：max_token（最大长度）、max_concurrency（最大并发）、balanced（平衡）")
-	utilization := flag.Float64("utilization", 0.9, "GPU内存利用率（0.0-1.0）")
+	utilization := flag.Float64("utilization", 0.9, "GPU内存利用率（0.0-1.0，小显存<8G时自动调整为0.85）")
 	enableSwap := flag.Bool("enable_swap", false, "是否启用交换空间")
 
 	flag.Parse()

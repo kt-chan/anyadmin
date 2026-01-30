@@ -85,9 +85,14 @@ func restartVLLMWithConfig(client *ssh.Client, nodeIP, containerName string) err
 		modelConfig.Name = config.ModelPath
 	}
 	
+	utilization := 0.9
+	if gpuMemGB < 8 {
+		utilization = 0.85
+	}
+
 	gpuConfig := utils.GPUConfig{
 		MemoryGB:    gpuMemGB,
-		Utilization: 0.9,
+		Utilization: utilization,
 		ReservedGB:  1.0,
 	}
 

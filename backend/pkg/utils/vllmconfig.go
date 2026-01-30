@@ -265,6 +265,21 @@ func loadModelConfig(modelPath string) (ModelConfig, error) {
 	config.MaxPositionEmbeddings = hfConfig.MaxPositionEmbeddings
 	config.NumKeyValueHeads = hfConfig.NumKeyValueHeads
 
+	// 尝试从路径中提取名称 (e.g. "Qwen/Qwen2.5-7B" from path)
+	if modelPath != "" {
+		// If modelPath looks like a path (contains slashes), use the last part as name
+		baseName := filepath.Base(modelPath)
+		if baseName == "latest" || baseName == "." {
+			// If path ends in 'latest' or '.', try the parent
+			baseName = filepath.Base(filepath.Dir(modelPath))
+		}
+		// Clean up "models--" prefix from huggingface cache
+		baseName = strings.TrimPrefix(baseName, "models--")
+		baseName = strings.ReplaceAll(baseName, "--", "/")
+		
+		config.Name = baseName
+	}
+
 	// 计算每个头的维度
 	if hfConfig.NumAttentionHeads > 0 {
 		config.HeadDim = hfConfig.HiddenSize / hfConfig.NumAttentionHeads

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"anyadmin-backend/pkg/mockdata"
 	"anyadmin-backend/pkg/service"
 	"anyadmin-backend/pkg/utils"
 	"net/http"
@@ -25,10 +26,6 @@ func CalculateVLLMConfig(c *gin.Context) {
 	}
 
 	// 1. Get GPU Info from Agent
-	// If NodeIP is provided, try to find that specific agent.
-	// If not, or if agent not found, we might want to fail or use defaults.
-	// Current requirement: "with input paremters (GPU memory, Model Type) provided in the agent heartbeat"
-	
 	var gpuMemoryGB float64 = 24.0 // Default fallback
 	var foundAgent bool = false
 
@@ -50,6 +47,25 @@ func CalculateVLLMConfig(c *gin.Context) {
 		}
 	}
 
+	// 1.5 Lookup Real Model Path from MockData if available
+	// The frontend might send generic container names like "vllm" or "qwen"
+	// We want the actual model path from our deployment config
+	realModelPath := req.ModelName
+	if req.NodeIP != "" {
+		mockdata.Mu.Lock()
+		for _, cfg := range mockdata.InferenceCfgs {
+			if cfg.IP == req.NodeIP {
+				// If we found a config for this node, use its model path
+				// This handles cases where container name is "vllm" but real path is "Qwen/Qwen2.5-7B"
+				if cfg.ModelPath != "" {
+					realModelPath = cfg.ModelPath
+				}
+				break
+			}
+		}
+		mockdata.Mu.Unlock()
+	}
+
 	if !foundAgent {
 		// Log warning but proceed with default or error? 
 		// Proceeding allows testing without live agents
@@ -59,7 +75,7 @@ func CalculateVLLMConfig(c *gin.Context) {
 
 	// 2. Calculate Config
 	params := utils.CalculateConfigParams{
-		ModelNameOrPath: req.ModelName,
+		ModelNameOrPath: realModelPath,
 		GPUMemoryGB:     gpuMemoryGB,
 		Mode:            req.Mode,
 		GPUUtilization:  0.9,

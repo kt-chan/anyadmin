@@ -71,6 +71,7 @@ async function refreshNodesDashboard() {
         
         for (const node of nodes) {
             const ip = node.split(':')[0];
+            const port = node.split(':')[1] || '22';
             const card = document.createElement('div');
             card.className = "bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden";
             card.innerHTML = `
@@ -79,9 +80,9 @@ async function refreshNodesDashboard() {
                         <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center">
                             <i class="fas fa-server"></i>
                         </div>
-                        <div>
+                        <div id="node-info-${ip.replace(/\./g, '-')}" data-port="${port}">
                             <h4 class="font-bold text-slate-800">${ip}</h4>
-                            <div class="text-[10px] text-slate-400 font-mono">SSH Port: ${node.split(':')[1] || '22'}</div>
+                            <span class="text-[10px] text-slate-400 font-mono">SSH Port: ${port}</span>
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
@@ -101,15 +102,10 @@ async function refreshNodesDashboard() {
                         </div>
                     </div>
                 </div>
-                <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6" id="node-details-${ip.replace(/\./g, '-')}">
-                    <div class="animate-pulse flex space-x-4">
-                        <div class="flex-1 space-y-4 py-1">
-                            <div class="h-4 bg-slate-100 rounded w-3/4"></div>
-                            <div class="space-y-2">
-                                <div class="h-4 bg-slate-100 rounded"></div>
-                                <div class="h-4 bg-slate-100 rounded w-5/6"></div>
-                            </div>
-                        </div>
+                <div class="p-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4" id="node-details-${ip.replace(/\./g, '-')}">
+                    <div class="col-span-full py-12 text-center">
+                         <i class="fas fa-circle-notch fa-spin text-blue-500 mb-2"></i>
+                         <p class="text-xs text-slate-400">Loading node metrics...</p>
                     </div>
                 </div>
                 <div class="px-6 pb-6" id="node-services-${ip.replace(/\./g, '-')}"></div>
@@ -131,6 +127,7 @@ async function updateNodeStatusInDashboard(ip) {
   const badge = document.getElementById(`status-badge-${safeIp}`);
   const details = document.getElementById(`node-details-${safeIp}`);
   const services = document.getElementById(`node-services-${safeIp}`);
+  const infoDiv = document.getElementById(`node-info-${safeIp}`);
   
   try {
     const res = await fetch(`/deployment/api/status?ip=${ip}`);
@@ -161,21 +158,85 @@ async function updateNodeStatusInDashboard(ip) {
             badge.className = `px-3 py-1 rounded-full text-[10px] font-bold ${statusClass} uppercase`;
             badge.innerText = `${statusText} (${diffSeconds}s ago)`;
             
+            // Update Header Info
+            if (infoDiv) {
+                const port = infoDiv.getAttribute('data-port') || '22';
+                
+                // Parse GPU status for better display if it matches our format
+                // Example: "1 x NVIDIA RTX 4090 | Util: 15% | Mem: 2048/24576 MB"
+                let gpuDisplay = agent.gpu_status || '-';
+                if (gpuDisplay.includes('|')) {
+                    const parts = gpuDisplay.split('|');
+                    // Show only the "X x Model" part in the header
+                    gpuDisplay = `<span class="text-blue-600 font-bold">${parts[0].trim()}</span>`;
+                }
+
+                infoDiv.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <h4 class="font-bold text-slate-800">${ip}</h4>
+                        <span class="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded font-bold uppercase">${agent.hostname}</span>
+                    </div>
+                    <div class="text-[10px] text-slate-400 flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                        <span><b class="text-slate-500 font-bold uppercase text-[9px]">OS:</b> ${agent.os_spec || '-'}</span>
+                        <span><b class="text-slate-500 font-bold uppercase text-[9px]">GPU:</b> ${gpuDisplay}</span>
+                        <span class="font-mono">SSH Port: ${port}</span>
+                    </div>
+                `;
+            }
+
+            // Extract GPU metrics if possible
+            let gpuUtil = 0;
+            let gpuMemPercent = 0;
+            if (agent.gpu_status) {
+                const utilMatch = agent.gpu_status.match(/Util: (\d+)%/);
+                if (utilMatch) gpuUtil = parseInt(utilMatch[1]);
+
+                const memMatch = agent.gpu_status.match(/Mem: (\d+)\/(\d+) MB/);
+                if (memMatch) {
+                    const used = parseInt(memMatch[1]);
+                    const total = parseInt(memMatch[2]);
+                    if (total > 0) gpuMemPercent = Math.round((used / total) * 100);
+                }
+            }
+
             details.innerHTML = `
+                <!-- CPU -->
                 <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 ${isDown ? 'opacity-50' : ''}">
                     <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">CPU Usage</div>
                     <div class="text-xl font-bold text-slate-800">${agent.cpu_usage.toFixed(1)}%</div>
-                    <div class="w-full bg-slate-200 h-1.5 rounded-full mt-2">
-                        <div class="bg-blue-500 h-1.5 rounded-full" style="width: ${agent.cpu_usage}%"></div>
+                    <div class="w-full bg-slate-200 h-1 rounded-full mt-2">
+                        <div class="bg-blue-500 h-1 rounded-full" style="width: ${agent.cpu_usage}%"></div>
                     </div>
                 </div>
+
+                <!-- Memory -->
                 <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 ${isDown ? 'opacity-50' : ''}">
                     <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">Memory Usage</div>
                     <div class="text-xl font-bold text-slate-800">${agent.memory_usage.toFixed(1)}%</div>
-                    <div class="w-full bg-slate-200 h-1.5 rounded-full mt-2">
-                        <div class="bg-indigo-500 h-1.5 rounded-full" style="width: ${agent.memory_usage}%"></div>
+                    <div class="w-full bg-slate-200 h-1 rounded-full mt-2">
+                        <div class="bg-indigo-500 h-1 rounded-full" style="width: ${agent.memory_usage}%"></div>
                     </div>
                 </div>
+
+                <!-- GPU Util -->
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 ${isDown ? 'opacity-50' : ''}">
+                    <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">GPU Utilization</div>
+                    <div class="text-xl font-bold text-slate-800">${gpuUtil}%</div>
+                    <div class="w-full bg-slate-200 h-1 rounded-full mt-2">
+                        <div class="bg-orange-500 h-1 rounded-full" style="width: ${gpuUtil}%"></div>
+                    </div>
+                </div>
+
+                <!-- GPU Mem -->
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 ${isDown ? 'opacity-50' : ''}">
+                    <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">GPU Memory</div>
+                    <div class="text-xl font-bold text-slate-800">${gpuMemPercent}%</div>
+                    <div class="w-full bg-slate-200 h-1 rounded-full mt-2">
+                        <div class="bg-amber-500 h-1 rounded-full" style="width: ${gpuMemPercent}%"></div>
+                    </div>
+                </div>
+
+                <!-- Docker -->
                 <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
                     <div class="flex justify-between items-center mb-1">
                         <div class="text-[10px] text-slate-400 font-bold uppercase">Docker Engine</div>
@@ -185,10 +246,13 @@ async function updateNodeStatusInDashboard(ip) {
                             </button>
                         ` : ''}
                     </div>
-                    <div class="text-sm font-bold ${agent.docker_status === 'active' && !isDown ? 'text-green-600' : 'text-red-600'} mt-1">
+                    <div class="text-sm font-bold ${agent.docker_status === 'active' && !isDown ? 'text-green-600' : 'text-red-600'}">
                         ${isDown ? 'UNKNOWN' : agent.docker_status.toUpperCase()}
                     </div>
-                    <div class="text-[10px] text-slate-400 mt-1">${agent.hostname} (${agent.os || 'Linux'})</div>
+                    <div class="flex items-center gap-1 mt-1.5 text-slate-400">
+                        <i class="fas fa-box text-[10px]"></i>
+                        <span class="text-[10px] font-medium uppercase">Container Runtime</span>
+                    </div>
                 </div>
             `;
             

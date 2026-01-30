@@ -3,6 +3,7 @@ package api_test
 import (
 	"anyadmin-backend/pkg/api"
 	"anyadmin-backend/pkg/global"
+	"anyadmin-backend/pkg/mockdata"
 	"bytes"
 	"encoding/json"
 	"net/http"
@@ -27,6 +28,14 @@ func setupDashboardRouter() *gin.Engine {
 }
 
 func TestDashboardEnrichment(t *testing.T) {
+	// Setup mock config
+	mockdata.Mu.Lock()
+	mockdata.InferenceCfgs = []global.InferenceConfig{
+		{Name: "vllm-test", IP: "172.20.0.10", Engine: "vLLM"},
+	}
+	mockdata.DeploymentNodes = []string{"172.20.0.10:22"}
+	mockdata.Mu.Unlock()
+
 	router := setupDashboardRouter()
 
 	// 1. Send Heartbeat with enriched info
@@ -38,8 +47,8 @@ func TestDashboardEnrichment(t *testing.T) {
 		"memory_usage":    2048.0,
 		"docker_status":   "active",
 		"deployment_time": "10h",
-		"os_spec":         "Ubuntu 22.04",
-		"gpu_status":      "NVIDIA A100 80GB",
+		"os_spec":         "Ubuntu 22.04.3 LTS",
+		"gpu_status":      "NVIDIA A100 80GB | Util: 45% | Mem: 4096/81920 MB",
 		"services": []global.DockerServiceStatus{
 			{ID: "c1", Name: "vllm-test", Image: "vllm:latest", State: "running", Status: "Up 10 hours", Uptime: "10h"},
 		},

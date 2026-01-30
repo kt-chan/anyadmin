@@ -32,16 +32,12 @@ async function restartService(serviceName, nodeIP, serviceType) {
         })
       });
       
-      const result = await response.json();
       if (response.ok) {
-        alert('服务重启命令已发送');
-        location.reload();
-      } else {
-        alert('错误: ' + result.message);
+        // Quiet success, reload after delay
+        setTimeout(() => location.reload(), 2000);
       }
     } catch (error) {
       console.error('Restart failed:', error);
-      alert('请求失败，请检查网络或后端服务');
     }
   }
 }
@@ -61,16 +57,12 @@ async function stopService(serviceName, nodeIP, serviceType) {
         })
       });
       
-      const result = await response.json();
       if (response.ok) {
-        alert('服务停止命令已发送');
-        location.reload();
-      } else {
-        alert('错误: ' + result.message);
+        // Quiet success, reload after delay
+        setTimeout(() => location.reload(), 2000);
       }
     } catch (error) {
       console.error('Stop failed:', error);
-      alert('请求失败，请检查网络或后端服务');
     }
   }
 }
@@ -111,7 +103,7 @@ function stopAutoRefresh() {
   }
 }
 
-// 页面加载完成后启动自动刷新
+// 页面加载完成后启动自动刷新和过滤器
 document.addEventListener('DOMContentLoaded', function() {
   // 根据用户选择决定是否启动自动刷新
   const refreshBtn = document.querySelector('button:has(.fa-sync-alt)');
@@ -129,7 +121,54 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // 初始启动自动刷新
   startAutoRefresh();
+
+  // 初始化过滤器
+  initFilters();
 });
+
+function initFilters() {
+  const nameFilter = document.getElementById('filter-name');
+  const typeFilter = document.getElementById('filter-type');
+  const statusFilter = document.getElementById('filter-status');
+
+  if (nameFilter && typeFilter && statusFilter) {
+    const applyFilters = () => {
+      const nameVal = nameFilter.value.toLowerCase();
+      const typeVal = typeFilter.value;
+      const statusVal = statusFilter.value;
+
+      const rows = document.querySelectorAll('#services-table tbody tr');
+      let visibleCount = 0;
+
+      rows.forEach(row => {
+        const name = row.getAttribute('data-name');
+        const type = row.getAttribute('data-type');
+        const status = row.getAttribute('data-status');
+
+        const matchesName = name.includes(nameVal);
+        const matchesType = !typeVal || type === typeVal;
+        const matchesStatus = !statusVal || status === statusVal || 
+                             (statusVal === 'Running' && status === 'healthy');
+
+        if (matchesName && matchesType && matchesStatus) {
+          row.style.display = '';
+          visibleCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      const countEl = document.getElementById('service-count');
+      if (countEl) {
+        countEl.innerText = `共 ${visibleCount} 个服务`;
+      }
+    };
+
+    nameFilter.addEventListener('input', applyFilters);
+    typeFilter.addEventListener('change', applyFilters);
+    statusFilter.addEventListener('change', applyFilters);
+  }
+}
 
 // 页面离开时清理定时器
 window.addEventListener('beforeunload', function() {

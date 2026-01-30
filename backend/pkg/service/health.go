@@ -1,9 +1,11 @@
 package service
 
 import (
+	"anyadmin-backend/pkg/mockdata"
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -37,54 +39,122 @@ func GetServicesHealth() []ServiceStatus {
 		Status:  "Running",
 		Health:  "Healthy",
 		Uptime:  uptime,
-		CPU:     0.5, // Mock CPU as we don't have gopsutil
+		CPU:     0.5,
 		Memory:  m.Alloc,
 		PID:     int32(os.Getpid()),
 		Message: "Backend service is operational",
 	})
 
-	// 2. Services from Agents (Heartbeats)
+	// 2. Agents Status (Base on Deployment Configuration)
 	agents := GetAllAgents()
+	agentMap := make(map[string]AgentStatus)
 	for _, agent := range agents {
-		// Add agent itself as a service
-		agentStatus := "Running"
-		agentHealth := "Healthy"
-		if time.Since(agent.LastSeen) > 30*time.Second {
-			agentStatus = "Offline"
-			agentHealth = "Unhealthy"
+		agentMap[agent.NodeIP] = agent
+	}
+
+	mockdata.Mu.Lock()
+	nodes := make([]string, len(mockdata.DeploymentNodes))
+	copy(nodes, mockdata.DeploymentNodes)
+	mockdata.Mu.Unlock()
+
+	for _, node := range nodes {
+		nodeIP := node
+		if strings.Contains(node, ":") {
+			nodeIP = strings.Split(node, ":")[0]
+		}
+
+		agentStatus := "Offline"
+		agentHealth := "Unhealthy"
+		hostname := "Unknown"
+		osSpec := "-"
+		gpuStatus := "-"
+		uptime := "-"
+		var cpu float64
+		var mem uint64
+
+		if agent, ok := agentMap[nodeIP]; ok {
+			hostname = agent.Hostname
+			osSpec = agent.OSSpec
+			gpuStatus = agent.GPUStatus
+			uptime = agent.DeploymentTime
+			cpu = agent.CPUUsage
+			mem = uint64(agent.MemoryUsage * 1024 * 1024)
+
+			if time.Since(agent.LastSeen) <= 30*time.Second {
+				agentStatus = "Running"
+				agentHealth = "Healthy"
+			}
 		}
 
 		results = append(results, ServiceStatus{
-			Name:    fmt.Sprintf("Agent (%s)", agent.Hostname),
+			Name:    fmt.Sprintf("Agent (%s)", hostname),
 			Type:    "Agent",
 			Status:  agentStatus,
 			Health:  agentHealth,
-			Uptime:  agent.DeploymentTime,
-			CPU:     agent.CPUUsage,
-			Memory:  uint64(agent.MemoryUsage * 1024 * 1024), // Assuming mem usage in MB
-			Message: fmt.Sprintf("Node: %s, OS: %s, GPU: %s", agent.NodeIP, agent.OSSpec, agent.GPUStatus),
-			NodeIP:  agent.NodeIP,
+			Uptime:  uptime,
+			CPU:     cpu,
+			Memory:  mem,
+			Message: fmt.Sprintf("Node: %s, OS: %s, GPU: %s", nodeIP, osSpec, gpuStatus),
+			NodeIP:  nodeIP,
 		})
+	}
 
-		// Add docker services managed by this agent
-		for _, svc := range agent.Services {
-			svcStatus := "Stopped"
-			svcHealth := "Unhealthy"
-			if svc.State == "running" {
-				svcStatus = "Running"
-				svcHealth = "Healthy"
+	// 3. Services from Configuration (The Master List)
+	for _, cfg := range mockdata.InferenceCfgs {
+		svcStatus := "Offline"
+		svcHealth := "Unhealthy"
+		svcUptime := "-"
+		svcMsg := fmt.Sprintf("Node %s has not checked in", cfg.IP)
+		
+		if agent, ok := agentMap[cfg.IP]; ok {
+			agentOnline := time.Since(agent.LastSeen) <= 30*time.Second
+			
+			if !agentOnline {
+				svcStatus = "Offline"
+				svcMsg = fmt.Sprintf("Node %s is offline", cfg.IP)
+			} else {
+				svcStatus = "Stopped"
+				svcMsg = fmt.Sprintf("Container not found on node %s", cfg.IP)
+				
+				for _, dockerSvc := range agent.Services {
+					lcDockerName := strings.ToLower(dockerSvc.Name)
+					lcCfgName := strings.ToLower(cfg.Name)
+					lcEngine := strings.ToLower(cfg.Engine)
+
+					// Match if names are similar OR if it's a known engine container
+					isMatch := strings.Contains(lcDockerName, lcCfgName) || strings.Contains(lcCfgName, lcDockerName)
+					
+					// Special case: if engine is vLLM, it might be named just "vllm"
+					if !isMatch && (lcEngine == "vllm" || lcEngine == "nvidia") {
+						isMatch = strings.Contains(lcDockerName, "vllm")
+					}
+					// Special case: if engine is MindIE, it might be named "mindie"
+					if !isMatch && (lcEngine == "mindie" || lcEngine == "ascend") {
+						isMatch = strings.Contains(lcDockerName, "mindie")
+					}
+
+					if isMatch {
+						if dockerSvc.State == "running" {
+							svcStatus = "Running"
+							svcHealth = "Healthy"
+						}
+						svcUptime = dockerSvc.Uptime
+						svcMsg = fmt.Sprintf("Image: %s, Node: %s", dockerSvc.Image, agent.NodeIP)
+						break
+					}
+				}
 			}
-
-			results = append(results, ServiceStatus{
-				Name:    svc.Name,
-				Type:    "Container",
-				Status:  svcStatus,
-				Health:  svcHealth,
-				Uptime:  svc.Uptime,
-				Message: fmt.Sprintf("Image: %s, Node: %s", svc.Image, agent.NodeIP),
-				NodeIP:  agent.NodeIP,
-			})
 		}
+
+		results = append(results, ServiceStatus{
+			Name:    strings.ToLower(cfg.Name),
+			Type:    "Container",
+			Status:  svcStatus,
+			Health:  svcHealth,
+			Uptime:  svcUptime,
+			Message: svcMsg,
+			NodeIP:  cfg.IP,
+		})
 	}
 
 	return results

@@ -242,7 +242,7 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	// 5. Verify process started
 	log.Printf("Verifying agent start on %s...", nodeIP)
-	time.Sleep(5 * time.Second)
+	time.Sleep(2 * time.Second)
 	// Use a more robust check that returns a number
 	countStr, err := ExecuteCommand(client, "ps ax | grep anyadmin-agent | grep -v grep | wc -l")
 	if err != nil {
@@ -285,88 +285,94 @@ func ControlAgent(nodeIP, action string) error {
 		nodePort = parts[1]
 	}
 
-	client, err := GetSSHClient(nodeHost, nodePort)
-	if err != nil {
-		return fmt.Errorf("SSH connection failed: %w", err)
-	}
-	defer client.Close()
-
-	switch action {
-	case "start":
-		// Check if already running
-		_, err := ExecuteCommand(client, "pgrep -f anyadmin-agent")
-		if err == nil {
-			RecordLog(user, "Agent Control", "Agent already running on "+nodeIP, "Info")
-			return nil
+	// Run long operations in background
+	go func() {
+		client, err := GetSSHClient(nodeHost, nodePort)
+		if err != nil {
+			log.Printf("[Agent Control] SSH connection failed: %v", err)
+			return
 		}
+		defer client.Close()
 
-		mockdata.Mu.Lock()
-		mgmtHost := mockdata.MgmtHost
-		mgmtPort := mockdata.MgmtPort
-		mockdata.Mu.Unlock()
+		switch action {
+		case "start":
+			// Check if already running
+			_, err := ExecuteCommand(client, "pgrep -f anyadmin-agent")
+			if err == nil {
+				RecordLog(user, "Agent Control", "Agent already running on "+nodeIP, "Info")
+				return
+			}
 
-		if mgmtHost == "" {
-			mockdata.LoadFromFile()
 			mockdata.Mu.Lock()
-			mgmtHost = mockdata.MgmtHost
-			mgmtPort = mockdata.MgmtPort
+			mgmtHost := mockdata.MgmtHost
+			mgmtPort := mockdata.MgmtPort
 			mockdata.Mu.Unlock()
-		}
-		if mgmtHost == "" {
-			mgmtHost = "172.20.0.1"
-			mgmtPort = "8080"
-		}
 
-		// Ensure clean start
-		ExecuteCommand(client, "pkill -f anyadmin-agent")
-		ExecuteCommand(client, "rm -f /home/anyadmin/bin/anyadmin-agent /home/anyadmin/bin/config.json")
+			if mgmtHost == "" {
+				mockdata.LoadFromFile()
+				mockdata.Mu.Lock()
+				mgmtHost = mockdata.MgmtHost
+				mgmtPort = mockdata.MgmtPort
+				mockdata.Mu.Unlock()
+			}
+			if mgmtHost == "" {
+				mgmtHost = "172.20.0.1"
+				mgmtPort = "8080"
+			}
 
-		if err := deployAndRunAgent(client, nodeHost, mgmtHost, mgmtPort); err != nil {
-			return fmt.Errorf("failed to start agent: %w", err)
-		}
-		RecordLog(user, "Agent Control", "Started agent on "+nodeIP, "Info")
+			// Ensure clean start
+			ExecuteCommand(client, "pkill -f anyadmin-agent")
+			ExecuteCommand(client, "rm -f /home/anyadmin/bin/anyadmin-agent /home/anyadmin/bin/config.json")
 
-	case "stop":
-		ExecuteCommand(client, "pkill -f anyadmin-agent")
-		RecordLog(user, "Agent Control", "Stopped agent on "+nodeIP, "Info")
+			if err := deployAndRunAgent(client, nodeHost, mgmtHost, mgmtPort); err != nil {
+				log.Printf("[Agent Control] failed to start agent: %v", err)
+				return
+			}
+			RecordLog(user, "Agent Control", "Started agent on "+nodeIP, "Info")
 
-	case "restart":
-		ExecuteCommand(client, "pkill -f anyadmin-agent")
-		ExecuteCommand(client, "rm -f /home/anyadmin/bin/anyadmin-agent /home/anyadmin/bin/config.json")
-		
-		mockdata.Mu.Lock()
-		mgmtHost := mockdata.MgmtHost
-		mgmtPort := mockdata.MgmtPort
-		mockdata.Mu.Unlock()
+		case "stop":
+			ExecuteCommand(client, "pkill -f anyadmin-agent")
+			RecordLog(user, "Agent Control", "Stopped agent on "+nodeIP, "Info")
 
-		if mgmtHost == "" {
-			mockdata.LoadFromFile()
+		case "restart":
+			ExecuteCommand(client, "pkill -f anyadmin-agent")
+			ExecuteCommand(client, "rm -f /home/anyadmin/bin/anyadmin-agent /home/anyadmin/bin/config.json")
+			
 			mockdata.Mu.Lock()
-			mgmtHost = mockdata.MgmtHost
-			mgmtPort = mockdata.MgmtPort
+			mgmtHost := mockdata.MgmtHost
+			mgmtPort := mockdata.MgmtPort
 			mockdata.Mu.Unlock()
-		}
-		if mgmtHost == "" {
-			mgmtHost = "172.20.0.1"
-			mgmtPort = "8080"
-		}
 
-		if err := deployAndRunAgent(client, nodeHost, mgmtHost, mgmtPort); err != nil {
-			return fmt.Errorf("failed to restart agent: %w", err)
+			if mgmtHost == "" {
+				mockdata.LoadFromFile()
+				mockdata.Mu.Lock()
+				mgmtHost = mockdata.MgmtHost
+				mgmtPort = mockdata.MgmtPort
+				mockdata.Mu.Unlock()
+			}
+			if mgmtHost == "" {
+				mgmtHost = "172.20.0.1"
+				mgmtPort = "8080"
+			}
+
+			if err := deployAndRunAgent(client, nodeHost, mgmtHost, mgmtPort); err != nil {
+				log.Printf("[Agent Control] failed to restart agent: %v", err)
+				return
+			}
+			RecordLog(user, "Agent Control", "Restarted agent on "+nodeIP, "Info")
+
+		case "fix-docker":
+			// 1. Add anyadmin to docker group
+			ExecuteCommand(client, "usermod -aG docker anyadmin")
+			// 2. Restart docker service
+			ExecuteCommand(client, "systemctl restart docker || service docker restart")
+			// 3. Restart agent to pick up group membership
+			ControlAgent(nodeIP, "restart")
+
+		default:
+			log.Printf("[Agent Control] unsupported action: %s", action)
 		}
-		RecordLog(user, "Agent Control", "Restarted agent on "+nodeIP, "Info")
-
-	case "fix-docker":
-		// 1. Add anyadmin to docker group
-		ExecuteCommand(client, "usermod -aG docker anyadmin")
-		// 2. Restart docker service
-		ExecuteCommand(client, "systemctl restart docker || service docker restart")
-		// 3. Restart agent to pick up group membership
-		return ControlAgent(nodeIP, "restart")
-
-	default:
-		return fmt.Errorf("unsupported action: %s", action)
-	}
+	}()
 
 	return nil
 }

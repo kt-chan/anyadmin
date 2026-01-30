@@ -3,10 +3,12 @@ package service
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 )
 
 func ControlContainer(containerName string, action string, nodeIP string) error {
+	containerName = strings.ToLower(containerName)
 	log.Printf("[Container] Action: %s on container: %s (Node: %s)", action, containerName, nodeIP)
 	
 	if nodeIP == "" || nodeIP == "localhost" || nodeIP == "127.0.0.1" {

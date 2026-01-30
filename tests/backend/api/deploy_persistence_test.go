@@ -52,7 +52,7 @@ func TestDeployServicePersistence(t *testing.T) {
 	// Verify InMemory Update
 	found := false
 	for _, cfg := range mockdata.InferenceCfgs {
-		if cfg.Name == "TestModel-v1" {
+		if cfg.Name == "vllm" {
 			found = true
 			break
 		}
@@ -70,7 +70,7 @@ func TestDeployServicePersistence(t *testing.T) {
 
 	foundInFile := false
 	for _, cfg := range data.InferenceCfgs {
-		if cfg.Name == "TestModel-v1" {
+		if cfg.Name == "vllm" {
 			foundInFile = true
 			break
 		}

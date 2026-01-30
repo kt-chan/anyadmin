@@ -24,10 +24,10 @@
   "inference_cfgs": [
     {
       "id": 0,
-      "createdAt": "2026-01-29T18:35:01.2028329+08:00",
-      "updatedAt": "2026-01-29T18:35:01.2028329+08:00",
+      "createdAt": "2026-01-30T12:04:12.4570516+08:00",
+      "updatedAt": "2026-01-30T12:04:12.4570516+08:00",
       "deletedAt": null,
-      "name": "Qwen3-1.7B",
+      "name": "vllm",
       "engine": "vLLM",
       "modelPath": "Qwen3-1.7B",
       "ip": "172.20.0.10",
@@ -39,10 +39,10 @@
     },
     {
       "id": 0,
-      "createdAt": "2026-01-29T18:35:01.2028329+08:00",
-      "updatedAt": "2026-01-29T18:35:01.2028329+08:00",
+      "createdAt": "2026-01-30T12:04:12.4570516+08:00",
+      "updatedAt": "2026-01-30T12:04:12.4570516+08:00",
       "deletedAt": null,
-      "name": "AnythingLLM",
+      "name": "anythingllm",
       "engine": "RAG App",
       "modelPath": "",
       "ip": "172.20.0.10",

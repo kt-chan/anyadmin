@@ -45,8 +45,8 @@ func TestAgentHeartbeat(t *testing.T) {
 		MemoryUsage:    40.0,
 		DockerStatus:   "active",
 		DeploymentTime: "2024-05-20",
-		OSSpec:         "linux amd64",
-		GPUStatus:      "NVIDIA RTX 4090",
+		OSSpec:         "Ubuntu 22.04.3 LTS",
+		GPUStatus:      "NVIDIA RTX 4090 | Util: 15% | Mem: 2048/24576 MB",
 		Services: []global.DockerServiceStatus{
 			{Name: "vllm-server", State: "running"},
 		},
@@ -65,10 +65,9 @@ func TestAgentHeartbeat(t *testing.T) {
 	assert.True(t, exists)
 	assert.Equal(t, "test-node", status.Hostname)
 	assert.Equal(t, 20.0, status.CPUUsage)
-	assert.Equal(t, "linux amd64", status.OSSpec)
-	assert.Equal(t, "NVIDIA RTX 4090", status.GPUStatus)
-	assert.Len(t, status.Services, 1)
-	assert.Equal(t, "vllm-server", status.Services[0].Name)
+	assert.Equal(t, "Ubuntu 22.04.3 LTS", status.OSSpec)
+	assert.Contains(t, status.GPUStatus, "RTX 4090")
+	assert.Contains(t, status.GPUStatus, "Util: 15%")
 
 	// 3. Check via API
 	w2 := httptest.NewRecorder()

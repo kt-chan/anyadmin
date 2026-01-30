@@ -62,58 +62,114 @@ block content
           //- 服务列表 (左侧主区域)
           div(class="lg:col-span-2 space-y-6")
             div(class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden")
-              div(class="p-6 border-b border-slate-100 flex justify-between items-center")
-                h3(class="font-bold text-lg") 服务运行清单
-              div(class="overflow-x-auto")
-                table(class="w-full")
-                  thead(class="bg-slate-50 text-slate-500 text-xs text-left uppercase tracking-wider")
+              div(class="p-6 border-b border-slate-100")
+                div(class="flex justify-between items-center mb-4")
+                  h3(class="font-bold text-lg") 服务运行清单
+                  span(class="text-xs text-slate-400" id="service-count") 共 #{services.length} 个服务
+                
+                //- 过滤器
+                div(class="grid grid-cols-3 gap-4")
+                  div(class="relative")
+                    span(class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400")
+                      i(class="fas fa-search text-xs")
+                    input(type="text" id="filter-name" placeholder="搜索名称..." class="pl-9 w-full bg-slate-50 border border-slate-200 rounded-lg py-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none")
+                  
+                  select(id="filter-type" class="bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-3 text-xs focus:ring-2 focus:ring-blue-500 outline-none")
+                    option(value="") 所有类型
+                    option(value="Core") Core
+                    option(value="Agent") Agent
+                    option(value="Container") Container
+                  
+                  select(id="filter-status" class="bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-3 text-xs focus:ring-2 focus:ring-blue-500 outline-none")
+                    option(value="") 所有状态
+                    option(value="Running") 运行中
+                    option(value="Stopped") 已停止
+                    option(value="Offline") 已离线
+
+              div(class="overflow-x-auto max-h-[500px] overflow-y-auto pr-2")
+                table(class="w-full" id="services-table")
+                  thead(class="bg-slate-50 text-slate-500 text-xs text-left uppercase tracking-wider sticky top-0 z-10")
                     tr
                       th(class="px-6 py-4") 服务名称
                       th(class="px-6 py-4") 角色/类型
                       th(class="px-6 py-4") 健康状况
                       th(class="px-6 py-4") 操作
                   tbody(class="divide-y divide-slate-100 text-sm")
-                    //- 动态渲染服务列表
-                    each service in services
-                      tr
+                    //- 1. Core Services (Top level)
+                    each service in services.filter(s => s.type === 'Core')
+                      tr(data-name=service.name.toLowerCase() data-type=service.type data-status=service.status)
                         td(class="px-6 py-4")
                           div(class="font-semibold text-slate-700")= service.name
-                          if service.node_ip
-                            div(class="text-[10px] text-slate-400 font-mono")= service.node_ip
                         td(class="px-6 py-4")
-                          //- 根据服务类型显示不同颜色的标签
-                          if service.type === 'Core'
-                            span(class="bg-purple-50 text-purple-700 px-2 py-1 rounded text-xs")= service.type
-                          else if service.type === 'Agent'
-                            span(class="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs")= service.type
-                          else if service.type === 'Container'
-                            span(class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs")= service.type
-                          else
-                            span(class="bg-gray-50 text-gray-700 px-2 py-1 rounded text-xs")= service.type
-                          
+                          span(class="bg-purple-50 text-purple-700 px-2 py-1 rounded text-xs")= service.type
                           if service.message
                             div(class="text-[10px] text-slate-400 mt-1 max-w-xs truncate" title=service.message)= service.message
-                        
                         td(class="px-6 py-4")
-                          //- 根据服务状态显示不同的图标和颜色
-                          if service.status === 'Running' || service.status === 'healthy'
-                            span(class="text-green-500 flex items-center gap-2 font-medium")
-                              i(class="fas fa-check-circle text-xs")
-                              | 运行中
-                          else if service.status === 'Offline' || service.status === 'Stopped'
-                            span(class="text-red-500 flex items-center gap-2 font-medium")
-                              i(class="fas fa-times-circle text-xs")
-                              | #{service.status === 'Offline' ? '已离线' : '已停止'}
-                          else
-                            span(class="text-orange-500 flex items-center gap-2 font-medium")
-                              i(class="fas fa-spinner fa-spin text-xs")
-                              | #{service.status}
-                        
+                          span(class="text-green-500 flex items-center gap-2 font-medium")
+                            i(class="fas fa-check-circle text-xs")
+                            | 运行中
                         td(class="px-6 py-4")
-                          if service.type !== 'Core'
-                            button(class="text-slate-400 hover:text-blue-600 mr-3" title="重启" onclick=`restartService('${service.name}', '${service.node_ip || ""}', '${service.type}')`)
+                          // Core services usually don't have operations here
+
+                    //- 2. Grouped Agents & Containers
+                    - const nodeIPs = [...new Set(services.filter(s => s.type !== 'Core').map(s => s.node_ip))]
+                    each nodeIP in nodeIPs
+                      //- Agent row
+                      - const agent = services.find(s => s.type === 'Agent' && s.node_ip === nodeIP)
+                      if agent
+                        tr(class="bg-slate-50/50" data-name=agent.name.toLowerCase() data-type=agent.type data-status=agent.status)
+                          td(class="px-6 py-4")
+                            div(class="font-bold text-slate-800 flex items-center gap-2")
+                              i(class="fas fa-server text-blue-500 text-xs")
+                              = agent.name
+                            div(class="text-[10px] text-slate-400 font-mono pl-5")= agent.node_ip
+                          td(class="px-6 py-4")
+                            span(class="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs") Host Agent
+                            if agent.message
+                              div(class="text-[10px] text-slate-400 mt-1 max-w-xs truncate pl-1" title=agent.message)= agent.message
+                          td(class="px-6 py-4")
+                            if agent.status === 'Running'
+                              span(class="text-green-500 flex items-center gap-2 font-medium")
+                                i(class="fas fa-check-circle text-xs")
+                                | 运行中
+                            else
+                              span(class="text-red-500 flex items-center gap-2 font-medium")
+                                i(class="fas fa-times-circle text-xs")
+                                | 已离线
+                          td(class="px-6 py-4")
+                            button(class="text-slate-400 hover:text-blue-600 mr-3" title="重启 Agent" onclick=`restartService('${agent.name}', '${agent.node_ip}', 'Agent')`)
                               i(class="fas fa-redo")
-                            button(class="text-slate-400 hover:text-red-600" title="停止" onclick=`stopService('${service.name}', '${service.node_ip || ""}', '${service.type}')`)
+                            button(class="text-slate-400 hover:text-red-600" title="停止 Agent" onclick=`stopService('${agent.name}', '${agent.node_ip}', 'Agent')`)
+                              i(class="fas fa-power-off")
+
+                      //- Nested Containers for this node
+                      each container in services.filter(s => s.type === 'Container' && s.node_ip === nodeIP)
+                        tr(class="hover:bg-slate-50 transition-colors" data-name=container.name.toLowerCase() data-type=container.type data-status=container.status)
+                          td(class="px-6 py-4 pl-12 border-l-2 border-slate-100")
+                            div(class="font-semibold text-slate-600 flex items-center gap-2")
+                              i(class="fas fa-box text-slate-400 text-[10px]")
+                              = container.name
+                          td(class="px-6 py-4")
+                            span(class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-[10px] uppercase")= container.type
+                            if container.message
+                              div(class="text-[10px] text-slate-400 mt-1 max-w-xs truncate" title=container.message)= container.message
+                          td(class="px-6 py-4")
+                            if container.status === 'Running'
+                              span(class="text-green-500 flex items-center gap-2 font-medium")
+                                i(class="fas fa-check-circle text-xs")
+                                | 运行中
+                            else if container.status === 'Offline'
+                              span(class="text-slate-400 flex items-center gap-2 font-medium")
+                                i(class="fas fa-minus-circle text-xs")
+                                | 离线 (节点异常)
+                            else
+                              span(class="text-red-500 flex items-center gap-2 font-medium")
+                                i(class="fas fa-stop-circle text-xs")
+                                | 已停止
+                          td(class="px-6 py-4")
+                            button(class="text-slate-400 hover:text-blue-600 mr-3" title="重启容器" onclick=`restartService('${container.name}', '${container.node_ip}', 'Container')`)
+                              i(class="fas fa-redo")
+                            button(class="text-slate-400 hover:text-red-600" title="停止容器" onclick=`stopService('${container.name}', '${container.node_ip}', 'Container')`)
                               i(class="fas fa-power-off")
 
             //- 备份模块

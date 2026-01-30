@@ -128,7 +128,7 @@ func TestDeploymentFlow(t *testing.T) {
 		
 		found := false
 		for _, cfg := range mockdata.InferenceCfgs {
-			if cfg.Name == "Test-Llama-3" {
+			if cfg.Name == "vllm" {
 				found = true
 				break
 			}

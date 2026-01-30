@@ -43,7 +43,7 @@ func SendHeartbeat(mgmtURL, nodeIP, hostname, deploymentTime string) error {
 	cpu, _ := getCPUUsage()
 	mem, _ := getMemoryUsage()
 	gpu := getGPUStatus()
-	osSpec := fmt.Sprintf("%s %s", runtime.GOOS, runtime.GOARCH)
+	osSpec := getOSDescription()
 
 	payload := HeartbeatRequest{
 		NodeIP:         nodeIP,
@@ -78,12 +78,53 @@ func SendHeartbeat(mgmtURL, nodeIP, hostname, deploymentTime string) error {
 	return nil
 }
 
-func getGPUStatus() string {
-	// Try nvidia-smi
-	cmd := exec.Command("nvidia-smi", "--query-gpu=name,memory.total,memory.free", "--format=csv,noheader,nounits")
+func getOSDescription() string {
+	if runtime.GOOS == "windows" {
+		return "Windows " + runtime.GOARCH
+	}
+
+	// Try /etc/os-release first (standard)
+	data, err := os.ReadFile("/etc/os-release")
+	if err == nil {
+		lines := strings.Split(string(data), "\n")
+		for _, line := range lines {
+			if strings.HasPrefix(line, "PRETTY_NAME=") {
+				return strings.Trim(strings.TrimPrefix(line, "PRETTY_NAME="), "\"")
+			}
+		}
+	}
+
+	// Fallback to lsb_release if available
+	cmd := exec.Command("lsb_release", "-ds")
 	output, err := cmd.Output()
 	if err == nil {
-		return "NVIDIA: " + strings.TrimSpace(string(output))
+		return strings.TrimSpace(string(output))
+	}
+
+	return fmt.Sprintf("%s %s", runtime.GOOS, runtime.GOARCH)
+}
+
+func getGPUStatus() string {
+	// Try nvidia-smi with detailed query
+	// utilization.gpu, memory.used, memory.total
+	cmd := exec.Command("nvidia-smi", "--query-gpu=name,utilization.gpu,memory.used,memory.total", "--format=csv,noheader,nounits")
+	output, err := cmd.Output()
+	if err == nil {
+		lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+		cardCount := len(lines)
+		
+		// Use the first card for the detailed string, but prefix with count
+		if cardCount > 0 {
+			parts := strings.Split(lines[0], ",")
+			if len(parts) >= 4 {
+				name := strings.TrimSpace(parts[0])
+				util := strings.TrimSpace(parts[1])
+				used := strings.TrimSpace(parts[2])
+				total := strings.TrimSpace(parts[3])
+				return fmt.Sprintf("%d x %s | Util: %s%% | Mem: %s/%s MB", cardCount, name, util, used, total)
+			}
+		}
+		return fmt.Sprintf("%d x NVIDIA GPU", cardCount)
 	}
 
 	// Try npu-smi (Ascend)

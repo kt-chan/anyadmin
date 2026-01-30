@@ -25,10 +25,10 @@ func DeployService(c *gin.Context) {
 
 	// Map DeploymentConfig to InferenceConfig for compatibility
 	inferenceConfig := global.InferenceConfig{
-		Name:      req.ModelName,
+		Name:      "vllm", // Standardize name to match container reported by agent
 		IP:        req.InferenceHost,
 		Port:      req.InferencePort,
-		ModelPath: req.ModelName, // Assuming model name implies path/id
+		ModelPath: req.ModelName,
 	}
 
 	// Map Engine based on Platform
@@ -37,6 +37,7 @@ func DeployService(c *gin.Context) {
 		inferenceConfig.Engine = "vLLM"
 	case "ascend":
 		inferenceConfig.Engine = "MindIE"
+		inferenceConfig.Name = "mindie" // Standard name for MindIE container
 	default:
 		inferenceConfig.Engine = "Unknown"
 	}
@@ -75,7 +76,7 @@ func DeployService(c *gin.Context) {
 
 	if req.EnableRAG {
 		configsToSave = append(configsToSave, global.InferenceConfig{
-			Name:   "AnythingLLM",
+			Name:   "anythingllm",
 			Engine: "RAG App",
 			IP:     req.RAGHost,
 			Port:   req.RAGPort,
@@ -84,7 +85,7 @@ func DeployService(c *gin.Context) {
 
 	if req.EnableVectorDB {
 		configsToSave = append(configsToSave, global.InferenceConfig{
-			Name:   req.VectorDBType,
+			Name:   strings.ToLower(req.VectorDBType),
 			Engine: "Vector DB",
 			IP:     req.VectorDBHost,
 			Port:   req.VectorDBPort,
@@ -93,7 +94,7 @@ func DeployService(c *gin.Context) {
 
 	if req.EnableParser {
 		configsToSave = append(configsToSave, global.InferenceConfig{
-			Name:   "Mineru",
+			Name:   "mineru",
 			Engine: "Parser",
 			IP:     req.ParserHost,
 			Port:   req.ParserPort,
@@ -231,7 +232,7 @@ func TestServiceConnection(c *gin.Context) {
 		return
 	}
 
-	timeout := 2 * time.Second
+	timeout := 5 * time.Second
 
 	// Handle SSH (Multiple nodes from textarea)
 	if req.Type == "ssh" {

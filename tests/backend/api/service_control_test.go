@@ -3,6 +3,7 @@ package api_test
 import (
 	"anyadmin-backend/pkg/api"
 	"anyadmin-backend/pkg/global"
+	"anyadmin-backend/pkg/mockdata"
 	"bytes"
 	"encoding/json"
 	"net/http"
@@ -14,6 +15,15 @@ import (
 )
 
 func TestRemoteServiceControlAndHealth(t *testing.T) {
+	// Setup mock config
+	mockdata.Mu.Lock()
+	mockdata.InferenceCfgs = []global.InferenceConfig{
+		{Name: "vllm", IP: "172.20.0.10", Engine: "vLLM"},
+		{Name: "anythingllm", IP: "172.20.0.10", Engine: "RAG App"},
+	}
+	mockdata.DeploymentNodes = []string{"172.20.0.10:22"}
+	mockdata.Mu.Unlock()
+
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	router.POST("/api/v1/agent/heartbeat", api.ReceiveHeartbeat)
@@ -32,8 +42,8 @@ func TestRemoteServiceControlAndHealth(t *testing.T) {
 		"memory_usage":    1024.0,
 		"docker_status":   "active",
 		"deployment_time": "34m",
-		"os_spec":         "linux amd64",
-		"gpu_status":      "NVIDIA GPU",
+		"os_spec":         "Ubuntu 22.04.3 LTS",
+		"gpu_status":      "NVIDIA RTX 4090 | Util: 10% | Mem: 1024/24576 MB",
 		"services": []global.DockerServiceStatus{
 			{ID: "4ac9ee55d204", Name: "vllm", Image: "vllm/vllm-openai:latest", State: "running", Status: "Up 34 minutes (healthy)", Uptime: "34m"},
 			{ID: "22e815dfb667", Name: "anythingllm", Image: "mintplexlabs/anythingllm:1.8.5", State: "running", Status: "Up 36 minutes (healthy)", Uptime: "36m"},
@@ -85,6 +95,46 @@ func TestRemoteServiceControlAndHealth(t *testing.T) {
 	req3.Header.Set("Content-Type", "application/json")
 	router.ServeHTTP(w3, req3)
 
-	// This should succeed if passwordless SSH is configured as requested
-	assert.Equal(t, http.StatusOK, w3.Code, "Remote control should succeed via SSH")
+	assert.Equal(t, http.StatusOK, w3.Code, "Remote restart on vllm should succeed")
+}
+
+func TestAnythingLLMControl(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.POST("/api/v1/container/control", func(c *gin.Context) {
+		c.Set("username", "admin")
+		api.ControlContainer(c)
+	})
+
+	// Test STOP with mixed case name
+	t.Run("StopAnythingLLM", func(t *testing.T) {
+		control := map[string]interface{}{
+			"name":    "AnythingLLM", // Mixed case to test standardization
+			"action":  "stop",
+			"node_ip": "172.20.0.10",
+		}
+		cBody, _ := json.Marshal(control)
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/api/v1/container/control", bytes.NewBuffer(cBody))
+		req.Header.Set("Content-Type", "application/json")
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code, "Stop operation on AnythingLLM should succeed")
+	})
+
+	// Test START with mixed case name
+	t.Run("StartAnythingLLM", func(t *testing.T) {
+		control := map[string]interface{}{
+			"name":    "AnythingLLM",
+			"action":  "start",
+			"node_ip": "172.20.0.10",
+		}
+		cBody, _ := json.Marshal(control)
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/api/v1/container/control", bytes.NewBuffer(cBody))
+		req.Header.Set("Content-Type", "application/json")
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code, "Start operation on AnythingLLM should succeed")
+	})
 }

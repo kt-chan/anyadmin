@@ -113,7 +113,7 @@ func GetPublicKey() (string, error) {
 	return string(content), nil
 }
 
-// GetSSHClient establishes an SSH connection
+// GetSSHClient establishes an SSH connection with retries
 func GetSSHClient(host string, port string) (*ssh.Client, error) {
 	if err := EnsureKeys(); err != nil {
 		return nil, err
@@ -137,15 +137,26 @@ func GetSSHClient(host string, port string) (*ssh.Client, error) {
 			ssh.Password("password"), // Fallback to default password
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Timeout:         2 * time.Second,
+		Timeout:         10 * time.Second,
 	}
 
 	// Handle Host:Port or just Host
+	addr := host
 	if !strings.Contains(host, ":") {
-		host = net.JoinHostPort(host, port)
+		addr = net.JoinHostPort(host, port)
 	}
 
-	return ssh.Dial("tcp", host, config)
+	var lastErr error
+	for i := 0; i < 3; i++ {
+		client, err := ssh.Dial("tcp", addr, config)
+		if err == nil {
+			return client, nil
+		}
+		lastErr = err
+		time.Sleep(1 * time.Second)
+	}
+
+	return nil, fmt.Errorf("failed to dial %s after 3 attempts: %w", addr, lastErr)
 }
 
 // ExecuteCommand runs a command on the remote host

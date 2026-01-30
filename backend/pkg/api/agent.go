@@ -15,6 +15,8 @@ type HeartbeatRequest struct {
 	MemoryUsage    float64                      `json:"memory_usage"`
 	DockerStatus   string                       `json:"docker_status"`
 	DeploymentTime string                       `json:"deployment_time"`
+	OSSpec         string                       `json:"os_spec"`
+	GPUStatus      string                       `json:"gpu_status"`
 	Services       []global.DockerServiceStatus `json:"services"`
 }
 
@@ -26,7 +28,7 @@ func ReceiveHeartbeat(c *gin.Context) {
 		return
 	}
 
-	service.HandleHeartbeat(req.NodeIP, req.Hostname, req.Status, req.CPUUsage, req.MemoryUsage, req.DockerStatus, req.DeploymentTime, req.Services)
+	service.HandleHeartbeat(req.NodeIP, req.Hostname, req.Status, req.CPUUsage, req.MemoryUsage, req.DockerStatus, req.DeploymentTime, req.OSSpec, req.GPUStatus, req.Services)
 
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }

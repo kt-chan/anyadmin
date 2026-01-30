@@ -374,8 +374,6 @@ func ControlAgent(nodeIP, action string) error {
 // DeleteNode removes a node from the management list
 func DeleteNode(nodeIP string) error {
 	mockdata.Mu.Lock()
-	defer mockdata.Mu.Unlock()
-
 	newNodes := []string{}
 	found := false
 	for _, node := range mockdata.DeploymentNodes {
@@ -386,11 +384,15 @@ func DeleteNode(nodeIP string) error {
 		newNodes = append(newNodes, node)
 	}
 
+	if found {
+		mockdata.DeploymentNodes = newNodes
+	}
+	mockdata.Mu.Unlock()
+
 	if !found {
 		return fmt.Errorf("node not found: %s", nodeIP)
 	}
 
-	mockdata.DeploymentNodes = newNodes
 	mockdata.SaveToFile()
 	
 	RecordLog("admin", "Node Management", "Deleted node: "+nodeIP, "Info")

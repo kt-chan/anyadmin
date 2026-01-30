@@ -27,21 +27,31 @@ const servicesService = {
     return response.data.services;
   },
 
-  restartService: async (token, serviceName) => {
-    logger.info(`Restarting service: ${serviceName}`);
+  restartService: async (serviceName, nodeIP, token, serviceType) => {
+    logger.info(`Restarting service: ${serviceName} on node: ${nodeIP} (Type: ${serviceType})`);
     const config = {
       headers: { Authorization: `Bearer ${token}` }
     };
-    await apiClient.post('/api/v1/container/control', { name: serviceName, action: 'restart' }, config);
+    
+    if (serviceType === 'Agent') {
+      await apiClient.post('/api/v1/deploy/agent/control', { ip: nodeIP, action: 'restart' }, config);
+    } else {
+      await apiClient.post('/api/v1/container/control', { name: serviceName, action: 'restart', node_ip: nodeIP }, config);
+    }
     return true;
   },
 
-  stopService: async (token, serviceName) => {
-    logger.info(`Stopping service: ${serviceName}`);
+  stopService: async (serviceName, nodeIP, token, serviceType) => {
+    logger.info(`Stopping service: ${serviceName} on node: ${nodeIP} (Type: ${serviceType})`);
     const config = {
       headers: { Authorization: `Bearer ${token}` }
     };
-    await apiClient.post('/api/v1/container/control', { name: serviceName, action: 'stop' }, config);
+
+    if (serviceType === 'Agent') {
+      await apiClient.post('/api/v1/deploy/agent/control', { ip: nodeIP, action: 'stop' }, config);
+    } else {
+      await apiClient.post('/api/v1/container/control', { name: serviceName, action: 'stop', node_ip: nodeIP }, config);
+    }
     return true;
   }
 };

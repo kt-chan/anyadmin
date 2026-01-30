@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"anyadmin-backend/pkg/api"
+	"anyadmin-backend/pkg/global"
 	"anyadmin-backend/pkg/service"
 	"bytes"
 	"encoding/json"
@@ -13,13 +14,16 @@ import (
 )
 
 type HeartbeatRequest struct {
-	NodeIP       string  `json:"node_ip"`
-	Hostname     string  `json:"hostname"`
-	Status       string  `json:"status"`
-	CPUUsage     float64 `json:"cpu_usage"`
-	MemoryUsage  float64 `json:"memory_usage"`
-	DockerStatus string  `json:"docker_status"`
-	Services     []map[string]string `json:"services"`
+	NodeIP         string                       `json:"node_ip"`
+	Hostname       string                       `json:"hostname"`
+	Status         string                       `json:"status"`
+	CPUUsage       float64                      `json:"cpu_usage"`
+	MemoryUsage    float64                      `json:"memory_usage"`
+	DockerStatus   string                       `json:"docker_status"`
+	DeploymentTime string                       `json:"deployment_time"`
+	OSSpec         string                       `json:"os_spec"`
+	GPUStatus      string                       `json:"gpu_status"`
+	Services       []global.DockerServiceStatus `json:"services"`
 }
 
 func setupRouter() *gin.Engine {
@@ -34,14 +38,17 @@ func TestAgentHeartbeat(t *testing.T) {
 
 	// 1. Send Heartbeat
 	payload := HeartbeatRequest{
-		NodeIP:      "10.0.0.1",
-		Hostname:    "test-node",
-		Status:      "online",
-		CPUUsage:    20.0,
-		MemoryUsage: 40.0,
-		DockerStatus: "active",
-		Services: []map[string]string{
-			{"name": "vllm-server", "state": "running"},
+		NodeIP:         "10.0.0.1",
+		Hostname:       "test-node",
+		Status:         "online",
+		CPUUsage:       20.0,
+		MemoryUsage:    40.0,
+		DockerStatus:   "active",
+		DeploymentTime: "2024-05-20",
+		OSSpec:         "linux amd64",
+		GPUStatus:      "NVIDIA RTX 4090",
+		Services: []global.DockerServiceStatus{
+			{Name: "vllm-server", State: "running"},
 		},
 	}
 	body, _ := json.Marshal(payload)
@@ -58,7 +65,8 @@ func TestAgentHeartbeat(t *testing.T) {
 	assert.True(t, exists)
 	assert.Equal(t, "test-node", status.Hostname)
 	assert.Equal(t, 20.0, status.CPUUsage)
-	assert.Equal(t, "active", status.DockerStatus)
+	assert.Equal(t, "linux amd64", status.OSSpec)
+	assert.Equal(t, "NVIDIA RTX 4090", status.GPUStatus)
 	assert.Len(t, status.Services, 1)
 	assert.Equal(t, "vllm-server", status.Services[0].Name)
 

@@ -28,13 +28,13 @@ type DockerServiceStatus struct {
 type HeartbeatRequest struct {
 	NodeIP         string                `json:"node_ip"`
 	Hostname       string                `json:"hostname"`
-	OS             string                `json:"os"`
-	Arch           string                `json:"arch"`
 	Status         string                `json:"status"`
 	CPUUsage       float64               `json:"cpu_usage"`
 	MemoryUsage    float64               `json:"memory_usage"`
 	DockerStatus   string                `json:"docker_status"`
 	DeploymentTime string                `json:"deployment_time"`
+	OSSpec         string                `json:"os_spec"`
+	GPUStatus      string                `json:"gpu_status"`
 	Services       []DockerServiceStatus `json:"services"`
 }
 
@@ -42,17 +42,19 @@ type HeartbeatRequest struct {
 func SendHeartbeat(mgmtURL, nodeIP, hostname, deploymentTime string) error {
 	cpu, _ := getCPUUsage()
 	mem, _ := getMemoryUsage()
+	gpu := getGPUStatus()
+	osSpec := fmt.Sprintf("%s %s", runtime.GOOS, runtime.GOARCH)
 
 	payload := HeartbeatRequest{
 		NodeIP:         nodeIP,
 		Hostname:       hostname,
-		OS:             runtime.GOOS,
-		Arch:           runtime.GOARCH,
 		Status:         "online",
 		CPUUsage:       cpu,
 		MemoryUsage:    mem,
 		DockerStatus:   checkDocker(),
 		DeploymentTime: deploymentTime,
+		OSSpec:         osSpec,
+		GPUStatus:      gpu,
 		Services:       getDockerServices(),
 	}
 
@@ -74,6 +76,23 @@ func SendHeartbeat(mgmtURL, nodeIP, hostname, deploymentTime string) error {
 
 	log.Printf("Heartbeat sent successfully to %s", mgmtURL)
 	return nil
+}
+
+func getGPUStatus() string {
+	// Try nvidia-smi
+	cmd := exec.Command("nvidia-smi", "--query-gpu=name,memory.total,memory.free", "--format=csv,noheader,nounits")
+	output, err := cmd.Output()
+	if err == nil {
+		return "NVIDIA: " + strings.TrimSpace(string(output))
+	}
+
+	// Try npu-smi (Ascend)
+	cmd = exec.Command("npu-smi", "info")
+	if err := cmd.Run(); err == nil {
+		return "Ascend NPU"
+	}
+
+	return "None"
 }
 
 // getCPUUsage calculates CPU usage by sampling /proc/stat

@@ -137,7 +137,7 @@ func GetSSHClient(host string, port string) (*ssh.Client, error) {
 			ssh.Password("password"), // Fallback to default password
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Timeout:         10 * time.Second,
+		Timeout:         2 * time.Second,
 	}
 
 	// Handle Host:Port or just Host

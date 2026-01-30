@@ -17,19 +17,61 @@ function saveConfigAndRestart() {
   }
 }
 
-function restartService(serviceId) {
-  if (confirm('确定要重启此服务吗？')) {
-    console.log('重启服务:', serviceId);
-    // 这里可以添加AJAX请求来重启指定服务
-    alert('服务重启命令已发送');
+async function restartService(serviceName, nodeIP, serviceType) {
+  if (confirm(`确定要重启服务 ${serviceName} 吗？`)) {
+    try {
+      const response = await fetch('/api/service/restart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: serviceName,
+          node_ip: nodeIP,
+          type: serviceType
+        })
+      });
+      
+      const result = await response.json();
+      if (response.ok) {
+        alert('服务重启命令已发送');
+        location.reload();
+      } else {
+        alert('错误: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Restart failed:', error);
+      alert('请求失败，请检查网络或后端服务');
+    }
   }
 }
 
-function stopService(serviceId) {
-  if (confirm('确定要停止此服务吗？')) {
-    console.log('停止服务:', serviceId);
-    // 这里可以添加AJAX请求来停止指定服务
-    alert('服务停止命令已发送');
+async function stopService(serviceName, nodeIP, serviceType) {
+  if (confirm(`确定要停止服务 ${serviceName} 吗？`)) {
+    try {
+      const response = await fetch('/api/service/stop', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: serviceName,
+          node_ip: nodeIP,
+          type: serviceType
+        })
+      });
+      
+      const result = await response.json();
+      if (response.ok) {
+        alert('服务停止命令已发送');
+        location.reload();
+      } else {
+        alert('错误: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Stop failed:', error);
+      alert('请求失败，请检查网络或后端服务');
+    }
   }
 }
 

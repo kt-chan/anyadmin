@@ -1,7 +1,10 @@
 package service
 
 import (
-	"anyadmin-backend/pkg/mockdata"
+	"fmt"
+	"os"
+	"runtime"
+	"time"
 )
 
 type ServiceStatus struct {
@@ -14,49 +17,74 @@ type ServiceStatus struct {
 	Memory  uint64  `json:"memory"` // 进程内存占用 (Bytes)
 	PID     int32   `json:"pid"`
 	Message string  `json:"message"`
+	NodeIP  string  `json:"node_ip,omitempty"`
 }
 
-func GetServicesHealth() []ServiceStatus {
-	mockdata.Mu.Lock()
-	defer mockdata.Mu.Unlock()
+var startTime = time.Now()
 
+func GetServicesHealth() []ServiceStatus {
 	results := make([]ServiceStatus, 0)
 
-	// Core Service (Mock)
+	// 1. Backend Core Service Status
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	
+	uptime := time.Since(startTime).Round(time.Second).String()
+
 	results = append(results, ServiceStatus{
-		Name:   "AnythingLLM-admin-core",
-		Type:   "Core",
-		Status: "Running",
-		Health: "Healthy",
-		Uptime: "24.5 小时",
-		CPU:    1.2,
-		Memory: 1024 * 1024 * 50, // 50MB
-		PID:    1234,
+		Name:    "Anyadmin-Backend",
+		Type:    "Core",
+		Status:  "Running",
+		Health:  "Healthy",
+		Uptime:  uptime,
+		CPU:     0.5, // Mock CPU as we don't have gopsutil
+		Memory:  m.Alloc,
+		PID:     int32(os.Getpid()),
+		Message: "Backend service is operational",
 	})
 
-	// Configured Services
-	for _, cfg := range mockdata.InferenceCfgs {
-		status := "Running"
-		health := "Healthy"
-		msg := "Service connected"
-		uptime := "12.0 小时"
-
-		// Simulate stopped state for one service randomly or specifically
-		if cfg.Name == "milvus-standalone" {
-			status = "Stopped"
-			health = "Unhealthy"
-			msg = "Container exited"
-			uptime = "-"
+	// 2. Services from Agents (Heartbeats)
+	agents := GetAllAgents()
+	for _, agent := range agents {
+		// Add agent itself as a service
+		agentStatus := "Running"
+		agentHealth := "Healthy"
+		if time.Since(agent.LastSeen) > 30*time.Second {
+			agentStatus = "Offline"
+			agentHealth = "Unhealthy"
 		}
 
 		results = append(results, ServiceStatus{
-			Name:    cfg.Name,
-			Type:    "Inference",
-			Status:  status,
-			Health:  health,
-			Message: msg,
-			Uptime:  uptime,
+			Name:    fmt.Sprintf("Agent (%s)", agent.Hostname),
+			Type:    "Agent",
+			Status:  agentStatus,
+			Health:  agentHealth,
+			Uptime:  agent.DeploymentTime,
+			CPU:     agent.CPUUsage,
+			Memory:  uint64(agent.MemoryUsage * 1024 * 1024), // Assuming mem usage in MB
+			Message: fmt.Sprintf("Node: %s, OS: %s, GPU: %s", agent.NodeIP, agent.OSSpec, agent.GPUStatus),
+			NodeIP:  agent.NodeIP,
 		})
+
+		// Add docker services managed by this agent
+		for _, svc := range agent.Services {
+			svcStatus := "Stopped"
+			svcHealth := "Unhealthy"
+			if svc.State == "running" {
+				svcStatus = "Running"
+				svcHealth = "Healthy"
+			}
+
+			results = append(results, ServiceStatus{
+				Name:    svc.Name,
+				Type:    "Container",
+				Status:  svcStatus,
+				Health:  svcHealth,
+				Uptime:  svc.Uptime,
+				Message: fmt.Sprintf("Image: %s, Node: %s", svc.Image, agent.NodeIP),
+				NodeIP:  agent.NodeIP,
+			})
+		}
 	}
 
 	return results

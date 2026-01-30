@@ -10,6 +10,7 @@ import (
 type ControlRequest struct {
 	Name   string `json:"name" binding:"required"`
 	Action string `json:"action" binding:"required"` // start, stop, restart
+	NodeIP string `json:"node_ip"`
 }
 
 func ControlContainer(c *gin.Context) {
@@ -19,13 +20,13 @@ func ControlContainer(c *gin.Context) {
 		return
 	}
 
-	if err := service.ControlContainer(req.Name, req.Action); err != nil {
+	if err := service.ControlContainer(req.Name, req.Action, req.NodeIP); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	username, _ := c.Get("username")
-	service.RecordLog(username.(string), "容器控制", "对容器 "+req.Name+" 执行了 "+req.Action+" 操作", "Info")
+	service.RecordLog(username.(string), "容器控制", "对节点 "+req.NodeIP+" 的容器 "+req.Name+" 执行了 "+req.Action+" 操作", "Info")
 
 	c.JSON(http.StatusOK, gin.H{"message": "Action executed successfully"})
 }

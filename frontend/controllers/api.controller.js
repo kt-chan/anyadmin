@@ -41,9 +41,10 @@ const apiController = {
     // 重启服务
     restartService: async (req, res) => {
         try {
-            const { serviceId } = req.body;
-            await servicesService.restartService(serviceId);
-            return response.success(res, { restartTime: new Date().toLocaleTimeString() }, `服务 ${serviceId} 重启已触发`);
+            const { name, node_ip, type } = req.body;
+            const token = req.session.user?.token;
+            await servicesService.restartService(name, node_ip, token, type);
+            return response.success(res, { restartTime: new Date().toLocaleTimeString() }, `服务 ${name} 重启已触发`);
         } catch (err) {
             return response.error(res, '重启服务失败', 500, err);
         }
@@ -52,9 +53,10 @@ const apiController = {
     // 停止服务
     stopService: async (req, res) => {
         try {
-            const { serviceId } = req.body;
-            await servicesService.stopService(serviceId);
-            return response.success(res, { stopTime: new Date().toLocaleTimeString() }, `服务 ${serviceId} 已停止`);
+            const { name, node_ip, type } = req.body;
+            const token = req.session.user?.token;
+            await servicesService.stopService(name, node_ip, token, type);
+            return response.success(res, { stopTime: new Date().toLocaleTimeString() }, `服务 ${name} 已停止`);
         } catch (err) {
             return response.error(res, '停止服务失败', 500, err);
         }

@@ -67,8 +67,8 @@ func TestDeploymentFlow(t *testing.T) {
 	t.Run("TestConnection_SSH", func(t *testing.T) {
 		payload := map[string]string{
 			"type": "ssh",
-			"host": "192.0.2.1", // Test-Net IP (unreachable)
-			"port": "22",
+			"host": "127.0.0.1", 
+			"port": "8080", // Use backend port to ensure it's open and fast
 		}
 		body, _ := json.Marshal(payload)
 		

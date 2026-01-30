@@ -328,10 +328,22 @@ async function calculateVllmSuggestions(mode) {
 
     // 4. Render from Backend Data
     content.innerHTML = `
-      <div class="flex justify-between"><span>--max-model-len</span> <span class="text-white">${vllmConfig.max_model_len}</span></div>
-      <div class="flex justify-between"><span>--max-num-seqs</span> <span class="text-white">${vllmConfig.max_num_seqs}</span></div>
-      <div class="flex justify-between"><span>--max-num-batched-tokens</span> <span class="text-white">${vllmConfig.max_num_batched_tokens}</span></div>
-      <div class="flex justify-between"><span>--gpu-memory-utilization</span> <span class="text-white">${vllmConfig.gpu_memory_util}</span></div>
+      <div class="flex justify-between items-start mb-2">
+        <span>--max-model-len<br/><span class="text-[9px] text-slate-500 font-sans">(context windows per request)</span></span> 
+        <span class="text-white font-bold">${vllmConfig.max_model_len}</span>
+      </div>
+      <div class="flex justify-between items-start mb-2">
+        <span>--max-num-seqs<br/><span class="text-[9px] text-slate-500 font-sans">(batch size / concurrency)</span></span> 
+        <span class="text-white font-bold">${vllmConfig.max_num_seqs}</span>
+      </div>
+      <div class="flex justify-between items-start mb-2">
+        <span>--max-num-batched-tokens<br/><span class="text-[9px] text-slate-500 font-sans">(total context windows)</span></span> 
+        <span class="text-white font-bold">${vllmConfig.max_num_batched_tokens}</span>
+      </div>
+      <div class="flex justify-between items-start">
+        <span>--gpu-memory-utilization<br/><span class="text-[9px] text-slate-500 font-sans">(GPU HBM used for LLM)</span></span> 
+        <span class="text-white font-bold">${vllmConfig.gpu_memory_util}</span>
+      </div>
     `;
 
   } catch (error) {

@@ -48,29 +48,33 @@ block content
                   th(class="px-6 py-4") 大小
                   th(class="px-6 py-4") 操作
               tbody(class="divide-y divide-slate-100")
-                each backup in backups
+                if backups && backups.length
+                  each backup in backups
+                    tr
+                      td(class="px-6 py-4")
+                        div(class="font-bold text-slate-800")= backup.id
+                        div(class="text-xs text-slate-400")= backup.time
+                      td(class="px-6 py-4")
+                        if backup.type === 'FULL'
+                          span(class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold")= backup.type
+                        else
+                          span(class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-bold")= backup.type
+                      td(class="px-6 py-4")
+                        if backup.verified
+                          span(class="text-green-500 font-bold flex items-center")
+                            i(class="fas fa-check-circle mr-1")
+                            | Pass
+                        else
+                          span(class="text-yellow-500 font-bold flex items-center")
+                            i(class="fas fa-exclamation-triangle mr-1")
+                            | Pending
+                      td(class="px-6 py-4 text-slate-500 text-xs")= backup.size || '--'
+                      td(class="px-6 py-4")
+                        button(class="text-blue-600 font-bold hover:underline text-sm mr-4" onclick=`restoreBackup('${backup.id}')`) 恢复
+                        button(class="text-red-600 font-bold hover:underline text-sm" onclick=`deleteBackup('${backup.id}')`) 删除
+                else
                   tr
-                    td(class="px-6 py-4")
-                      div(class="font-bold text-slate-800")= backup.id
-                      div(class="text-xs text-slate-400")= backup.time
-                    td(class="px-6 py-4")
-                      if backup.type === 'FULL'
-                        span(class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold")= backup.type
-                      else
-                        span(class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-bold")= backup.type
-                    td(class="px-6 py-4")
-                      if backup.verified
-                        span(class="text-green-500 font-bold flex items-center")
-                          i(class="fas fa-check-circle mr-1")
-                          | Pass
-                      else
-                        span(class="text-yellow-500 font-bold flex items-center")
-                          i(class="fas fa-exclamation-triangle mr-1")
-                          | Pending
-                    td(class="px-6 py-4 text-slate-500 text-xs")= backup.size || '--'
-                    td(class="px-6 py-4")
-                      button(class="text-blue-600 font-bold hover:underline text-sm mr-4" onclick=`restoreBackup('${backup.id}')`) 恢复
-                      button(class="text-red-600 font-bold hover:underline text-sm" onclick=`deleteBackup('${backup.id}')`) 删除
+                    td(colspan="5" class="px-6 py-12 text-center text-slate-400 italic") 暂无备份记录
 
 
 

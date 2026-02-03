@@ -284,38 +284,53 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 
 	// Copy Docker Compose file
-
 	log.Println("[Deploy] Copying docker-compose...")
-
 	localComposePath := filepath.Join(backendDir, "deployments/dockers/yaml/docker-compose.yml")
-
 	remoteComposePath := "/home/anyadmin/docker/docker-compose.yaml"
-
 	// Ensure directory exists
-
-	if _, err := ExecuteCommand(client, "mkdir -p /home/anyadmin/docker && chown anyadmin:anyadmin /home/anyadmin/docker"); err != nil {
-
+	if _, err := ExecuteCommand(client, "mkdir -p /home/anyadmin/docker/env && chown -R anyadmin:anyadmin /home/anyadmin/docker"); err != nil {
 		return fmt.Errorf("failed to create docker directory: %w", err)
-
 	}
-
 	
-
 	if err := CopyFile(client, localComposePath, remoteComposePath); err != nil {
-
 		log.Printf("Warning: failed to copy docker-compose.yml: %v", err)
-
-		// Don't fail the whole deployment if this fails, but it's important for control
-
 	} else {
-
-		// Ensure ownership
-
 		ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remoteComposePath))
-
 	}
 
+	// Copy Environment files
+	log.Println("[Deploy] Copying environment files...")
+	localEnvDir := filepath.Join(backendDir, "deployments/dockers/yaml/env")
+	envFiles, err := os.ReadDir(localEnvDir)
+	var mergedEnv strings.Builder
+	if err == nil {
+		for _, file := range envFiles {
+			if !file.IsDir() {
+				localEnvPath := filepath.Join(localEnvDir, file.Name())
+				// Use path.Join for remote Unix paths
+				remoteEnvPath := "/home/anyadmin/docker/env/" + file.Name()
+				if err := CopyFile(client, localEnvPath, remoteEnvPath); err != nil {
+					log.Printf("Warning: failed to copy env file %s: %v", file.Name(), err)
+				} else {
+					ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remoteEnvPath))
+				}
 
+				// Read for merging into main .env for interpolation
+				content, _ := os.ReadFile(localEnvPath)
+				mergedEnv.Write(content)
+				mergedEnv.WriteString("\n")
+			}
+		}
+		
+		// Create master .env for interpolation
+		localTempEnv := filepath.Join(os.TempDir(), "master.env")
+		os.WriteFile(localTempEnv, []byte(mergedEnv.String()), 0644)
+		CopyFile(client, localTempEnv, "/home/anyadmin/docker/.env")
+		ExecuteCommand(client, "chown anyadmin:anyadmin /home/anyadmin/docker/.env")
+		os.Remove(localTempEnv)
+	} else {
+		log.Printf("Warning: failed to read local env directory: %v", err)
+	}
 
 	// Ensure executable and owned by anyadmin
 

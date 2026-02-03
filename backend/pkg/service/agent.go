@@ -1,7 +1,6 @@
 package service
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	"anyadmin-backend/pkg/global"
+	"anyadmin-backend/pkg/utils"
 )
 
 // AgentStatus represents the state of a remote agent
@@ -98,20 +98,7 @@ func ControlContainer(containerName string, action string, nodeIP string) error 
 }
 
 func sendAgentRequest(url string, payload interface{}) error {
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-
-	// Use custom client to bypass proxy for internal agent calls
-	client := &http.Client{
-		Transport: &http.Transport{
-			Proxy: nil,
-		},
-		Timeout: 30 * time.Second,
-	}
-
-	resp, err := client.Post(url, "application/json", bytes.NewBuffer(data))
+	resp, err := utils.PostJSON(url, payload, 30*time.Second)
 	if err != nil {
 		return fmt.Errorf("failed to connect to agent at %s: %w", url, err)
 	}

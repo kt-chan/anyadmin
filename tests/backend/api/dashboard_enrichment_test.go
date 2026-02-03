@@ -31,7 +31,7 @@ func TestDashboardEnrichment(t *testing.T) {
 	// Setup mock config
 	mockdata.Mu.Lock()
 	mockdata.InferenceCfgs = []global.InferenceConfig{
-		{Name: "vllm-test", IP: "172.20.0.10", Engine: "vLLM"},
+		{Name: "vllm", IP: "172.20.0.10", Engine: "vLLM"},
 	}
 	mockdata.DeploymentNodes = []string{"172.20.0.10:22"}
 	mockdata.Mu.Unlock()
@@ -50,7 +50,7 @@ func TestDashboardEnrichment(t *testing.T) {
 		"os_spec":         "Ubuntu 22.04.3 LTS",
 		"gpu_status":      "NVIDIA A100 80GB | Util: 45% | Mem: 4096/81920 MB",
 		"services": []global.DockerServiceStatus{
-			{ID: "c1", Name: "vllm-test", Image: "vllm:latest", State: "running", Status: "Up 10 hours", Uptime: "10h"},
+			{ID: "c1", Name: "vllm", Image: "vllm:latest", State: "running", Status: "Up 10 hours", Uptime: "10h"},
 		},
 	}
 	hbBody, _ := json.Marshal(heartbeat)
@@ -68,9 +68,9 @@ func TestDashboardEnrichment(t *testing.T) {
 
 	var stats map[string]interface{}
 	json.Unmarshal(w2.Body.Bytes(), &stats)
-	
+
 	services := stats["services"].([]interface{})
-	
+
 	// Verify Backend service
 	foundBackend := false
 	foundAgent := false
@@ -89,7 +89,7 @@ func TestDashboardEnrichment(t *testing.T) {
 			assert.Contains(t, svc["message"], "NVIDIA A100 80GB")
 		case "Container":
 			foundContainer = true
-			assert.Equal(t, "vllm-test", svc["name"])
+			assert.Equal(t, "vllm", svc["name"])
 		}
 	}
 
@@ -98,11 +98,11 @@ func TestDashboardEnrichment(t *testing.T) {
 	assert.True(t, foundContainer, "Container service should be in health list")
 
 	// 3. Test Container Control (Mocked SSH for remote)
-	// Since it's remote node (172.20.0.10), it will try SSH. 
+	// Since it's remote node (172.20.0.10), it will try SSH.
 	// To avoid real SSH in unit test, we can check logs or just ensure it reaches the service.
-	
+
 	control := map[string]interface{}{
-		"name":    "vllm-test",
+		"name":    "vllm",
 		"action":  "restart",
 		"node_ip": "172.20.0.10",
 	}
@@ -111,8 +111,8 @@ func TestDashboardEnrichment(t *testing.T) {
 	req3, _ := http.NewRequest("POST", "/api/v1/container/control", bytes.NewBuffer(cBody))
 	req3.Header.Set("Content-Type", "application/json")
 	router.ServeHTTP(w3, req3)
-	
-	// It might fail because of real SSH attempt, but let's see. 
+
+	// It might fail because of real SSH attempt, but let's see.
 	// If it fails with "connection refused" or similar, it means it tried.
 	// In a real mock we would mock GetSSHClient.
 	t.Logf("Control response: %d %s", w3.Code, w3.Body.String())

@@ -21,10 +21,10 @@ func TestAgentEnrichment(t *testing.T) {
 		if err != nil {
 			t.Fatalf("RebuildAgent failed: %v", err)
 		}
-		// The binary should be in backend/dist/agent_linux relative to root
-		// From this test's perspective (tests/backend/service), it's ../../../backend/dist/agent_linux
-		if _, err := os.Stat("../../../backend/dist/agent_linux"); os.IsNotExist(err) {
-			t.Fatal("agent_linux binary not found after rebuild at ../../../backend/dist/agent_linux")
+		// The binary should be in backend/dist/anyadmin-agent relative to root
+		// From this test's perspective (tests/backend/service), it's ../../../backend/dist/anyadmin-agent
+		if _, err := os.Stat("../../../backend/dist/anyadmin-agent"); os.IsNotExist(err) {
+			t.Fatal("anyadmin-agent binary not found after rebuild at ../../../backend/dist/anyadmin-agent")
 		}
 	})
 

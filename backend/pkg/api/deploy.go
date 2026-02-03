@@ -12,6 +12,7 @@ import (
 	"anyadmin-backend/pkg/global"
 	"anyadmin-backend/pkg/mockdata"
 	"anyadmin-backend/pkg/service"
+	"anyadmin-backend/pkg/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -193,16 +194,7 @@ func FetchVLLMModels(c *gin.Context) {
 
 	url := fmt.Sprintf("http://%s:%s/v1/models", req.Host, req.Port)
 
-	// Use custom client to bypass proxy for internal service calls
-	tr := &http.Transport{
-		Proxy: nil,
-	}
-	client := &http.Client{
-		Transport: tr,
-		Timeout:   10 * time.Second,
-	}
-
-	resp, err := client.Get(url)
+	resp, err := utils.Get(url, 10*time.Second)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to connect to vLLM service: " + err.Error()})
 		return
@@ -282,15 +274,7 @@ func TestServiceConnection(c *gin.Context) {
 	// For vLLM (inference), we might want to check HTTP explicitly
 	if req.Type == "inference" {
 		url := fmt.Sprintf("http://%s/health", address)
-		// Bypass proxy for internal checks
-		tr := &http.Transport{
-			Proxy: nil,
-		}
-		client := &http.Client{
-			Transport: tr,
-			Timeout:   timeout,
-		}
-		resp, err := client.Get(url)
+		resp, err := utils.Get(url, timeout)
 		if err == nil && resp.StatusCode == http.StatusOK {
 			c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Successfully connected to vLLM service"})
 			return
@@ -301,9 +285,7 @@ func TestServiceConnection(c *gin.Context) {
 	// For AnythingLLM (RAG App), check HTTP root
 	if req.Type == "rag_app" {
 		url := fmt.Sprintf("http://%s", address)
-		tr := &http.Transport{Proxy: nil}
-		client := &http.Client{Transport: tr, Timeout: timeout}
-		resp, err := client.Get(url)
+		resp, err := utils.Get(url, timeout)
 		if err == nil && resp.StatusCode < 500 {
 			c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Successfully connected to AnythingLLM service"})
 			return

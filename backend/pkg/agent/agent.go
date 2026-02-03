@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -12,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"anyadmin-backend/pkg/utils"
 )
 
 // --- Client / Heartbeat Logic ---
@@ -66,21 +67,9 @@ func SendHeartbeat(mgmtURL, nodeIP, hostname, deploymentTime string) error {
 		Services:       getDockerServices(),
 	}
 
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("error marshalling heartbeat: %w", err)
-	}
-
 	url := fmt.Sprintf("%s/api/v1/agent/heartbeat", mgmtURL)
 
-	client := &http.Client{
-		Transport: &http.Transport{
-			Proxy: nil,
-		},
-		Timeout: 10 * time.Second,
-	}
-
-	resp, err := client.Post(url, "application/json", bytes.NewBuffer(data))
+	resp, err := utils.PostJSON(url, payload, 10*time.Second)
 	if err != nil {
 		return fmt.Errorf("failed to send heartbeat to %s: %w", url, err)
 	}
@@ -193,7 +182,7 @@ func getCPUUsage() (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return calculateCPUPercent(idle0, total0, idle1, total1), nil
+	return CalculateCPUPercent(idle0, total0, idle1, total1), nil
 }
 
 func readProcStat() (uint64, uint64, error) {
@@ -201,7 +190,12 @@ func readProcStat() (uint64, uint64, error) {
 	if err != nil {
 		return 0, 0, err
 	}
-	lines := strings.Split(string(data), "\n")
+	return ParseProcStat(string(data))
+}
+
+// ParseProcStat parses /proc/stat content
+func ParseProcStat(content string) (uint64, uint64, error) {
+	lines := strings.Split(content, "\n")
 	for _, line := range lines {
 		fields := strings.Fields(line)
 		if len(fields) > 0 && fields[0] == "cpu" {
@@ -212,10 +206,10 @@ func readProcStat() (uint64, uint64, error) {
 				if err != nil {
 					return 0, 0, err
 				}
-			total += val
-			if i == 3 {
-				idle = val
-			}
+				total += val
+				if i == 3 {
+					idle = val
+				}
 			}
 			return idle, total, nil
 		}
@@ -223,7 +217,8 @@ func readProcStat() (uint64, uint64, error) {
 	return 0, 0, fmt.Errorf("cpu line not found")
 }
 
-func calculateCPUPercent(idle0, total0, idle1, total1 uint64) float64 {
+// CalculateCPUPercent calculates CPU usage percent
+func CalculateCPUPercent(idle0, total0, idle1, total1 uint64) float64 {
 	deltaTotal := float64(total1 - total0)
 	deltaIdle := float64(idle1 - idle0)
 	if deltaTotal == 0 {
@@ -240,8 +235,13 @@ func getMemoryUsage() (float64, error) {
 	if err != nil {
 		return 0, err
 	}
+	return ParseMemInfo(string(data))
+}
+
+// ParseMemInfo parses /proc/meminfo content
+func ParseMemInfo(content string) (float64, error) {
 	var total, available float64
-	lines := strings.Split(string(data), "\n")
+	lines := strings.Split(content, "\n")
 	for _, line := range lines {
 		fields := strings.Fields(line)
 		if len(fields) < 2 {
@@ -278,10 +278,14 @@ func getDockerServices() []DockerServiceStatus {
 	if err != nil {
 		return nil
 	}
-	
+	return ParseDockerPsOutput(string(output))
+}
+
+// ParseDockerPsOutput parses docker ps output
+func ParseDockerPsOutput(output string) []DockerServiceStatus {
 	targets := []string{"vllm", "anysearch", "anyzearch", "anythingllm", "anything-llm", "milvus", "lancedb", "chroma", "pgvector", "mineru"}
 	var services []DockerServiceStatus
-	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	lines := strings.Split(strings.TrimSpace(output), "\n")
 	
 	for _, line := range lines {
 		if line == "" {
@@ -389,19 +393,27 @@ func handleContainerControl(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	output, err := cmd.CombinedOutput()
+	log.Printf("Executing command in background: %v", cmd.Args)
 	
+	// Start command in background
+	go func() {
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			log.Printf("Background command failed: %v, Output: %s", err, output)
+		} else {
+			log.Printf("Background command succeeded.")
+		}
+	}()
+
 	resp := ContainerControlResponse{
-		Success: err == nil,
-		Output:  string(output),
-	}
-	if err != nil {
-		resp.Message = err.Error()
-		log.Printf("Command failed: %v, Output: %s", err, output)
-	} else {
-		resp.Message = "Success"
+		Success: true,
+		Message: "Action triggered in background",
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		log.Printf("Error encoding response: %v", err)
+	} else {
+		log.Printf("Response sent successfully.")
+	}
 }

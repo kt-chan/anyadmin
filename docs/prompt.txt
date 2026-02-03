@@ -534,7 +534,22 @@ anyadmin@DESKTOP-OSLI7Q7:~/docker$
 
 
 **Coding Guide**  
-- this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO binnary.
+- this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO.
+- The remote host managed by  @backend/cmd/agent/main.go  is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and passwordless ssh is configured for root. 
+- You should always deploy agent to this ip  172.20.0.10 with port 9090 for unit test.
+- You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
+- Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
+- Write unit tests to verify any update systematically by accessing the frontend app and backend services code changes. Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
+- All the unit test should be put under /tests folder, and all the loggging should be put under /logs folder
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, use this powershell @scripts/stop-pids.ps1 to terminate proccess on port 3000 and 8080 
+
+
+## Task 16
+
+scan @backend/ and create a httpclient.go to handle all communciation among frontend, backend server and remote agent, with setup to bypass proxy. then refactor the code to ensure no duplicated logics on http request.
+
+**Coding Guide**  
+- this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO.
 - The remote host managed by  @backend/cmd/agent/main.go  is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and passwordless ssh is configured for root. 
 - You should always deploy agent to this ip  172.20.0.10 with port 9090 for unit test.
 - You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.

@@ -36,33 +36,28 @@ block content
             //- Wizard Progress
             .bg-slate-50.p-6.border-b.border-slate-100
               .flex.justify-between.px-8.items-center
-                //- Step 1 (Now Basic Config)
+                //- Step 1: Basic Config
                 .step-indicator.flex.flex-col.items-center.gap-2.text-blue-600(data-step="1")
                   .w-8.h-8.rounded-full.bg-blue-600.text-white.flex.items-center.justify-center.font-bold.text-sm 1
                   span(class="text-xs font-bold") 基础配置
                 .flex-1.h-px.bg-slate-200.mx-4
-                //- Step 2 (Now Mode/Hardware)
+                //- Step 2: Mode, Hardware & Engine
                 .step-indicator.flex.flex-col.items-center.gap-2.text-slate-400(data-step="2")
                   .w-8.h-8.rounded-full.bg-white.border-2.border-slate-200.text-slate-400.flex.items-center.justify-center.font-bold.text-sm 2
-                  span(class="text-xs") 模式/硬件
+                  span(class="text-xs") 引擎配置
                 .flex-1.h-px.bg-slate-200.mx-4
-                //- Step 3
+                //- Step 3: Knowledge Base
                 .step-indicator.flex.flex-col.items-center.gap-2.text-slate-400(data-step="3")
                   .w-8.h-8.rounded-full.bg-white.border-2.border-slate-200.text-slate-400.flex.items-center.justify-center.font-bold.text-sm 3
-                  span(class="text-xs") 推理引擎
-                .flex-1.h-px.bg-slate-200.mx-4
-                //- Step 4
-                .step-indicator.flex.flex-col.items-center.gap-2.text-slate-400(data-step="4")
-                  .w-8.h-8.rounded-full.bg-white.border-2.border-slate-200.text-slate-400.flex.items-center.justify-center.font-bold.text-sm 4
                   span(class="text-xs") 知识库
                 .flex-1.h-px.bg-slate-200.mx-4
-                //- Step 5
-                .step-indicator.flex.flex-col.items-center.gap-2.text-slate-400(data-step="5")
-                  .w-8.h-8.rounded-full.bg-white.border-2.border-slate-200.text-slate-400.flex.items-center.justify-center.font-bold.text-sm 5
+                //- Step 4: Generation
+                .step-indicator.flex.flex-col.items-center.gap-2.text-slate-400(data-step="4")
+                  .w-8.h-8.rounded-full.bg-white.border-2.border-slate-200.text-slate-400.flex.items-center.justify-center.font-bold.text-sm 4
                   span(class="text-xs") 部署生成
 
             form#wizard-form.p-8
-              //- STEP 1 (Swapped): Management Interface
+              //- STEP 1: Management Interface
               #step-1.step-content.active
                 h3(class="font-bold text-lg mb-6") 1. 管理面板与节点配置
                 .grid.grid-cols-2.gap-6
@@ -105,83 +100,87 @@ block content
                   i.fas.fa-info-circle.mr-2
                   | 这是 AnyAdmin 管理界面的访问地址及集群节点配置。
 
-              //- STEP 2 (Swapped): Mode & Hardware
+              //- STEP 2: Mode, Hardware & Engine
               #step-2.step-content
-                h3(class="font-bold text-lg mb-6") 2. 选择部署模式与硬件
+                h3(class="font-bold text-lg mb-6") 2. 推理引擎配置 (模式与硬件)
                 
-                label.block.text-sm.font-bold.text-slate-700.mb-2 部署模式
-                .grid.grid-cols-2.gap-6.mb-8
-                  label.cursor-pointer
-                    input(type="radio", name="mode", value="new_deployment", class="peer sr-only", checked)
-                    div(class="p-6 rounded-2xl border-2 border-slate-200 hover:border-blue-500 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition h-full")
-                      .w-12.h-12.bg-blue-100.text-blue-600.rounded-xl.flex.items-center.justify-center.mb-4.text-xl
-                        i(class="fas fa-cube")
-                      h4(class="font-bold text-slate-800 mb-2") 全新部署
-                      p(class="text-xs text-slate-500 leading-relaxed") 自动初始化节点：创建 'anyadmin' 用户，安装 Go 环境，部署 Agent 并拉起推理服务。
-
-                  label.cursor-pointer
-                    input(type="radio", name="mode", value="integrate_existing", class="peer sr-only")
-                    div(class="p-6 rounded-2xl border-2 border-slate-200 hover:border-blue-500 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition h-full")
-                      .w-12.h-12.bg-indigo-100.text-indigo-600.rounded-xl.flex.items-center.justify-center.mb-4.text-xl
-                        i(class="fas fa-plug")
-                      h4(class="font-bold text-slate-800 mb-2") 对接现有服务
-                      p(class="text-xs text-slate-500 leading-relaxed") 仅部署管理 Agent。跳过环境安装，直接接入现有的推理服务或知识库组件。
-
-                label.block.text-sm.font-bold.text-slate-700.mb-2 目标硬件平台
-                .grid.grid-cols-2.gap-4
-                  label.cursor-pointer
-                    input(type="radio", name="platform", value="ascend", class="peer sr-only")
-                    div(class="flex items-center gap-3 px-6 py-4 border-2 border-slate-200 rounded-xl font-bold text-slate-600 hover:border-blue-500 peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:text-blue-700 transition")
-                      i(class="fas fa-microchip")
-                      div
-                        div 华为昇腾 (Ascend NPU)
-                        div.text-xs.font-normal.mt-1 引擎: MindIE
-                  
-                  label.cursor-pointer
-                    input(type="radio", name="platform", value="nvidia", class="peer sr-only")
-                    div(class="flex items-center gap-3 px-6 py-4 border-2 border-slate-200 rounded-xl font-bold text-slate-600 hover:border-blue-500 peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:text-blue-700 transition")
-                      i(class="fab fa-nvidia")
-                      div
-                        div NVIDIA GPU
-                        div.text-xs.font-normal.mt-1 引擎: vLLM
-
-              //- STEP 3: Inference Engine
-              #step-3.step-content
-                h3(class="font-bold text-lg mb-6") 3. 推理引擎配置
-                .space-y-4
+                .grid.grid-cols-2.gap-8.mb-8
                   div
-                    label.block.text-sm.font-medium.text-slate-700.mb-1 部署目标主机 (Target Host)
+                    label.block.text-sm.font-bold.text-slate-700.mb-3 部署模式
+                    .space-y-4
+                      label.cursor-pointer.block
+                        input(type="radio", name="mode", value="new_deployment", class="peer sr-only", checked)
+                        div(class="p-4 rounded-xl border-2 border-slate-200 hover:border-blue-500 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition")
+                          .flex.items-center.gap-3
+                            .w-10.h-10.bg-blue-100.text-blue-600.rounded-lg.flex.items-center.justify-center.text-lg
+                              i(class="fas fa-cube")
+                            div
+                              h4(class="font-bold text-slate-800 text-sm") 全新部署
+                              p(class="text-[10px] text-slate-500") 自动拉起推理服务。
+                      
+                      label.cursor-pointer.block
+                        input(type="radio", name="mode", value="integrate_existing", class="peer sr-only")
+                        div(class="p-4 rounded-xl border-2 border-slate-200 hover:border-blue-500 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition")
+                          .flex.items-center.gap-3
+                            .w-10.h-10.bg-indigo-100.text-indigo-600.rounded-lg.flex.items-center.justify-center.text-lg
+                              i(class="fas fa-plug")
+                            div
+                              h4(class="font-bold text-slate-800 text-sm") 对接现有服务
+                              p(class="text-[10px] text-slate-500") 直接接入现有推理引擎。
+
+                  div
+                    label.block.text-sm.font-bold.text-slate-700.mb-3 目标硬件平台
+                    .space-y-4
+                      label.cursor-pointer.block
+                        input(type="radio", name="platform", value="nvidia", class="peer sr-only", checked)
+                        div(class="p-4 rounded-xl border-2 border-slate-200 hover:border-blue-500 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition")
+                          .flex.items-center.gap-3
+                            .w-10.h-10.bg-emerald-100.text-emerald-600.rounded-lg.flex.items-center.justify-center.text-lg
+                              i(class="fab fa-nvidia")
+                            div
+                              h4(class="font-bold text-slate-800 text-sm") NVIDIA GPU
+                              p(class="text-[10px] text-slate-500") 引擎: vLLM
+
+                      label.cursor-pointer.block
+                        input(type="radio", name="platform", value="ascend", class="peer sr-only")
+                        div(class="p-4 rounded-xl border-2 border-slate-200 hover:border-blue-500 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition")
+                          .flex.items-center.gap-3
+                            .w-10.h-10.bg-red-100.text-red-600.rounded-lg.flex.items-center.justify-center.text-lg
+                              i(class="fas fa-microchip")
+                            div
+                              h4(class="font-bold text-slate-800 text-sm") 华为昇腾 (NPU)
+                              p(class="text-[10px] text-slate-500") 引擎: MindIE
+
+                .space-y-4.bg-slate-50.p-6.rounded-2xl.border.border-slate-200
+                  div
+                    label.block.text-sm.font-medium.text-slate-700.mb-1 推理目标主机 (Target Host)
                     select#inference-host-select(name="inference_host", class="node-selector w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
                       option(value="") Select Target Node
 
-                  
                   .grid.grid-cols-2.gap-6
                     div
                       label.block.text-sm.font-medium.text-slate-700.mb-1 服务端口
                       input#inference-port-input(type="number", name="inference_port", value="8000", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
-                    div.hidden
-                      //- Hidden input to store model name if needed for form submission compatibility, or just rely on select value
-                      input#model-name-input(type="hidden", name="model_name")
-
-                  div
-                    label.block.text-sm.font-medium.text-slate-700.mb-1 推理模型 (Model Selection)
-                    .flex.gap-2
+                    div
+                      label.block.text-sm.font-medium.text-slate-700.mb-1 推理模型
+                      .flex.gap-2
                         select#model-select(name="model_path", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
-                            option(value="", disabled, selected) Select a Model
-                        button(type="button", onclick="refreshModels(true)", class="px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg hover:bg-slate-200 text-slate-600")
-                            i.fas.fa-sync-alt
+                          option(value="", disabled, selected) Select a Model
+                        button(type="button", onclick="refreshModels(true)", class="px-3 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 text-slate-600 shadow-sm")
+                          i.fas.fa-sync-alt
 
+                  .integration-only.hidden.pt-2
+                    button(type="button", onclick="testConnection('inference')", class="text-blue-600 text-xs font-bold hover:underline") 
+                      i.fas.fa-plug.mr-1
+                      | 测试引擎连接
 
-                  //- Show test connection only in integration mode
-                  .integration-only.hidden.mt-4
-                     button(type="button", onclick="testConnection('inference')", class="text-blue-600 text-sm font-bold hover:underline") <i class="fas fa-plug mr-1"></i> 测试连接
+              //- STEP 3: Knowledge Base & RAG App (Always New Deployment)
+              #step-3.step-content
+                h3(class="font-bold text-lg mb-6") 3. 知识库与应用服务 (自动部署)
+                p(class="text-xs text-slate-500 mb-6 -mt-4") 选中的服务将作为全新容器自动部署到指定节点。
 
-              //- STEP 4: Knowledge Base & RAG App
-              #step-4.step-content
-                h3(class="font-bold text-lg mb-6") 4. 知识库与应用服务
-
-                //- RAG App Section (New)
-                .mb-8.border.border-slate-200.rounded-xl.p-4.bg-white
+                //- RAG App Section
+                .mb-6.border.border-slate-200.rounded-xl.p-4.bg-white
                   .flex.items-center.justify-between.mb-4
                     label.flex.items-center.gap-2.cursor-pointer
                       input#enable-rag(type="checkbox", name="enable_rag", class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500", checked, onchange="toggleSection('rag-config', this.checked)")
@@ -189,12 +188,6 @@ block content
                   
                   #rag-config
                     .bg-slate-50.p-4.rounded-lg.border.border-slate-200
-                      .flex.items-center.gap-3.mb-4
-                          i(class="fas fa-search text-slate-400")
-                          div.flex-1
-                              div.font-bold.text-sm AnythingLLM Web App
-                              div.text-xs.text-slate-500 Enterprise Search Interface
-
                       .grid.grid-cols-2.gap-4
                           div
                               label.block.text-xs.font-medium.text-slate-500.mb-1 应用 Host
@@ -203,12 +196,9 @@ block content
                           div
                               label.block.text-xs.font-medium.text-slate-500.mb-1 应用 Port
                               input(type="number", name="rag_port", value="3001", class="w-full text-sm rounded-md border-2 border-slate-300")
-                      
-                      .mt-3
-                         button(type="button", onclick="testConnection('rag_app')", class="text-blue-600 text-xs font-bold hover:underline") <i class="fas fa-plug mr-1"></i> 测试连接
 
                 //- Vector DB Section
-                .mb-8.border.border-slate-200.rounded-xl.p-4.bg-white
+                .mb-6.border.border-slate-200.rounded-xl.p-4.bg-white
                   .flex.items-center.justify-between.mb-4
                     label.flex.items-center.gap-2.cursor-pointer
                       input#enable-vectordb(type="checkbox", name="enable_vectordb", class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500", onchange="toggleSection('vectordb-config', this.checked)")
@@ -218,16 +208,16 @@ block content
                     .grid.grid-cols-4.gap-4.mb-4
                       label.cursor-pointer
                         input(type="radio", name="vector_db", value="lancedb", class="peer sr-only", checked)
-                        div(class="text-center p-3 border rounded-lg peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-slate-50 transition") LanceDB
+                        div(class="text-center p-2 text-xs border rounded-lg peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-slate-50 transition") LanceDB
                       label.cursor-pointer
                         input(type="radio", name="vector_db", value="milvus", class="peer sr-only")
-                        div(class="text-center p-3 border rounded-lg peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-slate-50 transition") Milvus
+                        div(class="text-center p-2 text-xs border rounded-lg peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-slate-50 transition") Milvus
                       label.cursor-pointer
                         input(type="radio", name="vector_db", value="chroma", class="peer sr-only")
-                        div(class="text-center p-3 border rounded-lg peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-slate-50 transition") Chroma
+                        div(class="text-center p-2 text-xs border rounded-lg peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-slate-50 transition") Chroma
                       label.cursor-pointer
                         input(type="radio", name="vector_db", value="pgvector", class="peer sr-only")
-                        div(class="text-center p-3 border rounded-lg peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-slate-50 transition") PgVector
+                        div(class="text-center p-2 text-xs border rounded-lg peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-slate-50 transition") PgVector
 
                     .p-4.bg-slate-50.rounded-lg.border.border-slate-200
                       .grid.grid-cols-2.gap-4
@@ -238,25 +228,16 @@ block content
                         div
                           label.block.text-xs.font-medium.text-slate-500.mb-1 数据库 Port
                           input(type="number", name="vectordb_port", value="19530", class="w-full text-sm rounded-md border-2 border-slate-300")
-                      
-                      .integration-only.hidden.mt-3
-                         button(type="button", onclick="testConnection('vectordb')", class="text-blue-600 text-xs font-bold hover:underline") <i class="fas fa-plug mr-1"></i> 测试连接
 
                 //- Parser Section
-                .mb-8.border.border-slate-200.rounded-xl.p-4.bg-white
+                .mb-6.border.border-slate-200.rounded-xl.p-4.bg-white
                   .flex.items-center.justify-between.mb-4
                     label.flex.items-center.gap-2.cursor-pointer
                       input#enable-parser(type="checkbox", name="enable_parser", class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500", onchange="toggleSection('parser-config', this.checked)")
-                      span.font-bold.text-slate-700 启用文档解析服务 (Document Parser)
+                      span.font-bold.text-slate-700 启用文档解析服务 (Mineru)
 
                   #parser-config.hidden
                     .bg-slate-50.p-4.rounded-lg.border.border-slate-200
-                      .flex.items-center.gap-3.mb-4
-                          i(class="fas fa-file-alt text-slate-400")
-                          div.flex-1
-                              div.font-bold.text-sm Mineru (PDF/Docx Parser)
-                              div.text-xs.text-slate-500 Primary parsing engine
-
                       .grid.grid-cols-2.gap-4
                           div
                               label.block.text-xs.font-medium.text-slate-500.mb-1 服务 Host
@@ -265,14 +246,10 @@ block content
                           div
                               label.block.text-xs.font-medium.text-slate-500.mb-1 服务 Port
                               input(type="number", name="parser_port", value="8888", class="w-full text-sm rounded-md border-2 border-slate-300")
-                      
-                      .integration-only.hidden.mt-3
-                         button(type="button", onclick="testConnection('parser')", class="text-blue-600 text-xs font-bold hover:underline") <i class="fas fa-plug mr-1"></i> 测试连接
 
-                
-              //- STEP 5: Review & Generate
-              #step-5.step-content
-                h3(class="font-bold text-lg mb-6") 5. 确认并生成
+              //- STEP 4: Review & Generate
+              #step-4.step-content
+                h3(class="font-bold text-lg mb-6") 4. 确认并生成
                 .bg-slate-50.rounded-xl.p-6.border-1.border-slate-200.mb-6
                   h4.font-bold.text-sm.text-slate-700.mb-4 配置摘要
                   ul.space-y-3.text-sm.text-slate-600#config-summary

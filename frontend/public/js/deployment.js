@@ -320,7 +320,7 @@ window.handleAgentAction = async function(ip, action) {
 let currentStep = 1;
 let sshVerified = false;
 let inferenceVerified = false;
-const totalSteps = 5;
+const totalSteps = 4;
 
 // --- Node Management ---
 async function saveTargetNodes() {
@@ -393,7 +393,7 @@ window.refreshModels = async function(isManual = false) {
   modelSelect.disabled = true;
   
   // Also rotate icon if called via button
-  const btn = document.querySelector('button[onclick="refreshModels()"] i');
+  const btn = document.querySelector('button[onclick="refreshModels(true)"] i');
   if(btn) btn.classList.add('fa-spin');
 
   try {
@@ -440,16 +440,15 @@ function initWizard() {
   const nextBtn = document.getElementById('next-btn');
   const prevBtn = document.getElementById('prev-btn');
 
-  // --- New Logic for Step 3 Model Selection ---
-  // Model name input removed from UI, relying on select value.
+  // --- New Logic for Step 2 Model Selection ---
   
-  // Auto-fetch when host changes in Step 3
+  // Auto-fetch when host changes in Step 2
   const hostSelect = document.getElementById('inference-host-select');
   if (hostSelect) {
       hostSelect.addEventListener('change', () => {
           inferenceVerified = false;
           validateStep();
-          if (currentStep === 3) refreshModels();
+          if (currentStep === 2) refreshModels();
       });
   }
   
@@ -488,6 +487,8 @@ function initWizard() {
       document.querySelectorAll('.integration-only').forEach(el => {
         el.classList.toggle('hidden', !isIntegrate);
       });
+      // Reset inference verification when mode changes
+      inferenceVerified = false;
       validateStep();
     });
   });
@@ -532,18 +533,15 @@ function validateStep() {
   if (!currentStepEl) return;
 
   // 1. Check Standard Inputs (text, number, select, textarea)
-  // Exclude hidden, radio, checkbox, and buttons
   const inputs = currentStepEl.querySelectorAll('input:not([type="hidden"]):not([type="radio"]):not([type="checkbox"]), select, textarea');
   inputs.forEach(input => {
-    // Skip validation if the input is inside a hidden section
     if (input.offsetParent === null) return;
-
     if (!input.value || input.value.trim() === '') {
       isValid = false;
     }
   });
 
-  // 2. Check Radio Groups (Only if visible)
+  // 2. Check Radio Groups
   const radios = currentStepEl.querySelectorAll('input[type="radio"]');
   if (radios.length > 0) {
     const groups = new Set();
@@ -565,8 +563,8 @@ function validateStep() {
      if (!sshVerified) isValid = false;
   }
   
-  // 4. Special Case: Inference Connection (Step 3)
-  if (currentStep === 3) {
+  // 4. Special Case: Inference Connection (Step 2)
+  if (currentStep === 2) {
       if (!inferenceVerified) isValid = false;
   }
 
@@ -583,8 +581,8 @@ function updateWizardUI() {
   const currentEl = document.getElementById(`step-${currentStep}`);
   if (currentEl) currentEl.classList.add('active');
 
-  // Fetch nodes from backend for steps 3 & 4
-  if (currentStep === 3 || currentStep === 4) {
+  // Fetch nodes from backend for steps 2 & 3
+  if (currentStep === 2 || currentStep === 3) {
     fetchNodesAndPopulate();
   }
 
@@ -642,12 +640,13 @@ function updateSummary() {
   summaryList.innerHTML = '';
 
   const summaryData = [
-    { label: 'Mode', value: formData.get('mode') },
-    { label: 'Platform', value: formData.get('platform') },
-    { label: 'Model', value: formData.get('model_path') || 'Not set' },
-    { label: 'Vector DB', value: formData.get('enable_vectordb') ? formData.get('vector_db') : 'Disabled' },
-    { label: 'Parser', value: formData.get('enable_parser') ? 'Mineru' : 'Disabled' },
-    { label: 'RAG App', value: formData.get('enable_rag') ? 'AnythingLLM' : 'Disabled' }
+    { label: '部署模式', value: formData.get('mode') === 'new_deployment' ? '全新部署' : '对接现有' },
+    { label: '硬件平台', value: formData.get('platform') === 'nvidia' ? 'NVIDIA GPU' : '华为昇腾' },
+    { label: '推理模型', value: formData.get('model_path') || '未设置' },
+    { label: '推理主机', value: formData.get('inference_host') || '未设置' },
+    { label: '知识库', value: formData.get('enable_vectordb') ? formData.get('vector_db') : '禁用' },
+    { label: '解析服务', value: formData.get('enable_parser') ? 'Mineru' : '禁用' },
+    { label: 'RAG应用', value: formData.get('enable_rag') ? 'AnythingLLM' : '禁用' }
   ];
 
   summaryData.forEach(item => {

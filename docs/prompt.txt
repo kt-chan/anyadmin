@@ -474,3 +474,26 @@ analyze this view pug  @frontend\views\dashboard.pug, then you have to rewrite a
 - Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
 - All the unit test should be put under /tests folder, and all the loggging should be put under /logs folder
 - Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers (frontend 3000, backend 8080) before termination.  
+
+## Task 15
+
+analyze this view pug @frontend/views/dashboard.pug, and related backend agent operation on @backend/cmd/agent/main.go, backend/pkg/service/container.go, and @backend/pkg/service/agent.go, then you have to rewrite and enrich this view pug as well as the corresponding frontend and backend services for below funcitonal features enrichment objective. And you have to follow Coding Guide provided in final section of below context.
+
+
+1. write restapi for @backend/cmd/agent/main.go and  @backend/pkg/service/agent.go to handle communication between backend service and remote server
+2. merge @backend/pkg/service/container.go and @backend/pkg/service/agent.go, send execution command via agent on remote host instead of directly using remote shell on port 22.
+3. compile @backend/cmd/agent/main.go to @backend/dist/anyadmin-agent, then send to target host at /home/anyadmin/. You should list  target host at /home/anyadmin/ directory and follow the same deployment path.
+4. you have stop the remote agent first if it is running, then verfiy the operation of start/stop container service (vllm / anythingllm) works.
+5. update unit test for communication betwen backend service and agent service, for operation like start, stop containers. if the backend process is not running, you need to start a background process on port 8080 for that.
+
+
+**Coding Guide**  
+- this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO binnary.
+- The remote host managed by  @backend/cmd/agent/main.go  is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and passwordless ssh is configured. You should always deploy agent to this ip for unit test.
+- You have to recompile the agent and redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
+- Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
+- Write unit tests to verify any update systematically by accessing the frontend app and backend fastapi services code changes.
+- Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
+- All the unit test should be put under /tests folder, and all the loggging should be put under /logs folder
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers (frontend 3000, backend 8080) before termination.  
+

@@ -70,7 +70,16 @@ func SendHeartbeat(mgmtURL, nodeIP, hostname, deploymentTime string) error {
 	}
 
 	url := fmt.Sprintf("%s/api/v1/agent/heartbeat", mgmtURL)
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
+
+	// Use custom client to bypass proxy for heartbeat
+	client := &http.Client{
+		Transport: &http.Transport{
+			Proxy: nil,
+		},
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Post(url, "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return fmt.Errorf("failed to send heartbeat to %s: %w", url, err)
 	}

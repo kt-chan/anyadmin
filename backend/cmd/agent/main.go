@@ -14,12 +14,14 @@ var (
 	mgmtURL string
 	nodeIP  string
 	configFile string
+	port    string
 )
 
 func init() {
 	flag.StringVar(&mgmtURL, "server", "http://127.0.0.1:8080", "Management Server URL")
 	flag.StringVar(&nodeIP, "ip", "127.0.0.1", "Node IP Address")
 	flag.StringVar(&configFile, "config", "config.json", "Path to config file")
+	flag.StringVar(&port, "port", "9090", "Agent Server Port")
 }
 
 type Config struct {
@@ -28,6 +30,7 @@ type Config struct {
 	MgmtPort       string `json:"mgmt_port"`
 	NodeIP         string `json:"node_ip"`
 	DeploymentTime string `json:"deployment_time"`
+	Port           string `json:"port"`
 }
 
 var deploymentTime string
@@ -58,6 +61,9 @@ func main() {
 		}
 		nodeIP = cfg.NodeIP
 		deploymentTime = cfg.DeploymentTime
+		if cfg.Port != "" {
+			port = cfg.Port
+		}
 	} else {
 		log.Printf("Config file %s not found or invalid, using flags or defaults", configFile)
 	}
@@ -66,6 +72,9 @@ func main() {
 
 	log.Printf("Starting Agent on %s (%s)...", hostname, nodeIP)
 	log.Printf("Management Server: %s", mgmtURL)
+
+	// Start Agent Server
+	go agent.StartServer(port)
 
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()

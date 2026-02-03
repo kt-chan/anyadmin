@@ -335,21 +335,35 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	
 
-	// Wrap in runuser and nohup. Use -c "cd ... && nohup ... > ... < /dev/null &"
-
-	// Redirecting stdin from /dev/null is crucial for nohup via ssh to not hang
-
-	log.Println("[Deploy] Starting agent...")
-
-	fullCmd := fmt.Sprintf("runuser -l anyadmin -c 'cd /home/anyadmin/bin && nohup %s > %s/agent.log 2>&1 < /dev/null &'", remoteBinAbs, logDir)
+		// Wrap in runuser and nohup. Use -c "cd ... && nohup ... > ... < /dev/null &"
 
 	
 
-	if _, err := ExecuteCommand(client, fullCmd); err != nil {
+		// Redirecting stdin from /dev/null is crucial for nohup via ssh to not hang
 
-		return fmt.Errorf("failed to execute start command: %w", err)
+	
 
-	}
+		log.Println("[Deploy] Starting agent...")
+
+	
+
+		fullCmd := fmt.Sprintf("runuser -l anyadmin -c 'cd /home/anyadmin/bin && (nohup %s > %s/agent.log 2>&1 < /dev/null &) >/dev/null 2>&1'", remoteBinAbs, logDir)
+
+	
+
+		
+
+	
+
+		if _, err := ExecuteCommand(client, fullCmd); err != nil {
+
+	
+
+			return fmt.Errorf("failed to execute start command: %w", err)
+
+	
+
+		}
 
 	log.Println("[Deploy] Agent start command sent.")
 

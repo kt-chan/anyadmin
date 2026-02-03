@@ -41,6 +41,15 @@ const servicesService = {
     return true;
   },
 
+  controlAgent: async (nodeIP, action, token) => {
+    logger.info(`Sending ${action} command to agent at ${nodeIP}`);
+    const config = {
+      headers: { Authorization: `Bearer ${token}` }
+    };
+    await apiClient.post('/api/v1/deploy/agent/control', { ip: nodeIP, action: action }, config);
+    return true;
+  },
+
   stopService: async (serviceName, nodeIP, token, serviceType) => {
     logger.info(`Stopping service: ${serviceName} on node: ${nodeIP} (Type: ${serviceType})`);
     const config = {

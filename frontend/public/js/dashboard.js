@@ -97,6 +97,35 @@ async function stopService(serviceName, nodeIP, serviceType) {
   }
 }
 
+async function controlAgent(nodeIP, action) {
+  const actionText = action === 'stop' ? '停止' : (action === 'restart' ? '重启' : '操作');
+  if (confirm(`确定要${actionText}节点 ${nodeIP} 上的 Agent 吗？`)) {
+    try {
+      const response = await fetch('/api/agent/control', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ip: nodeIP,
+          action: action
+        })
+      });
+      
+      if (response.ok) {
+        alert(`${actionText}指令已发送`);
+        setTimeout(() => location.reload(), 2000);
+      } else {
+        const errData = await response.json();
+        alert(`操作失败: ${errData.message || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('Agent control failed:', error);
+      alert('通信失败，请检查网络连接');
+    }
+  }
+}
+
 function startFullBackup() {
   if (confirm('确定要开始全量备份吗？这可能会影响系统性能。')) {
     console.log('开始全量备份');

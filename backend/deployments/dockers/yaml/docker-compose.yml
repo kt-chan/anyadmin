@@ -31,6 +31,8 @@ services:
     restart: unless-stopped
     environment:
       - SERVER_PORT=3001
+      - PUID=1001
+      - PGID=1001
       - STORAGE_DIR=/app/server/storage
 
       # LLM Configuration for vLLM

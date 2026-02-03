@@ -419,9 +419,13 @@ func ControlAgent(nodeIP, action string) error {
 
 	// Run long operations in background
 	go func() {
+		RecordLog(user, "Agent Control", fmt.Sprintf("Initiating %s on agent %s", action, nodeIP), "Info")
+		
 		client, err := GetSSHClient(nodeHost, nodePort)
 		if err != nil {
-			log.Printf("[Agent Control] SSH connection failed: %v", err)
+			msg := fmt.Sprintf("[Agent Control] SSH connection failed to %s: %v", nodeIP, err)
+			log.Println(msg)
+			RecordLog(user, "Agent Control", msg, "Error")
 			return
 		}
 		defer client.Close()
@@ -453,22 +457,34 @@ func ControlAgent(nodeIP, action string) error {
 			}
 
 			// Ensure clean start
-			ExecuteCommand(client, "pkill -f anyadmin-agent")
-			ExecuteCommand(client, "rm -f /home/anyadmin/bin/anyadmin-agent /home/anyadmin/bin/config.json")
-
+			ExecuteCommand(client, "pkill -f anyadmin-agent || true")
+			
 			if err := deployAndRunAgent(client, nodeHost, mgmtHost, mgmtPort); err != nil {
-				log.Printf("[Agent Control] failed to start agent: %v", err)
+				msg := fmt.Sprintf("[Agent Control] failed to start agent on %s: %v", nodeIP, err)
+				log.Println(msg)
+				RecordLog(user, "Agent Control", msg, "Error")
 				return
 			}
-			RecordLog(user, "Agent Control", "Started agent on "+nodeIP, "Info")
+			RecordLog(user, "Agent Control", "Successfully started agent on "+nodeIP, "Success")
 
 		case "stop":
-			ExecuteCommand(client, "pkill -f anyadmin-agent")
-			RecordLog(user, "Agent Control", "Stopped agent on "+nodeIP, "Info")
+			log.Printf("[Agent Control] Stopping agent on %s", nodeIP)
+			ExecuteCommand(client, "pkill -f anyadmin-agent || true")
+			
+			// Verification
+			time.Sleep(1 * time.Second)
+			_, err := ExecuteCommand(client, "pgrep -f anyadmin-agent")
+			if err == nil {
+				log.Printf("[Agent Control] Agent still running on %s, using SIGKILL", nodeIP)
+				ExecuteCommand(client, "pkill -9 -f anyadmin-agent || true")
+			}
+			
+			RecordLog(user, "Agent Control", "Stopped agent on "+nodeIP, "Success")
 
 		case "restart":
-			ExecuteCommand(client, "pkill -f anyadmin-agent")
-			ExecuteCommand(client, "rm -f /home/anyadmin/bin/anyadmin-agent /home/anyadmin/bin/config.json")
+			log.Printf("[Agent Control] Restarting agent on %s", nodeIP)
+			ExecuteCommand(client, "pkill -f anyadmin-agent || true")
+			time.Sleep(1 * time.Second)
 			
 			mockdata.Mu.Lock()
 			mgmtHost := mockdata.MgmtHost
@@ -488,17 +504,18 @@ func ControlAgent(nodeIP, action string) error {
 			}
 
 			if err := deployAndRunAgent(client, nodeHost, mgmtHost, mgmtPort); err != nil {
-				log.Printf("[Agent Control] failed to restart agent: %v", err)
+				msg := fmt.Sprintf("[Agent Control] failed to restart agent on %s: %v", nodeIP, err)
+				log.Println(msg)
+				RecordLog(user, "Agent Control", msg, "Error")
 				return
 			}
-			RecordLog(user, "Agent Control", "Restarted agent on "+nodeIP, "Info")
+			RecordLog(user, "Agent Control", "Successfully restarted agent on "+nodeIP, "Success")
 
 		case "fix-docker":
-			// 1. Add anyadmin to docker group
+			RecordLog(user, "Agent Control", "Attempting to fix docker on "+nodeIP, "Info")
 			ExecuteCommand(client, "usermod -aG docker anyadmin")
-			// 2. Restart docker service
 			ExecuteCommand(client, "systemctl restart docker || service docker restart")
-			// 3. Restart agent to pick up group membership
+			time.Sleep(2 * time.Second)
 			ControlAgent(nodeIP, "restart")
 
 		default:
@@ -506,33 +523,5 @@ func ControlAgent(nodeIP, action string) error {
 		}
 	}()
 
-	return nil
-}
-
-// DeleteNode removes a node from the management list
-func DeleteNode(nodeIP string) error {
-	mockdata.Mu.Lock()
-	newNodes := []string{}
-	found := false
-	for _, node := range mockdata.DeploymentNodes {
-		if node == nodeIP || strings.HasPrefix(node, nodeIP+":") {
-			found = true
-			continue
-		}
-		newNodes = append(newNodes, node)
-	}
-
-	if found {
-		mockdata.DeploymentNodes = newNodes
-	}
-	mockdata.Mu.Unlock()
-
-	if !found {
-		return fmt.Errorf("node not found: %s", nodeIP)
-	}
-
-	mockdata.SaveToFile()
-	
-	RecordLog("admin", "Node Management", "Deleted node: "+nodeIP, "Info")
 	return nil
 }

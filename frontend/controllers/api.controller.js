@@ -63,6 +63,18 @@ const apiController = {
         }
     },
 
+    // 控制 Agent
+    controlAgent: async (req, res) => {
+        try {
+            const { ip, action } = req.body;
+            const token = req.session.user?.token;
+            await servicesService.controlAgent(ip, action, token);
+            return response.success(res, { action, ip, time: new Date().toLocaleTimeString() }, `Agent ${action} 指令已发送`);
+        } catch (err) {
+            return response.error(res, `Agent ${req.body.action} 操作失败`, 500, err);
+        }
+    },
+
     // 获取服务状态
     getServicesStatus: async (req, res) => {
         try {

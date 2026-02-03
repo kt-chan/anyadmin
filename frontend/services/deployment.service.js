@@ -126,26 +126,12 @@ const deploymentService = {
       };
       const response = await apiClient.post('/api/v1/deploy/agent/control', { ip, action }, axiosConfig);
       return response.data;
-    } catch (error) {
-      logger.error(`Error ${action}ing agent on ${ip}:`, error);
-      throw error;
-    }
-  },
-
-  // Remove node from list
-  removeNode: async (token, ip) => {
-    try {
-      const axiosConfig = {
-        headers: { Authorization: `Bearer ${token}` },
-        params: { ip }
-      };
-      const response = await apiClient.delete('/api/v1/deploy/nodes', axiosConfig);
-      return response.data;
-    } catch (error) {
-      logger.error(`Error removing node ${ip}:`, error);
-      throw error;
-    }
-  }
-};
-
-module.exports = deploymentService;
+        } catch (error) {
+          logger.error(`Error ${action}ing agent on ${ip}:`, error);
+          throw error;
+        }
+      }
+    };
+    
+    module.exports = deploymentService;
+    

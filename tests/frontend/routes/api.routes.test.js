@@ -7,6 +7,7 @@ const apiRoutes = require('../../../frontend/routes/api.routes');
 jest.mock('../../../frontend/services/services.service', () => ({
   restartService: jest.fn().mockResolvedValue(true),
   stopService: jest.fn().mockResolvedValue(true),
+  controlAgent: jest.fn().mockResolvedValue(true),
   getServicesStatus: jest.fn().mockResolvedValue([])
 }));
 
@@ -65,6 +66,17 @@ describe('API Routes (Service Operations)', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.success).toBe(true);
     expect(servicesService.stopService).toHaveBeenCalledWith('vllm', '172.20.0.10', 'fake-token', 'Container');
+  });
+
+  it('POST /api/agent/control should call servicesService.controlAgent', async () => {
+    const payload = { ip: '172.20.0.10', action: 'stop' };
+    const res = await request(app)
+      .post('/api/agent/control')
+      .send(payload);
+    
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(servicesService.controlAgent).toHaveBeenCalledWith('172.20.0.10', 'stop', 'fake-token');
   });
 
   it('POST /api/config/save should call dashboardService.saveConfig', async () => {

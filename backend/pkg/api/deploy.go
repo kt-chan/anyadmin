@@ -319,20 +319,10 @@ func ControlAgent(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Agent %s %sed", req.IP, req.Action)})
-}
-
-func RemoveNode(c *gin.Context) {
-	ip := c.Query("ip")
-	if ip == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "IP is required"})
-		return
+	actionMsg := req.Action + "ed"
+	if req.Action == "stop" {
+		actionMsg = "stopped"
 	}
 
-	if err := service.DeleteNode(ip); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Node removed successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Agent %s %s", req.IP, actionMsg)})
 }

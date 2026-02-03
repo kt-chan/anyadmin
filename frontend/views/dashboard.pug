@@ -137,9 +137,9 @@ block content
                                 i(class="fas fa-times-circle text-xs")
                                 | 已离线
                           td(class="px-6 py-4")
-                            button(class="text-slate-400 hover:text-blue-600 mr-3" title="重启 Agent" onclick=`restartService('${agent.name}', '${agent.node_ip}', 'Agent')`)
+                            button(class="text-slate-400 hover:text-blue-600 mr-3" title="重启 Agent" onclick=`controlAgent('${agent.node_ip}', 'restart')`)
                               i(class="fas fa-redo")
-                            button(class="text-slate-400 hover:text-red-600" title="停止 Agent" onclick=`stopService('${agent.name}', '${agent.node_ip}', 'Agent')`)
+                            button(class="text-slate-400 hover:text-red-600" title="停止 Agent" onclick=`controlAgent('${agent.node_ip}', 'stop')`)
                               i(class="fas fa-power-off")
 
                       //- Nested Containers for this node

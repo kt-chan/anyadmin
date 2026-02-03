@@ -47,7 +47,7 @@ func RebuildAgent() error {
 		return fmt.Errorf("could not find backend directory (anyadmin-backend) from %s", cwd)
 	}
 
-	cmd := exec.Command("go", "build", "-o", "./dist/agent_linux", "./cmd/agent/main.go")
+	cmd := exec.Command("go", "build", "-o", "./dist/anyadmin-agent", "./cmd/agent/main.go")
 	cmd.Dir = backendDir
 	cmd.Env = append(os.Environ(), "GOOS=linux", "GOARCH=amd64")
 	
@@ -188,60 +188,178 @@ func installGo(client *ssh.Client) error {
 }
 
 func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) error {
+
 	log.Printf("Deploying agent to %s with Management Server: %s:%s", nodeIP, mgmtHost, mgmtPort)
+
+	
+
+	log.Println("[Deploy] Starting RebuildAgent...")
+
 	// Rebuild agent before deploying to ensure latest changes
+
 	if err := RebuildAgent(); err != nil {
+
 		log.Printf("Warning: Failed to rebuild agent, using existing binary: %v", err)
+
 	}
+
+	log.Println("[Deploy] RebuildAgent done.")
+
+
 
 	backendDir := getBackendDir()
-	localPath := filepath.Join(backendDir, "dist/agent_linux")
+
+	localPath := filepath.Join(backendDir, "dist/anyadmin-agent")
+
 	// Self-contained in user home
+
 	remoteBin := "/home/anyadmin/bin/anyadmin-agent"
+
 	remoteConfig := "/home/anyadmin/bin/config.json"
+
 	logDir := "/home/anyadmin/logs"
 
+
+
 	// 1. Prepare Directories
+
+	log.Println("[Deploy] Preparing directories...")
+
 	prepCmd := fmt.Sprintf("mkdir -p /home/anyadmin/bin %s && chown -R anyadmin:anyadmin /home/anyadmin", logDir)
+
 	if _, err := ExecuteCommand(client, prepCmd); err != nil {
+
 		return fmt.Errorf("failed to prepare agent directories: %w", err)
+
 	}
+
+
+
+	// Stop existing agent before copying to avoid "Text file busy"
+
+	log.Println("[Deploy] Stopping existing agent...")
+
+	ExecuteCommand(client, "pkill -f anyadmin-agent || true")
+
+	time.Sleep(1 * time.Second) // Give it a moment to release file handle
+
+
 
 	// 2. Create Config File
+
+	log.Println("[Deploy] Creating config file...")
+
 	configContent := fmt.Sprintf(`{"mgmt_host": "%s", "mgmt_port": "%s", "node_ip": "%s", "deployment_time": "%s"}`, 
+
 		mgmtHost, mgmtPort, nodeIP, time.Now().Format(time.RFC3339))
+
 	localConfigPath := filepath.Join(os.TempDir(), fmt.Sprintf("config_%s.json", strings.ReplaceAll(nodeIP, ".", "_")))
+
 	if err := os.WriteFile(localConfigPath, []byte(configContent), 0644); err != nil {
+
 		return fmt.Errorf("failed to create local config file: %w", err)
+
 	}
+
 	defer os.Remove(localConfigPath)
 
-	// 3. Copy Binary and Config
+
+
+	// 3. Copy Binary, Config, and Docker Compose
+
+	log.Println("[Deploy] Copying binaries...")
+
 	if err := CopyFile(client, localPath, remoteBin); err != nil {
+
 		return fmt.Errorf("failed to copy agent binary: %w", err)
+
 	}
+
 	if err := CopyFile(client, localConfigPath, remoteConfig); err != nil {
+
 		return fmt.Errorf("failed to copy agent config: %w", err)
+
 	}
+
+
+
+	// Copy Docker Compose file
+
+	log.Println("[Deploy] Copying docker-compose...")
+
+	localComposePath := filepath.Join(backendDir, "deployments/dockers/yaml/docker-compose.yml")
+
+	remoteComposePath := "/home/anyadmin/docker/docker-compose.yaml"
+
+	// Ensure directory exists
+
+	if _, err := ExecuteCommand(client, "mkdir -p /home/anyadmin/docker && chown anyadmin:anyadmin /home/anyadmin/docker"); err != nil {
+
+		return fmt.Errorf("failed to create docker directory: %w", err)
+
+	}
+
+	
+
+	if err := CopyFile(client, localComposePath, remoteComposePath); err != nil {
+
+		log.Printf("Warning: failed to copy docker-compose.yml: %v", err)
+
+		// Don't fail the whole deployment if this fails, but it's important for control
+
+	} else {
+
+		// Ensure ownership
+
+		ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remoteComposePath))
+
+	}
+
+
 
 	// Ensure executable and owned by anyadmin
+
+	log.Println("[Deploy] Setting permissions...")
+
 	ExecuteCommand(client, fmt.Sprintf("chmod +x %s && chown anyadmin:anyadmin %s %s", remoteBin, remoteBin, remoteConfig))
 
+
+
 	// 4. Run Agent
+
 	// The agent now looks for config.json in the same directory by default (or we can specify it)
+
 	// We'll run it from the bin directory using absolute paths for everything
+
 	remoteBinAbs := "/home/anyadmin/bin/anyadmin-agent"
+
 	
-	// Wrap in runuser and nohup. Use -c "cd ... && nohup ...."
-	// We use /usr/bin/nohup to be safe, and redirect output.
-	fullCmd := fmt.Sprintf("runuser -l anyadmin -c 'cd /home/anyadmin/bin && /usr/bin/nohup %s > %s/agent.log 2>&1 &'", remoteBinAbs, logDir)
+
+	// Wrap in runuser and nohup. Use -c "cd ... && nohup ... > ... < /dev/null &"
+
+	// Redirecting stdin from /dev/null is crucial for nohup via ssh to not hang
+
+	log.Println("[Deploy] Starting agent...")
+
+	fullCmd := fmt.Sprintf("runuser -l anyadmin -c 'cd /home/anyadmin/bin && nohup %s > %s/agent.log 2>&1 < /dev/null &'", remoteBinAbs, logDir)
+
 	
+
 	if _, err := ExecuteCommand(client, fullCmd); err != nil {
+
 		return fmt.Errorf("failed to execute start command: %w", err)
+
 	}
 
+	log.Println("[Deploy] Agent start command sent.")
+
+
+
 	// 5. Verify process started
+
 	log.Printf("Verifying agent start on %s...", nodeIP)
+
+
 	time.Sleep(2 * time.Second)
 	// Use a more robust check that returns a number
 	countStr, err := ExecuteCommand(client, "ps ax | grep anyadmin-agent | grep -v grep | wc -l")

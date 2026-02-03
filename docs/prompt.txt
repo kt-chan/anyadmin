@@ -489,7 +489,7 @@ analyze this view pug @frontend/views/dashboard.pug, and related backend agent o
 
 **Coding Guide**  
 - this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO binnary.
-- The remote host managed by  @backend/cmd/agent/main.go  is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and passwordless ssh is configured. You should always deploy agent to this ip for unit test.
+- The remote host managed by  @backend/cmd/agent/main.go  is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin/anyadmin-agent, and passwordless ssh is configured for root. You should always deploy agent to this ip for unit test.
 - You have to recompile the agent and redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
 - Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
 - Write unit tests to verify any update systematically by accessing the frontend app and backend fastapi services code changes.
@@ -497,3 +497,48 @@ analyze this view pug @frontend/views/dashboard.pug, and related backend agent o
 - All the unit test should be put under /tests folder, and all the loggging should be put under /logs folder
 - Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, manage processes precisely—for example, by identifying specific PIDs using port numbers (frontend 3000, backend 8080) before termination.  
 
+
+## Task 15
+
+analyze this GO script @backend/pkg/service/agent.go, @backend/pkg/agent/client.go, @backend/pkg/agent/server.go, then you have to rewrite and enrich this script as well as the corresponding frontend, backend, and remote agent services for below funcitonal features enrichment objective. And you have to follow Coding Guide provided in final section of below context.
+
+1. merge backend/pkg/agent/client.go and backend/pkg/agent/server.go, make it simple for remote agent operations
+2. rewrite ControlContainer at @backend/pkg/service/agent.go, and you should use @backend/deployments/dockers/yaml/docker-compose.yml file (which has been deployed to target agent on path /home/anyadmin/docker) instead of docker command to interact with remote host. 
+3. refactor the agent code and agent deployment task, and you should take reference to below target host information using anyadmin user (/home/anyadmin/), host info provide in # reference remote host info section
+4. compile @backend/cmd/agent/main.go to @backend/dist/anyadmin-agent, then send to target host at /home/anyadmin/. You should list  target host at /home/anyadmin/ directory and follow the same deployment path.
+5. you have stop the remote agent first if it is running, then verfiy the operation of start/stop container service (vllm / anythingllm) works.
+
+# reference remote host info
+anyadmin@DESKTOP-OSLI7Q7:~$ ll
+total 16
+drwxr-xr-x 2 anyadmin anyadmin 4096 Feb  3 12:58 bin
+drwxrwxr-x 4 anyadmin anyadmin 4096 Jan 27 16:57 data
+drwxr-xr-x 2 anyadmin anyadmin 4096 Feb  3 12:30 docker
+drwxr-xr-x 2 anyadmin anyadmin 4096 Jan 30 18:02 logs
+anyadmin@DESKTOP-OSLI7Q7:~$ ll bin
+total 9172
+-rwxr-xr-x 1 anyadmin anyadmin 9387993 Feb  3 13:04 anyadmin-agent
+-rw-r--r-- 1 anyadmin anyadmin     122 Feb  3 13:04 config.json
+anyadmin@DESKTOP-OSLI7Q7:~$ ll docker
+total 4
+-rw-r--r-- 1 anyadmin anyadmin 2085 Feb  3 13:04 docker-compose.yaml
+anyadmin@DESKTOP-OSLI7Q7:~$ ll logs
+total 4
+-rw-r--r-- 1 anyadmin anyadmin 2656 Feb  3 13:05 agent.log
+anyadmin@DESKTOP-OSLI7Q7:~/docker$ docker compose ps
+WARN[0000] /home/anyadmin/docker/docker-compose.yaml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion
+NAME          IMAGE                            COMMAND                  SERVICE       CREATED          STATUS                    PORTS
+anythingllm   mintplexlabs/anythingllm:1.8.5   "/bin/bash /usr/loca…"   anythingllm   13 minutes ago   Up 13 minutes (healthy)   0.0.0.0:3001->3001/tcp, [::]:3001->3001/tcp
+vllm          vllm/vllm-openai:latest          "vllm serve --model …"   vllm          13 minutes ago   Up 13 minutes (healthy)   0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp
+anyadmin@DESKTOP-OSLI7Q7:~/docker$
+
+
+**Coding Guide**  
+- this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO binnary.
+- The remote host managed by  @backend/cmd/agent/main.go  is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and passwordless ssh is configured for root. 
+- You should always deploy agent to this ip  172.20.0.10 with port 9090 for unit test.
+- You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
+- Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
+- Write unit tests to verify any update systematically by accessing the frontend app and backend services code changes. Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
+- All the unit test should be put under /tests folder, and all the loggging should be put under /logs folder
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, use this powershell @scripts/stop-pids.ps1 to terminate proccess on port 3000 and 8080 

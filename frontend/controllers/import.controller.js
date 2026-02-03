@@ -4,15 +4,16 @@ const importService = require('../services/import.service');
 exports.getImportPage = async (req, res) => {
   try {
     const token = req.session.user?.token;
-    const tasks = await importService.getTasks(token);
+    const rawTasks = await importService.getTasks(token);
+    const tasks = Array.isArray(rawTasks) ? rawTasks : [];
     
     // 计算汇总数据
     const stats = {
       totalTasks: tasks.length,
-      processing: tasks.filter(t => t.status === 'Processing').length,
-      failed: tasks.filter(t => t.status === 'Failed').length,
-      totalFiles: tasks.reduce((acc, t) => acc + t.totalFiles, 0),
-      processedFiles: tasks.reduce((acc, t) => acc + t.processed, 0)
+      processing: tasks.filter(t => (t.status || '').toUpperCase() === 'PROCESSING').length,
+      failed: tasks.filter(t => (t.status || '').toUpperCase() === 'FAILED').length,
+      totalFiles: tasks.reduce((acc, t) => acc + (t.progress?.total || 0), 0),
+      processedFiles: tasks.reduce((acc, t) => acc + (t.progress?.processed || 0), 0)
     };
 
     res.render('import', {

@@ -546,7 +546,10 @@ anyadmin@DESKTOP-OSLI7Q7:~/docker$
 
 ## Task 16
 
-scan @backend/ and create a httpclient.go to handle all communciation among frontend, backend server and remote agent, with setup to bypass proxy. then refactor the code to ensure no duplicated logics on http request.
+analyze view @frontend\views\dashboard.pug, and GO script @backend\pkg\service\deploy.go, @backend\pkg\api\deploy.go, then you have to rewrite and enrich this script as well as the corresponding frontend, backend, and remote agent services for below funcitonal features enrichment objective. And you have to follow Coding Guide provided in final section of below context.
+
+1. delete DeleteNode function at @backend\pkg\service\deploy.go, we do not need mock. update related @frontend\views\dashboard.pug stop agent operation to stop agent service at target node via controlagent function.
+2. you should only update the frontend and backend go script. do NOT change code related to agent and agent deployment.
 
 **Coding Guide**  
 - this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO.

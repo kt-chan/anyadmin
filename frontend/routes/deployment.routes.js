@@ -15,7 +15,6 @@ router.get('/api/status', requireLogin, deploymentController.checkStatus);
 
 router.get('/api/nodes', requireLogin, deploymentController.getNodes);
 router.post('/api/nodes', requireLogin, deploymentController.saveNodes);
-router.delete('/api/nodes', requireLogin, deploymentController.removeNode);
 router.post('/api/agent/control', requireLogin, deploymentController.controlAgent);
 router.post('/api/detect-hardware', requireLogin, deploymentController.detectHardware);
 

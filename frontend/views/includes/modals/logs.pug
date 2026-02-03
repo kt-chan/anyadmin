@@ -1,6 +1,6 @@
 //- Log Modal
 div(id="logsModal", class="modal")
-  .bg-slate-900.w-3/4.h-3/4.rounded-2xl.shadow-2xl.flex.flex-col.overflow-hidden
+  div(class="bg-slate-900 w-3/4 h-3/4 rounded-2xl shadow-2xl flex flex-col overflow-hidden")
     div(class="p-4 border-b border-slate-700 flex justify-between items-center")
       h3(class="text-white font-bold font-mono") System Logs (tail -f)
       button(onclick="hideModal('logsModal')", class="text-slate-400 hover:text-white")

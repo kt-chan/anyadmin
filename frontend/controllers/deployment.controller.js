@@ -108,27 +108,30 @@ const deploymentController = {
     }
   },
 
-  // API: Control Agent
-  controlAgent: async (req, res) => {
-    try {
-      const token = req.session.user?.token;
-      const result = await deploymentService.controlAgent(token, req.body);
-      res.json({ success: true, data: result });
-    } catch (error) {
-      res.status(500).json({ success: false, message: error.message });
-    }
-  },
+    // API: Control Agent
 
-  // API: Remove Node
-  removeNode: async (req, res) => {
-    try {
-      const token = req.session.user?.token;
-      const result = await deploymentService.removeNode(token, req.query.ip);
-      res.json({ success: true, data: result });
-    } catch (error) {
-      res.status(500).json({ success: false, message: error.message });
-    }
-  }
-};
+    controlAgent: async (req, res) => {
 
-module.exports = deploymentController;
+      try {
+
+        const token = req.session.user?.token;
+
+        const result = await deploymentService.controlAgent(token, req.body);
+
+        res.json({ success: true, data: result });
+
+      } catch (error) {
+
+        res.status(500).json({ success: false, message: error.message });
+
+      }
+
+    }
+
+  };
+
+  
+
+  module.exports = deploymentController;
+
+  

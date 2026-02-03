@@ -60,7 +60,8 @@ function initTabs() {
 
 async function refreshNodesDashboard() {
   const grid = document.getElementById('nodes-grid');
-  if (!grid) return;
+  const template = document.getElementById('node-card-template');
+  if (!grid || !template) return;
   
   try {
     const res = await fetch('/deployment/api/nodes');
@@ -72,46 +73,40 @@ async function refreshNodesDashboard() {
         for (const node of nodes) {
             const ip = node.split(':')[0];
             const port = node.split(':')[1] || '22';
-            const card = document.createElement('div');
-            card.className = "bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden";
-            card.innerHTML = `
-                <div class="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center">
-                            <i class="fas fa-server"></i>
-                        </div>
-                        <div id="node-info-${ip.replace(/\./g, '-')}" data-port="${port}">
-                            <h4 class="font-bold text-slate-800">${ip}</h4>
-                            <span class="text-[10px] text-slate-400 font-mono">SSH Port: ${port}</span>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <div id="status-badge-${ip.replace(/\./g, '-')}" class="px-3 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-400 uppercase">
-                            Checking...
-                        </div>
-                        <div class="flex gap-1">
-                            <button onclick="handleAgentAction('${ip}', 'start')" title="Start Agent" class="w-8 h-8 rounded-lg bg-white border border-slate-200 text-green-600 hover:bg-green-50 transition flex items-center justify-center">
-                                <i class="fas fa-play text-xs"></i>
-                            </button>
-                            <button onclick="handleAgentAction('${ip}', 'stop')" title="Stop Agent" class="w-8 h-8 rounded-lg bg-white border border-slate-200 text-yellow-600 hover:bg-yellow-50 transition flex items-center justify-center">
-                                <i class="fas fa-stop text-xs"></i>
-                            </button>
-                            <button onclick="handleAgentAction('${ip}', 'delete')" title="Delete Node" class="w-8 h-8 rounded-lg bg-white border border-slate-200 text-red-600 hover:bg-red-50 transition flex items-center justify-center">
-                                <i class="fas fa-trash-alt text-xs"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="p-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4" id="node-details-${ip.replace(/\./g, '-')}">
-                    <div class="col-span-full py-12 text-center">
-                         <i class="fas fa-circle-notch fa-spin text-blue-500 mb-2"></i>
-                         <p class="text-xs text-slate-400">Loading node metrics...</p>
-                    </div>
-                </div>
-                <div class="px-6 pb-6" id="node-services-${ip.replace(/\./g, '-')}"></div>
-                <div id="node-footer-${ip.replace(/\./g, '-')}" class="px-6 pb-6 border-t border-slate-50 hidden"></div>
-            `;
-            grid.appendChild(card);
+            const safeIp = ip.replace(/\./g, '-');
+
+            const clone = template.content.cloneNode(true);
+            const card = clone.querySelector('.node-card');
+            
+            // Set IDs
+            card.id = `node-card-${safeIp}`;
+            const infoDiv = clone.querySelector('.node-info');
+            infoDiv.id = `node-info-${safeIp}`;
+            infoDiv.setAttribute('data-port', port);
+            
+            clone.querySelector('.node-ip').textContent = ip;
+            clone.querySelector('.node-port').textContent = `SSH Port: ${port}`;
+            
+            const badge = clone.querySelector('.status-badge');
+            badge.id = `status-badge-${safeIp}`;
+            
+            const details = clone.querySelector('.node-details');
+            details.id = `node-details-${safeIp}`;
+            
+            const services = clone.querySelector('.node-services');
+            services.id = `node-services-${safeIp}`;
+            
+            const footer = clone.querySelector('.node-footer');
+            footer.id = `node-footer-${safeIp}`;
+
+            // Buttons
+            const startBtn = clone.querySelector('.agent-start-btn');
+            if (startBtn) startBtn.onclick = () => handleAgentAction(ip, 'start');
+            
+            const stopBtn = clone.querySelector('.agent-stop-btn');
+            if (stopBtn) stopBtn.onclick = () => handleAgentAction(ip, 'stop');
+
+            grid.appendChild(clone);
             
             // Start individual node update
             updateNodeStatusInDashboard(ip);
@@ -129,6 +124,8 @@ async function updateNodeStatusInDashboard(ip) {
   const services = document.getElementById(`node-services-${safeIp}`);
   const infoDiv = document.getElementById(`node-info-${safeIp}`);
   
+  if (!badge || !details) return;
+
   try {
     const res = await fetch(`/deployment/api/status?ip=${ip}`);
     const result = await res.json();
@@ -161,13 +158,9 @@ async function updateNodeStatusInDashboard(ip) {
             // Update Header Info
             if (infoDiv) {
                 const port = infoDiv.getAttribute('data-port') || '22';
-                
-                // Parse GPU status for better display if it matches our format
-                // Example: "1 x NVIDIA RTX 4090 | Util: 15% | Mem: 2048/24576 MB"
                 let gpuDisplay = agent.gpu_status || '-';
                 if (gpuDisplay.includes('|')) {
                     const parts = gpuDisplay.split('|');
-                    // Show only the "X x Model" part in the header
                     gpuDisplay = `<span class="text-blue-600 font-bold">${parts[0].trim()}</span>`;
                 }
 
@@ -184,14 +177,13 @@ async function updateNodeStatusInDashboard(ip) {
                 `;
             }
 
-            // Extract GPU metrics if possible
+            // Extract GPU metrics
             let gpuUtil = 0;
             let gpuMemPercent = 0;
             let gpuMemDisplay = "- / -";
             if (agent.gpu_status) {
                 const utilMatch = agent.gpu_status.match(/Util: (\d+)%/);
                 if (utilMatch) gpuUtil = parseInt(utilMatch[1]);
-
                 const memMatch = agent.gpu_status.match(/Mem: (\d+)\/(\d+) MB/);
                 if (memMatch) {
                     const used = parseInt(memMatch[1]);
@@ -201,103 +193,67 @@ async function updateNodeStatusInDashboard(ip) {
                 }
             }
 
-            details.innerHTML = `
-                <!-- CPU -->
-                <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 ${isDown ? 'opacity-50' : ''}">
-                    <div class="flex justify-between items-center mb-1">
-                         <div class="text-[10px] text-slate-400 font-bold uppercase">CPU Usage</div>
-                         <div class="text-[9px] text-slate-400 font-mono">${agent.cpu_capacity ? (isNaN(agent.cpu_capacity) ? agent.cpu_capacity : agent.cpu_capacity + ' Cores') : '-'}</div>
-                    </div>
-                    <div class="text-xl font-bold text-slate-800">${agent.cpu_usage.toFixed(1)}%</div>
-                    <div class="w-full bg-slate-200 h-1 rounded-full mt-2">
-                        <div class="bg-blue-500 h-1 rounded-full" style="width: ${agent.cpu_usage}%"></div>
-                    </div>
-                </div>
-
-                <!-- Memory -->
-                <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 ${isDown ? 'opacity-50' : ''}">
-                    <div class="flex justify-between items-center mb-1">
-                        <div class="text-[10px] text-slate-400 font-bold uppercase">Memory Usage</div>
-                        <div class="text-[9px] text-slate-400 font-mono">${agent.memory_capacity || '-'}</div>
-                    </div>
-                    <div class="text-xl font-bold text-slate-800">${agent.memory_usage.toFixed(1)}%</div>
-                    <div class="w-full bg-slate-200 h-1 rounded-full mt-2">
-                        <div class="bg-indigo-500 h-1 rounded-full" style="width: ${agent.memory_usage}%"></div>
-                    </div>
-                </div>
-
-                <!-- GPU Util -->
-                <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 ${isDown ? 'opacity-50' : ''}">
-                    <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">GPU Utilization</div>
-                    <div class="text-xl font-bold text-slate-800">${gpuUtil}%</div>
-                    <div class="w-full bg-slate-200 h-1 rounded-full mt-2">
-                        <div class="bg-orange-500 h-1 rounded-full" style="width: ${gpuUtil}%"></div>
-                    </div>
-                </div>
-
-                <!-- GPU Mem -->
-                <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 ${isDown ? 'opacity-50' : ''}">
-                    <div class="flex justify-between items-center mb-1">
-                        <div class="text-[10px] text-slate-400 font-bold uppercase">GPU Memory</div>
-                        <div class="text-[9px] text-slate-400 font-mono">${gpuMemDisplay}</div>
-                    </div>
-                    <div class="text-xl font-bold text-slate-800">${gpuMemPercent}%</div>
-                    <div class="w-full bg-slate-200 h-1 rounded-full mt-2">
-                        <div class="bg-amber-500 h-1 rounded-full" style="width: ${gpuMemPercent}%"></div>
-                    </div>
-                </div>
-
-                <!-- Docker -->
-                <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div class="flex justify-between items-center mb-1">
-                        <div class="text-[10px] text-slate-400 font-bold uppercase">Docker Engine</div>
-                        ${agent.docker_status !== 'active' && !isDown ? `
-                            <button onclick="handleAgentAction('${ip}', 'fix-docker')" class="text-[10px] text-blue-600 hover:underline font-bold">
-                                <i class="fas fa-wrench mr-1"></i>FIX
-                            </button>
-                        ` : ''}
-                    </div>
-                    <div class="text-sm font-bold ${agent.docker_status === 'active' && !isDown ? 'text-green-600' : 'text-red-600'}">
-                        ${isDown ? 'UNKNOWN' : agent.docker_status.toUpperCase()}
-                    </div>
-                    <div class="flex items-center gap-1 mt-1.5 text-slate-400">
-                        <i class="fas fa-box text-[10px]"></i>
-                        <span class="text-[10px] font-medium uppercase">Container Runtime</span>
-                    </div>
-                </div>
-            `;
+            // Populate Details using templates
+            details.innerHTML = '';
             
-            if (agent.services && agent.services.length > 0) {
-                services.innerHTML = `
-                    <h5 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Running Services</h5>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        ${agent.services.map(svc => {
-                            let svcState = svc.state;
-                            let svcColor = svc.state === 'running' ? 'bg-green-500' : 'bg-red-500';
-                            
-                            if (isDown) {
-                                svcState = 'unknown';
-                                svcColor = 'bg-slate-400';
-                            } else if (isWarning) {
-                                svcColor = 'bg-yellow-500';
-                            }
+            // Helper to create metric card
+            const createMetricCard = (label, capacity, value, colorClass, isDown) => {
+                const t = document.getElementById('metric-card-template');
+                const c = t.content.cloneNode(true);
+                const card = c.querySelector('div');
+                if (isDown) card.classList.add('opacity-50');
+                c.querySelector('.metric-label').textContent = label;
+                c.querySelector('.metric-capacity').textContent = capacity;
+                c.querySelector('.metric-value').textContent = `${value.toFixed(1)}%`;
+                const progress = c.querySelector('.metric-progress');
+                progress.classList.add(colorClass);
+                progress.style.width = `${value}%`;
+                return c;
+            };
 
-                            return `
-                                <div class="flex items-center gap-3 p-3 border border-slate-100 rounded-lg ${isDown ? 'bg-slate-50' : ''}">
-                                    <div class="w-8 h-8 rounded bg-slate-50 flex items-center justify-center text-slate-400">
-                                        <i class="fas fa-box"></i>
-                                    </div>
-                                    <div class="flex-1 overflow-hidden">
-                                        <div class="text-xs font-bold text-slate-700 truncate">${svc.name}</div>
-                                        <div class="text-[10px] text-slate-400 truncate">${isDown ? '---' : svc.uptime}</div>
-                                    </div>
-                                    <div class="w-2 h-2 rounded-full ${svcColor}"></div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                `;
+            details.appendChild(createMetricCard('CPU Usage', agent.cpu_capacity ? (isNaN(agent.cpu_capacity) ? agent.cpu_capacity : agent.cpu_capacity + ' Cores') : '-', agent.cpu_usage, 'bg-blue-500', isDown));
+            details.appendChild(createMetricCard('Memory Usage', agent.memory_capacity || '-', agent.memory_usage, 'bg-indigo-500', isDown));
+            details.appendChild(createMetricCard('GPU Utilization', '', gpuUtil, 'bg-orange-500', isDown));
+            details.appendChild(createMetricCard('GPU Memory', gpuMemDisplay, gpuMemPercent, 'bg-amber-500', isDown));
+
+            // Docker Card
+            const dt = document.getElementById('docker-card-template');
+            const dc = dt.content.cloneNode(true);
+            const dockerStatus = dc.querySelector('.docker-status');
+            dockerStatus.textContent = isDown ? 'UNKNOWN' : agent.docker_status.toUpperCase();
+            dockerStatus.classList.add(agent.docker_status === 'active' && !isDown ? 'text-green-600' : 'text-red-600');
+            
+            const fixBtn = dc.querySelector('.docker-fix-btn');
+            if (agent.docker_status !== 'active' && !isDown) {
+                fixBtn.classList.remove('hidden');
+                fixBtn.onclick = () => handleAgentAction(ip, 'fix-docker');
+            }
+            details.appendChild(dc);
+            
+            // Services List
+            if (agent.services && agent.services.length > 0) {
+                services.innerHTML = '<h5 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Running Services</h5>';
+                const list = document.createElement('div');
+                list.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3";
                 
+                const st = document.getElementById('service-item-template');
+                agent.services.forEach(svc => {
+                    const sc = st.content.cloneNode(true);
+                    const item = sc.querySelector('.service-item');
+                    if (isDown) item.classList.add('bg-slate-50');
+                    
+                    sc.querySelector('.svc-name').textContent = svc.name;
+                    sc.querySelector('.svc-uptime').textContent = isDown ? '---' : svc.uptime;
+                    
+                    const dot = sc.querySelector('.svc-status-dot');
+                    let svcColor = svc.state === 'running' ? 'bg-green-500' : 'bg-red-500';
+                    if (isDown) svcColor = 'bg-slate-400';
+                    else if (isWarning) svcColor = 'bg-yellow-500';
+                    dot.classList.add(svcColor);
+                    
+                    list.appendChild(sc);
+                });
+                services.appendChild(list);
             } else {
                 services.innerHTML = '';
             }
@@ -325,18 +281,13 @@ async function updateNodeStatusInDashboard(ip) {
         details.innerHTML = '<div class="col-span-3 text-center py-4 text-slate-400 italic">No agent detected.</div>';
     }
   } catch (e) {
-    badge.innerText = "Error";
-    details.innerHTML = '<div class="col-span-3 text-center py-4 text-red-400">Error fetching status.</div>';
+    console.error(e);
+    if (badge) badge.innerText = "Error";
+    if (details) details.innerHTML = '<div class="col-span-3 text-center py-4 text-red-400">Error fetching status.</div>';
   }
 }
 
 window.handleAgentAction = async function(ip, action) {
-  if (action === 'delete') {
-    if (!confirm(`Are you sure you want to remove node ${ip}? This will only remove it from the management list.`)) {
-        return;
-    }
-  }
-
   // Find the button to show loading state
   const btn = event.currentTarget;
   const originalHtml = btn.innerHTML;
@@ -344,25 +295,16 @@ window.handleAgentAction = async function(ip, action) {
   btn.disabled = true;
 
   try {
-    let res;
-    if (action === 'delete') {
-        res = await fetch(`/deployment/api/nodes?ip=${ip}`, { method: 'DELETE' });
-    } else {
-        res = await fetch('/deployment/api/agent/control', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ip, action })
-        });
-    }
+    const res = await fetch('/deployment/api/agent/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ip, action })
+    });
 
     const result = await res.json();
     if (res.ok && (result.success || result.data || result.message)) {
-        if (action === 'delete') {
-            refreshNodesDashboard();
-        } else {
-            // Give it a moment then update status
-            setTimeout(() => updateNodeStatusInDashboard(ip), 2000);
-        }
+        // Give it a moment then update status
+        setTimeout(() => updateNodeStatusInDashboard(ip), 2000);
     } else {
         alert('Error: ' + (result.error || result.message || 'Action failed'));
     }
@@ -775,49 +717,15 @@ window.generateDeployment = async function() {
     
     const result = await response.json();
     if (result.success && result.data) {
-      
       const resultsContainer = document.getElementById('generation-results') || createResultsContainer();
       resultsContainer.innerHTML = ''; 
       resultsContainer.classList.remove('hidden');
 
-      // 1. Verification Area
-      const verifyArea = document.createElement('div');
-      verifyArea.className = "mt-6 pt-6 border-t border-slate-200 text-center";
-      verifyArea.innerHTML = `
-        <h4 class="text-sm font-bold text-slate-700 mb-2">部署进度验证</h4>
-        <p class="text-xs text-slate-500 mb-4">正在等待节点 Agent 建立连接并上报心跳。成功后将自动跳转至仪表板。</p>
-        
-        <div id="agent-status-container" class="mb-4 p-4 bg-blue-50 border border-blue-100 rounded-lg max-w-md mx-auto">
-            <div class="flex items-center justify-center gap-3">
-                <i class="fas fa-satellite-dish fa-spin text-blue-600"></i>
-                <span class="text-sm font-bold text-blue-800" id="agent-status-text">等待 Agent 心跳...</span>
-            </div>
-            <p class="text-xs text-blue-600 mt-1" id="agent-target-ip">目标地址: ...</p>
-            
-            <div id="agent-stats" class="hidden mt-3 grid grid-cols-2 gap-2 border-t border-blue-100 pt-2">
-                <div class="text-center">
-                    <div class="text-[10px] text-blue-400 uppercase">CPU 使用率</div>
-                    <div class="text-sm font-bold text-blue-700" id="agent-cpu">- %</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-[10px] text-blue-400 uppercase">内存使用率</div>
-                    <div class="text-sm font-bold text-blue-700" id="agent-mem">- %</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Services Status Container -->
-        <div id="services-status-container" class="hidden mt-6 text-left max-w-2xl mx-auto">
-            <div class="flex items-center justify-between mb-3">
-                <h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider">运行中的服务 (Agent 已检测)</h5>
-                <span id="docker-badge" class="px-2 py-0.5 rounded text-[10px] font-bold"></span>
-            </div>
-            <div id="services-list" class="grid grid-cols-1 gap-2">
-                <p class="text-xs text-slate-400 italic">检测服务中...</p>
-            </div>
-        </div>
-      `;
-      resultsContainer.appendChild(verifyArea);
+      const template = document.getElementById('verification-area-template');
+      if (template) {
+          const clone = template.content.cloneNode(true);
+          resultsContainer.appendChild(clone);
+      }
 
       if (resultsContainer.scrollIntoView) {
           resultsContainer.scrollIntoView({ behavior: 'smooth' });
@@ -865,7 +773,8 @@ function startAgentPolling(data) {
   if (!firstNode) return;
   
   const ip = firstNode.split(':')[0];
-  document.getElementById('agent-target-ip').innerText = `Target: ${ip}`;
+  const targetIpEl = document.getElementById('agent-target-ip');
+  if (targetIpEl) targetIpEl.innerText = `Target: ${ip}`;
   
   pollAgent(ip);
 }
@@ -891,64 +800,72 @@ async function pollAgent(ip) {
             const agent = result.data;
             
             if (agent.status === 'online') {
-                // container.className = "mb-4 p-4 bg-green-50 border border-green-100 rounded-lg max-w-md mx-auto";
-                statusText.innerText = "Agent 已上线";
-                statusText.parentElement.querySelector('i').className = "fas fa-check-circle text-green-600";
+                if (statusText) {
+                    statusText.innerText = "Agent 已上线";
+                    const icon = statusText.parentElement.querySelector('i');
+                    if (icon) icon.className = "fas fa-check-circle text-green-600";
+                }
                 
                 // Update Stats
                 if (statsDiv) {
                     statsDiv.classList.remove('hidden');
-                    document.getElementById('agent-cpu').innerText = `${agent.cpu_usage.toFixed(1)}%`;
-                    document.getElementById('agent-mem').innerText = `${agent.memory_usage.toFixed(1)}%`;
+                    const cpuEl = document.getElementById('agent-cpu');
+                    const memEl = document.getElementById('agent-mem');
+                    if (cpuEl) cpuEl.innerText = `${agent.cpu_usage.toFixed(1)}%`;
+                    if (memEl) memEl.innerText = `${agent.memory_usage.toFixed(1)}%`;
                 }
 
                 // Update Docker Status
                 if (servicesContainer) {
                     servicesContainer.classList.remove('hidden');
-                    if (agent.docker_status === 'active') {
-                        dockerBadge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700";
-                        dockerBadge.innerText = "DOCKER ACTIVE";
-                    } else {
-                        dockerBadge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700";
-                        dockerBadge.innerText = "DOCKER INACTIVE";
+                    if (dockerBadge) {
+                        if (agent.docker_status === 'active') {
+                            dockerBadge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700";
+                            dockerBadge.innerText = "DOCKER ACTIVE";
+                        } else {
+                            dockerBadge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700";
+                            dockerBadge.innerText = "DOCKER INACTIVE";
+                        }
                     }
 
                     // Update Services
-                    if (agent.services && agent.services.length > 0) {
-                        servicesList.innerHTML = '';
-                        agent.services.forEach(svc => {
-                            const svcEl = document.createElement('div');
-                            svcEl.className = "flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg shadow-sm";
-                            
-                            const isRunning = svc.state === 'running';
-                            const statusColor = isRunning ? 'text-green-500' : 'text-red-500';
-                            
-                            svcEl.innerHTML = `
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-500">
-                                        <i class="fas fa-box text-xs"></i>
+                    if (servicesList) {
+                        if (agent.services && agent.services.length > 0) {
+                            servicesList.innerHTML = '';
+                            agent.services.forEach(svc => {
+                                const svcEl = document.createElement('div');
+                                svcEl.className = "flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg shadow-sm";
+                                
+                                const isRunning = svc.state === 'running';
+                                const statusColor = isRunning ? 'text-green-500' : 'text-red-500';
+                                
+                                svcEl.innerHTML = `
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-500">
+                                            <i class="fas fa-box text-xs"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-bold text-slate-700">${svc.name}</div>
+                                            <div class="text-[10px] text-slate-400 font-mono">${svc.image}</div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <div class="text-sm font-bold text-slate-700">${svc.name}</div>
-                                        <div class="text-[10px] text-slate-400 font-mono">${svc.image}</div>
+                                    <div class="text-right">
+                                        <div class="text-[10px] font-bold ${statusColor} uppercase">${svc.state}</div>
+                                        <div class="text-[10px] text-slate-400">${svc.uptime}</div>
                                     </div>
-                                </div>
-                                <div class="text-right">
-                                    <div class="text-[10px] font-bold ${statusColor} uppercase">${svc.state}</div>
-                                    <div class="text-[10px] text-slate-400">${svc.uptime}</div>
-                                </div>
-                            `;
-                            servicesList.appendChild(svcEl);
-                        });
+                                `;
+                                servicesList.appendChild(svcEl);
+                            });
 
-                        // All verified, redirect to dashboard
-                        clearInterval(interval);
-                        statusText.innerText = "部署验证成功！正在跳转仪表板...";
-                        setTimeout(() => {
-                            window.location.href = '/dashboard';
-                        }, 2000);
-                    } else if (agent.docker_status === 'active') {
-                        servicesList.innerHTML = '<p class="text-xs text-slate-400 italic">尚未检测到目标服务。正在启动中...</p>';
+                            // All verified, redirect to dashboard
+                            clearInterval(interval);
+                            if (statusText) statusText.innerText = "部署验证成功！正在跳转仪表板...";
+                            setTimeout(() => {
+                                window.location.href = '/dashboard';
+                            }, 2000);
+                        } else if (agent.docker_status === 'active') {
+                            servicesList.innerHTML = '<p class="text-xs text-slate-400 italic">尚未检测到目标服务。正在启动中...</p>';
+                        }
                     }
                 }
             }
@@ -960,8 +877,8 @@ async function pollAgent(ip) {
     
     if (attempts >= maxAttempts) {
         clearInterval(interval);
-        statusText.innerText = "Agent connection timed out.";
-        container.className = "mb-4 p-4 bg-red-50 border border-red-100 rounded-lg max-w-md mx-auto";
+        if (statusText) statusText.innerText = "Agent connection timed out.";
+        if (container) container.className = "mb-4 p-4 bg-red-50 border border-red-100 rounded-lg max-w-md mx-auto";
     }
   }, 2000);
 }

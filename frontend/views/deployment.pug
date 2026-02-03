@@ -313,8 +313,88 @@ block content
           .grid.grid-cols-1.gap-6#nodes-grid
             //- Will be populated by JS
             .bg-white.p-12.rounded-2xl.shadow-sm.border.border-slate-100.text-center
-              i.fas.fa-spinner.fa-spin.text-3xl.text-blue-500.mb-4
+              i.fas.fa-spinner.fa-spin.text-3xl.text-blue-50.mb-4
               p.text-slate-500 加载节点状态中...
+
+    //- Templates for JS injection
+    template#node-card-template
+      .node-card.bg-white.rounded-2xl.shadow-sm.border.border-slate-100.overflow-hidden
+        div(class="node-header p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50")
+          .flex.items-center.gap-3
+            .w-10.h-10.rounded-xl.bg-blue-600.text-white.flex.items-center.justify-center
+              i.fas.fa-server
+            .node-info
+              h4.node-ip.font-bold.text-slate-800
+              span(class="node-port text-xs text-slate-400 font-mono")
+          .flex.items-center.gap-3
+            div(class="status-badge px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-400 uppercase") Checking...
+            .flex.gap-1
+              button(type="button" class="agent-start-btn w-8 h-8 rounded-lg bg-white border border-slate-200 text-green-600 hover:bg-green-50 transition flex items-center justify-center" title="Start Agent")
+                i.fas.fa-play.text-xs
+              button(type="button" class="agent-stop-btn w-8 h-8 rounded-lg bg-white border border-slate-200 text-yellow-600 hover:bg-yellow-50 transition flex items-center justify-center" title="Stop Agent")
+                i.fas.fa-stop.text-xs
+        div(class="node-details p-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4")
+          .col-span-full.py-12.text-center
+            i.fas.fa-circle-notch.fa-spin.text-blue-500.mb-2
+            p.text-xs.text-slate-400 Loading node metrics...
+        .node-services.px-6.pb-6
+        .node-footer.px-6.pb-6.border-t.border-slate-50.hidden
+
+    template#service-item-template
+      .service-item.flex.items-center.gap-3.p-3.border.border-slate-100.rounded-lg
+        .w-8.h-8.rounded.bg-slate-50.flex.items-center.justify-center.text-slate-400
+          i.fas.fa-box
+        .flex-1.overflow-hidden
+          .svc-name.text-xs.font-bold.text-slate-700.truncate
+          div(class="svc-uptime text-xs text-slate-400 truncate")
+        .svc-status-dot.w-2.h-2.rounded-full
+
+    template#verification-area-template
+      .mt-6.pt-6.border-t.border-slate-200.text-center
+        h4.text-sm.font-bold.text-slate-700.mb-2 部署进度验证
+        p.text-xs.text-slate-500.mb-4 正在等待节点 Agent 建立连接并上报心跳。成功后将自动跳转至仪表板。
+        
+        #agent-status-container.mb-4.p-4.bg-blue-50.border.border-blue-100.rounded-lg.max-w-md.mx-auto
+          .flex.items-center.justify-center.gap-3
+            i.fas.fa-satellite-dish.fa-spin.text-blue-600
+            span#agent-status-text.text-sm.font-bold.text-blue-800 等待 Agent 心跳...
+          p#agent-target-ip.text-xs.text-blue-600.mt-1 目标地址: ...
+          
+          #agent-stats.hidden.mt-3.grid.grid-cols-2.gap-2.border-t.border-blue-100.pt-2
+            .text-center
+              div(class="text-xs text-blue-400 uppercase") CPU 使用率
+              #agent-cpu.text-sm.font-bold.text-blue-700 - %
+            .text-center
+              div(class="text-xs text-blue-400 uppercase") 内存使用率
+              #agent-mem.text-sm.font-bold.text-blue-700 - %
+
+        #services-status-container.hidden.mt-6.text-left.max-w-2xl.mx-auto
+          .flex.items-center.justify-between.mb-3
+            h5.text-xs.font-bold.text-slate-50.uppercase.tracking-wider 运行中的服务 (Agent 已检测)
+            div(id="docker-badge" class="px-2 py-0.5 rounded text-xs font-bold")
+          #services-list.grid.grid-cols-1.gap-2
+            p.text-xs.text-slate-400.italic 检测服务中...
+
+    template#metric-card-template
+      .p-4.bg-slate-50.rounded-xl.border.border-slate-100
+        .flex.justify-between.items-center.mb-1
+          div(class="metric-label text-xs text-slate-400 font-bold uppercase")
+          div(class="metric-capacity text-xs text-slate-400 font-mono")
+        .metric-value.text-xl.font-bold.text-slate-800
+        .w-full.bg-slate-200.h-1.rounded-full.mt-2
+          .metric-progress.h-1.rounded-full
+
+    template#docker-card-template
+      .p-4.bg-slate-50.rounded-xl.border.border-slate-100
+        .flex.justify-between.items-center.mb-1
+          div(class="text-xs text-slate-400 font-bold uppercase") Docker Engine
+          button(class="docker-fix-btn text-xs text-blue-600 hover:underline font-bold hidden")
+            i.fas.fa-wrench.mr-1
+            | FIX
+        .docker-status.text-sm.font-bold
+        div(class="flex items-center gap-1 mt-1.5 text-slate-400")
+          i(class="fas fa-box text-xs")
+          span(class="text-xs font-medium uppercase") Container Runtime
 
 block scripts
   script(src="/js/deployment.js")

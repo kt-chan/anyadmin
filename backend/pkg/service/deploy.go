@@ -39,6 +39,120 @@ func getBackendDir() string {
 	return ""
 }
 
+func DeployModels(client *ssh.Client) error {
+	backendDir := getBackendDir()
+	if backendDir == "" {
+		cwd, _ := os.Getwd()
+		return fmt.Errorf("could not find backend directory (anyadmin-backend) from %s", cwd)
+	}
+
+	log.Println("[Deploy] Copying and extracting model archives...")
+	localModelDir := filepath.Join(backendDir, "deployments/models")
+	modelFiles, err := os.ReadDir(localModelDir)
+	if err != nil {
+		return fmt.Errorf("failed to read local model directory: %w", err)
+	}
+
+	// Collect tar files from root and one level deep subdirectories
+	var tarFiles []string
+	for _, file := range modelFiles {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".tar") {
+			tarFiles = append(tarFiles, filepath.Join(localModelDir, file.Name()))
+		} else if file.IsDir() {
+			subDir := filepath.Join(localModelDir, file.Name())
+			subEntries, err := os.ReadDir(subDir)
+			if err == nil {
+				for _, sub := range subEntries {
+					if !sub.IsDir() && strings.HasSuffix(sub.Name(), ".tar") {
+						tarFiles = append(tarFiles, filepath.Join(subDir, sub.Name()))
+					}
+				}
+			}
+		}
+	}
+
+	for _, localTarPath := range tarFiles {
+		tarName := filepath.Base(localTarPath)
+		baseName := strings.TrimSuffix(tarName, ".tar")
+
+		// Local paths
+		// Checksum path (expected in the same directory as the tar file)
+		localChecksumPath := filepath.Join(filepath.Dir(localTarPath), baseName+".tar.sha256")
+
+		// Get expected checksum
+		expectedChecksum := ""
+		if checksumData, err := os.ReadFile(localChecksumPath); err == nil {
+			expectedChecksum = strings.Fields(string(checksumData))[0]
+			log.Printf("Expected checksum for %s: %s...", tarName, expectedChecksum[:16])
+		} else {
+			log.Printf("Warning: no checksum file found for %s, skipping verification", tarName)
+		}
+
+		// Copy tar file
+		log.Printf("Copying %s...", tarName)
+		remoteTarPath := "/home/anyadmin/data/model/" + tarName
+		if err := CopyFile(client, localTarPath, remoteTarPath); err != nil {
+			return fmt.Errorf("failed to copy %s: %w", tarName, err)
+		}
+
+		// Set ownership
+		if _, err := ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remoteTarPath)); err != nil {
+			return fmt.Errorf("failed to set ownership for %s: %w", remoteTarPath, err)
+		}
+
+		// Verify checksum on remote
+		if expectedChecksum != "" {
+			log.Printf("Verifying checksum on remote for %s...", tarName)
+			output, err := ExecuteCommand(client, fmt.Sprintf("sha256sum %s | cut -d' ' -f1", remoteTarPath))
+			if err != nil {
+				// Clean up on verification failure
+				ExecuteCommand(client, fmt.Sprintf("rm -f %s", remoteTarPath))
+				return fmt.Errorf("failed to verify checksum for %s: %w", tarName, err)
+			}
+
+			actualChecksum := strings.TrimSpace(output)
+			if actualChecksum != expectedChecksum {
+				// Clean up corrupted file
+				ExecuteCommand(client, fmt.Sprintf("rm -f %s", remoteTarPath))
+				return fmt.Errorf("checksum mismatch for %s", tarName)
+			}
+			log.Printf("Checksum verified for %s", tarName)
+		}
+
+		// Extract tar file
+		remoteExtractDir := "/home/anyadmin/data/model/" + baseName + "/"
+		log.Printf("Extracting %s to %s...", tarName, remoteExtractDir)
+
+		// Create directory
+		if _, err := ExecuteCommand(client, fmt.Sprintf("mkdir -p %s", remoteExtractDir)); err != nil {
+			ExecuteCommand(client, fmt.Sprintf("rm -f %s", remoteTarPath))
+			return fmt.Errorf("failed to create directory %s: %w", remoteExtractDir, err)
+		}
+
+		// Extract
+		if _, err := ExecuteCommand(client, fmt.Sprintf("tar -xf %s -C %s", remoteTarPath, remoteExtractDir)); err != nil {
+			// Clean up on extraction failure
+			ExecuteCommand(client, fmt.Sprintf("rm -rf %s", remoteExtractDir))
+			ExecuteCommand(client, fmt.Sprintf("rm -f %s", remoteTarPath))
+			return fmt.Errorf("failed to extract %s: %w", tarName, err)
+		}
+
+		// Set ownership recursively
+		if _, err := ExecuteCommand(client, fmt.Sprintf("chown -R anyadmin:anyadmin %s", remoteExtractDir)); err != nil {
+			return fmt.Errorf("failed to set ownership for extracted files: %w", err)
+		}
+
+		// Delete tar file
+		if _, err := ExecuteCommand(client, fmt.Sprintf("rm -f %s", remoteTarPath)); err != nil {
+			return fmt.Errorf("failed to delete tar file %s: %w", remoteTarPath, err)
+		}
+
+		log.Printf("Successfully extracted %s to %s", tarName, remoteExtractDir)
+	}
+
+	return nil
+}
+
 // RebuildAgent recompiles the agent for Linux AMD64
 func RebuildAgent() error {
 	backendDir := getBackendDir()
@@ -175,7 +289,7 @@ func installGo(client *ssh.Client) error {
 
 	// 4. Install
 	// Remove old installation and extract new
-	cmd_deploy := fmt.Sprintf("rm -rf %s && tar -C /usr/local -xzf %s", remoteBinGo, remotePath)
+	cmd_deploy := fmt.Sprintf("rm -rf %s && mkdir -p %s && tar -C %s -xzf %s", remoteBinGo, remoteBinGo, remoteBinGo, remotePath)
 	if _, err := ExecuteCommand(client, cmd_deploy); err != nil {
 		return fmt.Errorf("failed to extract Go: %w", err)
 	}
@@ -213,6 +327,8 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 	// Self-contained in user home
 
 	remoteBin := "/home/anyadmin/bin/anyadmin-agent"
+
+	remoteData := "/home/anyadmin/data"
 
 	remoteDataAnything := "/home/anyadmin/data/anythingllm"
 
@@ -293,7 +409,6 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 	log.Println("[Deploy] Copying environment files...")
 	localEnvDir := filepath.Join(backendDir, "deployments/dockers/yaml")
 	envFiles, err := os.ReadDir(localEnvDir)
-	var mergedEnv strings.Builder
 	if err == nil {
 		for _, file := range envFiles {
 			if !file.IsDir() && strings.HasPrefix(file.Name(), ".env") {
@@ -305,11 +420,6 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 				} else {
 					ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remoteEnvPath))
 				}
-
-				// Read for merging into main .env for interpolation
-				content, _ := os.ReadFile(localEnvPath)
-				mergedEnv.Write(content)
-				mergedEnv.WriteString("\n")
 			}
 		}
 
@@ -317,14 +427,19 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 		log.Printf("Warning: failed to read local env directory: %v", err)
 	}
 
+	// copy model binary
+	log.Println("[Deploy] copying model binary...")
+	if err := DeployModels(client); err != nil {
+		return fmt.Errorf("failed to deploy models: %w", err)
+	}
+
 	// Ensure executable and owned by anyadmin
-
 	log.Println("[Deploy] Setting permissions...")
+	ExecuteCommand(client, fmt.Sprintf("chmod +x %s && chown anyadmin:anyadmin %s %s %s", remoteBin, remoteBin, remoteData, remoteConfig))
 
-	ExecuteCommand(client, fmt.Sprintf("chmod +x %s && chown anyadmin:anyadmin %s %s", remoteBin, remoteBin, remoteConfig))
+	log.Println("[Deploy] Override permissions for anythingllm using uid 1000...")
 
-	log.Println("[Deploy] Setting permissions for anythingllm...")
-
+	ExecuteCommand(client, fmt.Sprintf("mkdir -p %s", remoteDataAnything))
 	ExecuteCommand(client, fmt.Sprintf("chown 1000:1000 -R %s", remoteDataAnything))
 
 	// 4. Run Agent

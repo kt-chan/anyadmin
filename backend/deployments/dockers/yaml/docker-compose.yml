@@ -22,8 +22,8 @@ services:
               count: all
               capabilities: [gpu]
     env_file:
-      - ./.env
-      - ./.env-vllm
+      - /home/anyadmin/docker/.env
+      - /home/anyadmin/docker/.env-vllm
 
   anythingllm:
     image: ${ANYTHINGLLM_IMAGE:-mintplexlabs/anythingllm:1.8.5}
@@ -53,5 +53,5 @@ services:
     extra_hosts:
       - host.docker.internal:host-gateway
     env_file:
-      - ./.env
-      - ./.env-anythingllm
+      - /home/anyadmin/docker/.env
+      - /home/anyadmin/docker/.env-anythingllm

@@ -21,8 +21,43 @@
   ],
   "import_tasks": null,
   "backup_records": null,
-  "inference_cfgs": null,
-  "deployment_nodes": null,
+  "inference_cfgs": [
+    {
+      "id": 0,
+      "createdAt": "2026-02-04T12:10:08.7362505+08:00",
+      "updatedAt": "2026-02-04T12:10:08.7362505+08:00",
+      "deletedAt": null,
+      "name": "vllm",
+      "engine": "vLLM",
+      "modelPath": "Qwen3-1.7B",
+      "ip": "172.20.0.10",
+      "port": "8000",
+      "mode": "",
+      "maxConcurrency": 0,
+      "tokenLimit": 0,
+      "batchSize": 0,
+      "gpuMemory": 0
+    },
+    {
+      "id": 0,
+      "createdAt": "2026-02-04T12:10:08.7362505+08:00",
+      "updatedAt": "2026-02-04T12:10:08.7362505+08:00",
+      "deletedAt": null,
+      "name": "anythingllm",
+      "engine": "RAG App",
+      "modelPath": "",
+      "ip": "172.20.0.10",
+      "port": "3001",
+      "mode": "",
+      "maxConcurrency": 0,
+      "tokenLimit": 0,
+      "batchSize": 0,
+      "gpuMemory": 0
+    }
+  ],
+  "deployment_nodes": [
+    "172.20.0.10"
+  ],
   "mgmt_host": "172.20.0.1",
   "mgmt_port": "8080"
 }

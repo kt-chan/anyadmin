@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -205,7 +206,7 @@ func CopyFile(client *ssh.Client, localPath, remotePath string) error {
 	}
 
 	// Use base64 to ensure binary integrity across shell pipes
-	cmd := fmt.Sprintf("mkdir -p %s && base64 -d > %s", filepath.Dir(remotePath), remotePath)
+	cmd := fmt.Sprintf("mkdir -p %s && base64 -d > %s", path.Dir(remotePath), remotePath)
 	
 	go func() {
 		defer stdin.Close()

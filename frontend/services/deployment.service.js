@@ -1,5 +1,7 @@
 const apiClient = require('../utils/apiClient');
 const logger = require('../utils/logger');
+const fs = require('fs').promises;
+const path = require('path');
 
 const deploymentService = {
   // Generate deployment artifacts
@@ -46,14 +48,31 @@ const deploymentService = {
     }
   },
 
-  // Discover models from remote vLLM service
-  discoverModels: async (token, { host, port }) => {
+  // Discover models
+  discoverModels: async (token, { host, port, mode }) => {
     try {
-      const axiosConfig = {
-        headers: { Authorization: `Bearer ${token}` }
-      };
-      const response = await apiClient.post('/api/v1/deploy/vllm-models', { host, port }, axiosConfig);
-      return response.data;
+      if (mode === 'local' || mode === 'new_deployment') {
+        // Local scan
+        const modelsDir = path.join(__dirname, '../../backend/deployments/models');
+        try {
+          const files = await fs.readdir(modelsDir, { withFileTypes: true });
+          const models = files
+            .filter(dirent => dirent.isDirectory())
+            .map(dirent => ({ id: dirent.name }));
+          
+          return { data: models };
+        } catch (err) {
+          logger.error('Error scanning local models:', err);
+          return { data: [] }; // Return empty if dir doesn't exist or error
+        }
+      } else {
+        // Remote vLLM service
+        const axiosConfig = {
+          headers: { Authorization: `Bearer ${token}` }
+        };
+        const response = await apiClient.post('/api/v1/deploy/vllm-models', { host, port }, axiosConfig);
+        return response.data;
+      }
     } catch (error) {
       logger.error('Error discovering models:', error);
       throw error;

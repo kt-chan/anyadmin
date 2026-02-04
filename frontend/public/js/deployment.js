@@ -380,10 +380,14 @@ window.refreshModels = async function(isManual = false) {
   
   if (!hostSelect || !portInput || !modelSelect) return;
 
+  const modeInput = document.querySelector('input[name="mode"]:checked');
+  const mode = modeInput ? modeInput.value : 'new_deployment';
+
   const host = hostSelect.value;
   const port = portInput.value;
 
-  if (!host) {
+  // Only require host if we are connecting to an existing service
+  if (mode === 'integrate_existing' && !host) {
     if(isManual) alert("Please select a target host first.");
     return;
   }
@@ -397,10 +401,11 @@ window.refreshModels = async function(isManual = false) {
   if(btn) btn.classList.add('fa-spin');
 
   try {
+    const payload = { host, port, mode };
     const response = await fetch('/deployment/api/discover-models', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ host, port })
+        body: JSON.stringify(payload)
     });
     
     const result = await response.json();
@@ -415,7 +420,17 @@ window.refreshModels = async function(isManual = false) {
             opt.textContent = model.id; // Use ID as display name
             modelSelect.appendChild(opt);
         });
-        inferenceVerified = true;
+        
+        // For new deployment, finding models locally is enough verification
+        if (mode === 'new_deployment') {
+            inferenceVerified = true;
+        } else {
+            // For integration, we might still require explicit test connection, 
+            // but finding models is a good sign. Let's keep it as verified for now
+            // or rely on explicit test button if strictly required. 
+            // Existing logic allowed model discovery to verify.
+            inferenceVerified = true; 
+        }
     } else {
          const opt = document.createElement('option');
          opt.value = "";
@@ -446,17 +461,24 @@ function initWizard() {
   const hostSelect = document.getElementById('inference-host-select');
   if (hostSelect) {
       hostSelect.addEventListener('change', () => {
-          inferenceVerified = false;
-          validateStep();
-          if (currentStep === 2) refreshModels();
+          // If in integration mode, host change invalidates verification
+          const mode = document.querySelector('input[name="mode"]:checked')?.value;
+          if (mode === 'integrate_existing') {
+              inferenceVerified = false;
+              validateStep();
+              if (currentStep === 2) refreshModels();
+          }
       });
   }
   
   const portInput = document.getElementById('inference-port-input');
   if (portInput) {
       portInput.addEventListener('input', () => {
-          inferenceVerified = false;
-          validateStep();
+          const mode = document.querySelector('input[name="mode"]:checked')?.value;
+          if (mode === 'integrate_existing') {
+            inferenceVerified = false;
+            validateStep();
+          }
       });
   }
 
@@ -489,6 +511,16 @@ function initWizard() {
       });
       // Reset inference verification when mode changes
       inferenceVerified = false;
+      
+      if (!isIntegrate) {
+          // Switched to New Deployment: Auto-refresh to show local models
+          refreshModels();
+      } else {
+          // Switched to Integrate: Clear models
+          const modelSelect = document.getElementById('model-select');
+          if(modelSelect) modelSelect.innerHTML = '<option value="" disabled selected>Select a Model</option>';
+      }
+      
       validateStep();
     });
   });
@@ -509,7 +541,13 @@ function initWizard() {
     form.addEventListener('change', validateStep);
   }
   
-  updateWizardUI(); // Initialize UI state
+  // Initial load
+  updateWizardUI(); 
+  // If default is new deployment, load models immediately
+  const defaultMode = document.querySelector('input[name="mode"]:checked');
+  if (defaultMode && defaultMode.value === 'new_deployment') {
+      refreshModels();
+  }
 }
 
 window.toggleSection = function(id, isChecked) {

@@ -660,29 +660,14 @@ analyze backend/pkg/agent/agent.go and @backend/deployments/dockers/yaml/docker-
 
 *** funcitonal features enrichment Objective ***
 
- 1. analyze @backend/pkg/agent/agent.go and @backend/deployments/dockers/yaml/docker-compose.yml , the handle handleContainerControl section is wrong. you have to cd into /home/anyadmin/docker/ first, and then set --env-file for corresponding section given that env_file section in docker-compose.yaml is not being loaded. you have below error in remote agent:     
- 
-2026/02/04 12:18:41 Background command failed: exit status 1, Output: time="2026-02-04T12:18:41+08:00" level=warning msg="The \"VLLM_MODEL_NAME\" variable is not set. Defaulting to a blank string."
-time="2026-02-04T12:18:41+08:00" level=warning msg="The \"VLLM_MODEL_PATH\" variable is not set. Defaulting to a blank string."
-time="2026-02-04T12:18:41+08:00" level=warning msg="The \"LLM_PROVIDER\" variable is not set. Defaulting to a blank string."
-time="2026-02-04T12:18:41+08:00" level=warning msg="The \"GENERIC_OPEN_AI_BASE_PATH\" variable is not set. Defaulting to a blank string."
-time="2026-02-04T12:18:41+08:00" level=warning msg="The \"GENERIC_OPEN_AI_MODEL_PREF\" variable is not set. Defaulting to a blank string."
-time="2026-02-04T12:18:41+08:00" level=warning msg="The \"GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT\" variable is not set. Defaulting to a blank string."
-time="2026-02-04T12:18:41+08:00" level=warning msg="The \"GENERIC_OPEN_AI_MAX_TOKENS\" variable is not set. Defaulting to a blank string."
-time="2026-02-04T12:18:41+08:00" level=warning msg="The \"GENERIC_OPEN_AI_API_KEY\" variable is not set. Defaulting to a blank string."
-time="2026-02-04T12:18:41+08:00" level=warning msg="The \"VECTOR_DB\" variable is not set. Defaulting to a blank string."
-time="2026-02-04T12:18:41+08:00" level=warning msg="The \"AUTH_TOKEN\" variable is not set. Defaulting to a blank string."
-time="2026-02-04T12:18:41+08:00" level=warning msg="The \"JWT_SECRET\" variable is not set. Defaulting to a blank string."
-time="2026-02-04T12:18:41+08:00" level=warning msg="The \"DISABLE_TELEMETRY\" variable is not set. Defaulting to a blank string."
-time="2026-02-04T12:18:41+08:00" level=warning msg="The \"ANYTHINGLLM_DATA_PATH\" variable is not set. Defaulting to a blank string."
-time="2026-02-04T12:18:41+08:00" level=warning msg="The \"ANYTHINGLLM_DATA_PATH\" variable is not set. Defaulting to a blank string."
-time="2026-02-04T12:18:41+08:00" level=warning msg="The \"ANYTHINGLLM_DATA_PATH\" variable is not set. Defaulting to a blank string."
-invalid spec: :/model: empty section between colons
+ 1. analyze @backend/pkg/agent/agent.go and @backend/deployments/dockers/yaml/docker-compose.yml , the handle handleContainerControl section is wrong. you have to cd into /home/anyadmin/docker/ first, and then set --env-file for corresponding section given that env_file section in docker-compose.yaml is not being loaded. you should set the exec.command in this format to load env_file "docker compose --env-file /home/anyadmin/docker/.env --env-file /home/anyadmin/docker/.env-vllm up -d" for vllm and "docker compose --env-file /home/anyadmin/docker/.env --env-file /home/anyadmin/docker/.env-anythingllm up -d" for anythingllm. 
+ 2. compile @backend/cmd/agent/main.go to @backend/dist/anyadmin-agent, then send to target host at /home/anyadmin/. You should list  target host at /home/anyadmin/ directory and follow the same deployment path.
+ 3. you have stop the remote agent first if it is running, then verfiy the operation of deploy/start/stop container service (vllm / anythingllm) works. and you have to run ssh with passwordless with root user. 
 
 
 **Coding Guide**  
 - this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO.
-- The remote host managed by  @backend/cmd/agent/main.go  is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and passwordless ssh is configured for root. 
+- The remote host managed by  @backend/cmd/agent/main.go  is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and you have to run ssh with passwordless with root user. 
 - You should always deploy agent to this ip  172.20.0.10 with port 9090 for unit test.
 - You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
 - Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.

@@ -11,16 +11,18 @@ import (
 )
 
 var (
-	mgmtURL string
-	nodeIP  string
+	mgmtURL    string
+	nodeIP     string
 	configFile string
-	port    string
+	logFile    string
+	port       string
 )
 
 func init() {
 	flag.StringVar(&mgmtURL, "server", "http://127.0.0.1:8080", "Management Server URL")
 	flag.StringVar(&nodeIP, "ip", "127.0.0.1", "Node IP Address")
 	flag.StringVar(&configFile, "config", "config.json", "Path to config file")
+	flag.StringVar(&logFile, "log", "", "Path to log file")
 	flag.StringVar(&port, "port", "9090", "Agent Server Port")
 }
 
@@ -31,6 +33,7 @@ type Config struct {
 	NodeIP         string `json:"node_ip"`
 	DeploymentTime string `json:"deployment_time"`
 	Port           string `json:"port"`
+	LogFile        string `json:"log_file"`
 }
 
 var deploymentTime string
@@ -64,8 +67,22 @@ func main() {
 		if cfg.Port != "" {
 			port = cfg.Port
 		}
+		if cfg.LogFile != "" && logFile == "" {
+			logFile = cfg.LogFile
+		}
 	} else {
 		log.Printf("Config file %s not found or invalid, using flags or defaults", configFile)
+	}
+
+	// Setup logging if logFile is provided
+	if logFile != "" {
+		f, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			log.Printf("Error opening log file: %v", err)
+		} else {
+			defer f.Close()
+			log.SetOutput(f)
+		}
 	}
 
 	hostname, _ := os.Hostname()

@@ -156,7 +156,7 @@ func getGPUStatus() string {
 				name := strings.TrimSpace(parts[0])
 				util := strings.TrimSpace(parts[1])
 				used := strings.TrimSpace(parts[2])
-			total := strings.TrimSpace(parts[3])
+				total := strings.TrimSpace(parts[3])
 				return fmt.Sprintf("%d x %s | Util: %s%% | Mem: %s/%s MB", cardCount, name, util, used, total)
 			}
 		}
@@ -286,7 +286,7 @@ func ParseDockerPsOutput(output string) []DockerServiceStatus {
 	targets := []string{"vllm", "anysearch", "anyzearch", "anythingllm", "anything-llm", "milvus", "lancedb", "chroma", "pgvector", "mineru"}
 	var services []DockerServiceStatus
 	lines := strings.Split(strings.TrimSpace(output), "\n")
-	
+
 	for _, line := range lines {
 		if line == "" {
 			continue
@@ -371,37 +371,48 @@ func handleContainerControl(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dockerComposeFile := "/home/anyadmin/docker/docker-compose.yaml"
+	workDir := "/home/anyadmin/docker/"
 
-	// Validate docker-compose file existence
-	if _, err := os.Stat(dockerComposeFile); os.IsNotExist(err) {
-		http.Error(w, fmt.Sprintf("docker-compose file not found at %s", dockerComposeFile), http.StatusInternalServerError)
-		return
-	}
+	// Validate working directory existence (optional, but good for debugging)
+	// We assume the directory exists as per the environment setup description.
 
-	var cmd *exec.Cmd
+	var args []string
+	args = append(args, "compose")
 
+	// 1. Always load the base .env
+	args = append(args, "--env-file", "/home/anyadmin/docker/.env")
+
+	// 2. Load service-specific env files
+	args = append(args, "--env-file", "/home/anyadmin/docker/.env-vllm")
+	args = append(args, "--env-file", "/home/anyadmin/docker/.env-anythingllm")
+
+	// 3. Determine command based on action
 	switch req.Action {
 	case "start":
-		cmd = exec.Command("docker", "compose", "-f", dockerComposeFile, "start", req.ContainerName)
+		// Use 'up -d' to ensure env vars and config are applied
+		args = append(args, "up", "-d", req.ContainerName)
 	case "stop":
-		cmd = exec.Command("docker", "compose", "-f", dockerComposeFile, "stop", req.ContainerName)
+		args = append(args, "stop", req.ContainerName)
 	case "restart":
-		cmd = exec.Command("docker", "compose", "-f", dockerComposeFile, "restart", req.ContainerName)
+		// Use 'up -d --force-recreate' to force config reload/env application
+		args = append(args, "up", "-d", "--force-recreate", req.ContainerName)
 	default:
 		http.Error(w, "Unknown action. Supported: start, stop, restart", http.StatusBadRequest)
 		return
 	}
 
-	log.Printf("Executing command in background: %v", cmd.Args)
-	
+	cmdStr := "docker " + strings.Join(args, " ")
+	log.Printf("Executing command in background: %s in %s", cmdStr, workDir)
+
 	// Start command in background
 	go func() {
+		// Use bash -c to execute the full command string for better compatibility and clear logging
+		cmd := exec.Command("bash", "-c", "cd "+workDir+" && "+cmdStr)
 		output, err := cmd.CombinedOutput()
 		if err != nil {
 			log.Printf("Background command failed: %v, Output: %s", err, output)
 		} else {
-			log.Printf("Background command succeeded.")
+			log.Printf("Background command succeeded: %s", output)
 		}
 	}()
 

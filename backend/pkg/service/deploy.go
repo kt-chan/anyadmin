@@ -74,6 +74,16 @@ func DeployModels(client *ssh.Client) error {
 	for _, localTarPath := range tarFiles {
 		tarName := filepath.Base(localTarPath)
 		baseName := strings.TrimSuffix(tarName, ".tar")
+		remoteModelHomePath := "/home/anyadmin/data/model"
+		remoteExtractDir := remoteModelHomePath + "/" + baseName + "/"
+
+		// Check if model already exists on remote
+		checkCmd := fmt.Sprintf("[ -d %s ] && echo \"exists\"", remoteExtractDir)
+		output, err := ExecuteCommand(client, checkCmd)
+		if err == nil && strings.TrimSpace(output) == "exists" {
+			log.Printf("Model %s already exists at %s, skipping copy.", baseName, remoteExtractDir)
+			continue
+		}
 
 		// Local paths
 		// Checksum path (expected in the same directory as the tar file)
@@ -90,7 +100,8 @@ func DeployModels(client *ssh.Client) error {
 
 		// Copy tar file
 		log.Printf("Copying %s...", tarName)
-		remoteTarPath := "/home/anyadmin/data/model/" + tarName
+
+		remoteTarPath := remoteModelHomePath + "/" + tarName
 		if err := CopyFile(client, localTarPath, remoteTarPath); err != nil {
 			return fmt.Errorf("failed to copy %s: %w", tarName, err)
 		}
@@ -120,17 +131,10 @@ func DeployModels(client *ssh.Client) error {
 		}
 
 		// Extract tar file
-		remoteExtractDir := "/home/anyadmin/data/model/" + baseName + "/"
 		log.Printf("Extracting %s to %s...", tarName, remoteExtractDir)
 
-		// Create directory
-		if _, err := ExecuteCommand(client, fmt.Sprintf("mkdir -p %s", remoteExtractDir)); err != nil {
-			ExecuteCommand(client, fmt.Sprintf("rm -f %s", remoteTarPath))
-			return fmt.Errorf("failed to create directory %s: %w", remoteExtractDir, err)
-		}
-
 		// Extract
-		if _, err := ExecuteCommand(client, fmt.Sprintf("tar -xf %s -C %s", remoteTarPath, remoteExtractDir)); err != nil {
+		if _, err := ExecuteCommand(client, fmt.Sprintf("tar -xf %s -C %s", remoteTarPath, remoteModelHomePath)); err != nil {
 			// Clean up on extraction failure
 			ExecuteCommand(client, fmt.Sprintf("rm -rf %s", remoteExtractDir))
 			ExecuteCommand(client, fmt.Sprintf("rm -f %s", remoteTarPath))
@@ -256,51 +260,68 @@ func ensureUser(client *ssh.Client) error {
 }
 
 func installGo(client *ssh.Client) error {
+	const goVersion = "1.25.6"
 	backendDir := getBackendDir()
-	// Source path
-	localPath := filepath.Join(backendDir, "deployments/tars/os/ubuntu/amd64/jammy/go1.25.6.linux-amd64.tar.gz")
-	remotePath := "/tmp/go.tar.gz"
-	remoteBinGo := "/home/anyadmin/bin/go"
+	if backendDir == "" {
+		return fmt.Errorf("could not find backend directory")
+	}
+
+	localTarPath := filepath.Join(backendDir, "deployments/tars/os/ubuntu/amd64/jammy/go"+goVersion+".linux-amd64.tar.gz")
+	remoteTarPath := "/tmp/go.tar.gz"
+	remoteGoHome := "/home/anyadmin/bin/go"
+	remoteInstallDir := fmt.Sprintf("%s/go-%s", remoteGoHome, goVersion)
+	remoteGoBinPath := fmt.Sprintf("%s/go/bin/go", remoteInstallDir)
+
+	// Check if Go is already installed
+	checkCmd := fmt.Sprintf("[ -f %s ] && %s version", remoteGoBinPath, remoteGoBinPath)
+	if output, err := ExecuteCommand(client, checkCmd); err == nil && strings.Contains(output, "go version") {
+		log.Printf("Go %s already installed at %s, skipping installation.", goVersion, remoteInstallDir)
+		return nil
+	}
+
+	log.Printf("Installing Go %s to %s...", goVersion, remoteInstallDir)
 
 	// 1. Calculate local hash
-	localHash, err := calculateHash(localPath)
+	localHash, err := calculateHash(localTarPath)
 	if err != nil {
-		return fmt.Errorf("failed to calc local hash: %w", err)
+		return fmt.Errorf("failed to calculate local hash: %w", err)
 	}
 
 	// 2. Transfer
-	if err := CopyFile(client, localPath, remotePath); err != nil {
+	if err := CopyFile(client, localTarPath, remoteTarPath); err != nil {
 		return fmt.Errorf("failed to transfer Go tarball: %w", err)
 	}
+	// Ensure cleanup of the tarball on the remote host
+	defer ExecuteCommand(client, "rm -f "+remoteTarPath)
 
 	// 3. Verify Remote Hash
-	output, err := ExecuteCommand(client, fmt.Sprintf("sha256sum %s", remotePath))
+	output, err := ExecuteCommand(client, fmt.Sprintf("sha256sum %s", remoteTarPath))
 	if err != nil {
 		return fmt.Errorf("failed to verify remote hash: %w", err)
 	}
-	// Output format: "hash  filename"
-	if len(strings.Fields(output)) == 0 {
+	fields := strings.Fields(output)
+	if len(fields) == 0 {
 		return fmt.Errorf("sha256sum returned empty output")
 	}
-	remoteHash := strings.Fields(output)[0]
-	if remoteHash != localHash {
-		return fmt.Errorf("checksum mismatch: local %s != remote %s", localHash, remoteHash)
+	if fields[0] != localHash {
+		return fmt.Errorf("checksum mismatch: local %s != remote %s", localHash, fields[0])
 	}
 
 	// 4. Install
-	// Remove old installation and extract new
-	cmd_deploy := fmt.Sprintf("rm -rf %s && mkdir -p %s && tar -C %s -xzf %s", remoteBinGo, remoteBinGo, remoteBinGo, remotePath)
-	if _, err := ExecuteCommand(client, cmd_deploy); err != nil {
+	log.Printf("Extracting Go to %s...", remoteInstallDir)
+	extractCmd := fmt.Sprintf("rm -rf %s && mkdir -p %s && tar -C %s -xzf %s", remoteInstallDir, remoteInstallDir, remoteInstallDir, remoteTarPath)
+	if _, err := ExecuteCommand(client, extractCmd); err != nil {
 		return fmt.Errorf("failed to extract Go: %w", err)
 	}
 
-	// Add to PATH (system-wide or for users)
-	// We'll add to /etc/profile.d which loads for all shells
-	cmd_setpath := fmt.Sprintf("echo 'export PATH=$PATH:%s' > /etc/profile.d/go.sh && chmod +x /etc/profile.d/go.sh", remoteBinGo)
-	if _, err := ExecuteCommand(client, cmd_setpath); err != nil {
-		return fmt.Errorf("failed to extract Go: %w", err)
+	// 5. Update PATH (system-wide)
+	remoteGoBinDir := fmt.Sprintf("%s/go/bin", remoteInstallDir)
+	setPathCmd := fmt.Sprintf("echo 'export PATH=$PATH:%s' > /etc/profile.d/go.sh && chmod +x /etc/profile.d/go.sh", remoteGoBinDir)
+	if _, err := ExecuteCommand(client, setPathCmd); err != nil {
+		return fmt.Errorf("failed to update PATH: %w", err)
 	}
 
+	log.Printf("Go %s installed successfully.", goVersion)
 	return nil
 }
 
@@ -340,7 +361,7 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	log.Println("[Deploy] Preparing directories...")
 
-	prepCmd := fmt.Sprintf("mkdir -p /home/anyadmin/bin %s && chown -R anyadmin:anyadmin /home/anyadmin", logDir)
+	prepCmd := fmt.Sprintf("mkdir -p /home/anyadmin/bin %s && chown -R anyadmin:anyadmin /home/anyadmin && chmod 755 %s", logDir, logDir)
 
 	if _, err := ExecuteCommand(client, prepCmd); err != nil {
 
@@ -360,7 +381,7 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	log.Println("[Deploy] Creating config file...")
 
-	configContent := fmt.Sprintf(`{"mgmt_host": "%s", "mgmt_port": "%s", "node_ip": "%s", "deployment_time": "%s"}`,
+	configContent := fmt.Sprintf(`{"mgmt_host": "%s", "mgmt_port": "%s", "node_ip": "%s", "deployment_time": "%s", "log_file": "/home/anyadmin/logs/agent.log"}`,
 
 		mgmtHost, mgmtPort, nodeIP, time.Now().Format(time.RFC3339))
 
@@ -456,7 +477,7 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	log.Println("[Deploy] Starting agent...")
 
-	fullCmd := fmt.Sprintf("runuser -l anyadmin -c 'cd /home/anyadmin/bin && (nohup %s > %s/agent.log 2>&1 < /dev/null &) >/dev/null 2>&1'", remoteBinAbs, logDir)
+	fullCmd := fmt.Sprintf("runuser -l anyadmin -c 'cd /home/anyadmin/bin && (nohup %s -config config.json -log /home/anyadmin/logs/agent.log > /home/anyadmin/logs/agent.log 2>&1 < /dev/null &) >/dev/null 2>&1'", remoteBinAbs)
 
 	if _, err := ExecuteCommand(client, fullCmd); err != nil {
 

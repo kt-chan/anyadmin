@@ -1,6 +1,8 @@
 package service
 
 import (
+	"anyadmin-backend/pkg/global"
+	"anyadmin-backend/pkg/mockdata"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -12,8 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"anyadmin-backend/pkg/mockdata"
-	"anyadmin-backend/pkg/global"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -50,7 +50,7 @@ func RebuildAgent() error {
 	cmd := exec.Command("go", "build", "-o", "./dist/anyadmin-agent", "./cmd/agent/main.go")
 	cmd.Dir = backendDir
 	cmd.Env = append(os.Environ(), "GOOS=linux", "GOARCH=amd64")
-	
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to rebuild agent in %s: %w, output: %s", backendDir, err, output)
@@ -146,6 +146,7 @@ func installGo(client *ssh.Client) error {
 	// Source path
 	localPath := filepath.Join(backendDir, "deployments/tars/os/ubuntu/amd64/jammy/go1.25.6.linux-amd64.tar.gz")
 	remotePath := "/tmp/go.tar.gz"
+	remoteBinGo := "/home/anyadmin/bin/go"
 
 	// 1. Calculate local hash
 	localHash, err := calculateHash(localPath)
@@ -174,15 +175,17 @@ func installGo(client *ssh.Client) error {
 
 	// 4. Install
 	// Remove old installation and extract new
-	cmd := fmt.Sprintf("rm -rf /usr/local/go && tar -C /usr/local -xzf %s", remotePath)
-	if _, err := ExecuteCommand(client, cmd); err != nil {
+	cmd_deploy := fmt.Sprintf("rm -rf %s && tar -C /usr/local -xzf %s", remoteBinGo, remotePath)
+	if _, err := ExecuteCommand(client, cmd_deploy); err != nil {
 		return fmt.Errorf("failed to extract Go: %w", err)
 	}
 
 	// Add to PATH (system-wide or for users)
 	// We'll add to /etc/profile.d which loads for all shells
-	cmd = "echo 'export PATH=$PATH:/usr/local/go/bin' > /etc/profile.d/go.sh && chmod +x /etc/profile.d/go.sh"
-	ExecuteCommand(client, cmd)
+	cmd_setpath := fmt.Sprintf("echo 'export PATH=$PATH:%s' > /etc/profile.d/go.sh && chmod +x /etc/profile.d/go.sh", remoteBinGo)
+	if _, err := ExecuteCommand(client, cmd_setpath); err != nil {
+		return fmt.Errorf("failed to extract Go: %w", err)
+	}
 
 	return nil
 }
@@ -190,8 +193,6 @@ func installGo(client *ssh.Client) error {
 func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) error {
 
 	log.Printf("Deploying agent to %s with Management Server: %s:%s", nodeIP, mgmtHost, mgmtPort)
-
-	
 
 	log.Println("[Deploy] Starting RebuildAgent...")
 
@@ -205,8 +206,6 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	log.Println("[Deploy] RebuildAgent done.")
 
-
-
 	backendDir := getBackendDir()
 
 	localPath := filepath.Join(backendDir, "dist/anyadmin-agent")
@@ -215,11 +214,11 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	remoteBin := "/home/anyadmin/bin/anyadmin-agent"
 
+	remoteDataAnything := "/home/anyadmin/data/anythingllm"
+
 	remoteConfig := "/home/anyadmin/bin/config.json"
 
 	logDir := "/home/anyadmin/logs"
-
-
 
 	// 1. Prepare Directories
 
@@ -233,8 +232,6 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	}
 
-
-
 	// Stop existing agent before copying to avoid "Text file busy"
 
 	log.Println("[Deploy] Stopping existing agent...")
@@ -243,13 +240,11 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	time.Sleep(1 * time.Second) // Give it a moment to release file handle
 
-
-
 	// 2. Create Config File
 
 	log.Println("[Deploy] Creating config file...")
 
-	configContent := fmt.Sprintf(`{"mgmt_host": "%s", "mgmt_port": "%s", "node_ip": "%s", "deployment_time": "%s"}`, 
+	configContent := fmt.Sprintf(`{"mgmt_host": "%s", "mgmt_port": "%s", "node_ip": "%s", "deployment_time": "%s"}`,
 
 		mgmtHost, mgmtPort, nodeIP, time.Now().Format(time.RFC3339))
 
@@ -262,8 +257,6 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 	}
 
 	defer os.Remove(localConfigPath)
-
-
 
 	// 3. Copy Binary, Config, and Docker Compose
 
@@ -281,17 +274,15 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	}
 
-
-
 	// Copy Docker Compose file
 	log.Println("[Deploy] Copying docker-compose...")
 	localComposePath := filepath.Join(backendDir, "deployments/dockers/yaml/docker-compose.yml")
 	remoteComposePath := "/home/anyadmin/docker/docker-compose.yaml"
 	// Ensure directory exists
-	if _, err := ExecuteCommand(client, "mkdir -p /home/anyadmin/docker/env && chown -R anyadmin:anyadmin /home/anyadmin/docker"); err != nil {
+	if _, err := ExecuteCommand(client, "mkdir -p /home/anyadmin/docker && chown -R anyadmin:anyadmin /home/anyadmin/docker"); err != nil {
 		return fmt.Errorf("failed to create docker directory: %w", err)
 	}
-	
+
 	if err := CopyFile(client, localComposePath, remoteComposePath); err != nil {
 		log.Printf("Warning: failed to copy docker-compose.yml: %v", err)
 	} else {
@@ -300,15 +291,15 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	// Copy Environment files
 	log.Println("[Deploy] Copying environment files...")
-	localEnvDir := filepath.Join(backendDir, "deployments/dockers/yaml/env")
+	localEnvDir := filepath.Join(backendDir, "deployments/dockers/yaml")
 	envFiles, err := os.ReadDir(localEnvDir)
 	var mergedEnv strings.Builder
 	if err == nil {
 		for _, file := range envFiles {
-			if !file.IsDir() {
+			if !file.IsDir() && strings.HasPrefix(file.Name(), ".env") {
 				localEnvPath := filepath.Join(localEnvDir, file.Name())
 				// Use path.Join for remote Unix paths
-				remoteEnvPath := "/home/anyadmin/docker/env/" + file.Name()
+				remoteEnvPath := "/home/anyadmin/docker/" + file.Name()
 				if err := CopyFile(client, localEnvPath, remoteEnvPath); err != nil {
 					log.Printf("Warning: failed to copy env file %s: %v", file.Name(), err)
 				} else {
@@ -321,13 +312,7 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 				mergedEnv.WriteString("\n")
 			}
 		}
-		
-		// Create master .env for interpolation
-		localTempEnv := filepath.Join(os.TempDir(), "master.env")
-		os.WriteFile(localTempEnv, []byte(mergedEnv.String()), 0644)
-		CopyFile(client, localTempEnv, "/home/anyadmin/docker/.env")
-		ExecuteCommand(client, "chown anyadmin:anyadmin /home/anyadmin/docker/.env")
-		os.Remove(localTempEnv)
+
 	} else {
 		log.Printf("Warning: failed to read local env directory: %v", err)
 	}
@@ -338,7 +323,9 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	ExecuteCommand(client, fmt.Sprintf("chmod +x %s && chown anyadmin:anyadmin %s %s", remoteBin, remoteBin, remoteConfig))
 
+	log.Println("[Deploy] Setting permissions for anythingllm...")
 
+	ExecuteCommand(client, fmt.Sprintf("chown 1000:1000 -R %s", remoteDataAnything))
 
 	// 4. Run Agent
 
@@ -348,46 +335,25 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	remoteBinAbs := "/home/anyadmin/bin/anyadmin-agent"
 
-	
+	// Wrap in runuser and nohup. Use -c "cd ... && nohup ... > ... < /dev/null &"
 
-		// Wrap in runuser and nohup. Use -c "cd ... && nohup ... > ... < /dev/null &"
+	// Redirecting stdin from /dev/null is crucial for nohup via ssh to not hang
 
-	
+	log.Println("[Deploy] Starting agent...")
 
-		// Redirecting stdin from /dev/null is crucial for nohup via ssh to not hang
+	fullCmd := fmt.Sprintf("runuser -l anyadmin -c 'cd /home/anyadmin/bin && (nohup %s > %s/agent.log 2>&1 < /dev/null &) >/dev/null 2>&1'", remoteBinAbs, logDir)
 
-	
+	if _, err := ExecuteCommand(client, fullCmd); err != nil {
 
-		log.Println("[Deploy] Starting agent...")
+		return fmt.Errorf("failed to execute start command: %w", err)
 
-	
-
-		fullCmd := fmt.Sprintf("runuser -l anyadmin -c 'cd /home/anyadmin/bin && (nohup %s > %s/agent.log 2>&1 < /dev/null &) >/dev/null 2>&1'", remoteBinAbs, logDir)
-
-	
-
-		
-
-	
-
-		if _, err := ExecuteCommand(client, fullCmd); err != nil {
-
-	
-
-			return fmt.Errorf("failed to execute start command: %w", err)
-
-	
-
-		}
+	}
 
 	log.Println("[Deploy] Agent start command sent.")
-
-
 
 	// 5. Verify process started
 
 	log.Printf("Verifying agent start on %s...", nodeIP)
-
 
 	time.Sleep(2 * time.Second)
 	// Use a more robust check that returns a number
@@ -395,7 +361,7 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 	if err != nil {
 		return fmt.Errorf("failed to check agent process: %w", err)
 	}
-	
+
 	count, _ := strconv.Atoi(strings.TrimSpace(countStr))
 	if count == 0 {
 		logTail, _ := ExecuteCommand(client, fmt.Sprintf("tail -n 20 %s/agent.log", logDir))
@@ -435,7 +401,7 @@ func ControlAgent(nodeIP, action string) error {
 	// Run long operations in background
 	go func() {
 		RecordLog(user, "Agent Control", fmt.Sprintf("Initiating %s on agent %s", action, nodeIP), "Info")
-		
+
 		client, err := GetSSHClient(nodeHost, nodePort)
 		if err != nil {
 			msg := fmt.Sprintf("[Agent Control] SSH connection failed to %s: %v", nodeIP, err)
@@ -473,7 +439,7 @@ func ControlAgent(nodeIP, action string) error {
 
 			// Ensure clean start
 			ExecuteCommand(client, "pkill -f anyadmin-agent || true")
-			
+
 			if err := deployAndRunAgent(client, nodeHost, mgmtHost, mgmtPort); err != nil {
 				msg := fmt.Sprintf("[Agent Control] failed to start agent on %s: %v", nodeIP, err)
 				log.Println(msg)
@@ -485,7 +451,7 @@ func ControlAgent(nodeIP, action string) error {
 		case "stop":
 			log.Printf("[Agent Control] Stopping agent on %s", nodeIP)
 			ExecuteCommand(client, "pkill -f anyadmin-agent || true")
-			
+
 			// Verification
 			time.Sleep(1 * time.Second)
 			_, err := ExecuteCommand(client, "pgrep -f anyadmin-agent")
@@ -493,14 +459,14 @@ func ControlAgent(nodeIP, action string) error {
 				log.Printf("[Agent Control] Agent still running on %s, using SIGKILL", nodeIP)
 				ExecuteCommand(client, "pkill -9 -f anyadmin-agent || true")
 			}
-			
+
 			RecordLog(user, "Agent Control", "Stopped agent on "+nodeIP, "Success")
 
 		case "restart":
 			log.Printf("[Agent Control] Restarting agent on %s", nodeIP)
 			ExecuteCommand(client, "pkill -f anyadmin-agent || true")
 			time.Sleep(1 * time.Second)
-			
+
 			mockdata.Mu.Lock()
 			mgmtHost := mockdata.MgmtHost
 			mgmtPort := mockdata.MgmtPort

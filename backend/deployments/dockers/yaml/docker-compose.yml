@@ -6,13 +6,13 @@ services:
     ports:
       - "${VLLM_PORT:-8000}:8000"
     volumes:
-      - ${VLLM_MODEL_PATH}:/model
+      - ${VLLM_MODEL_PATH:-/home/anyadmin/data/model/Qwen3-1.7B}:/model
     entrypoint: python3 -m vllm.entrypoints.openai.api_server
     command: >
       --model /model
-      --max-model-len ${VLLM_MAX_MODEL_LEN}
-      --gpu-memory-utilization ${VLLM_GPU_MEMORY_UTILIZATION}
-      --served-model-name ${VLLM_MODEL_NAME}
+      --max-model-len ${VLLM_MAX_MODEL_LEN:-4096}
+      --gpu-memory-utilization ${VLLM_GPU_MEMORY_UTILIZATION:-0.85}
+      --served-model-name ${VLLM_MODEL_NAME:-Qwen3-1.7B}
       --host 0.0.0.0
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -39,20 +39,20 @@ services:
     environment:
       - SERVER_PORT=${ANYTHINGLLM_PORT:-3001}
       - STORAGE_DIR=${ANYTHINGLLM_STORAGE_DIR:-/app/server/storage}
-      - LLM_PROVIDER=${LLM_PROVIDER}
-      - GENERIC_OPEN_AI_BASE_PATH=${GENERIC_OPEN_AI_BASE_PATH}
-      - GENERIC_OPEN_AI_MODEL_PREF=${GENERIC_OPEN_AI_MODEL_PREF}
-      - GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT=${GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT}
-      - GENERIC_OPEN_AI_MAX_TOKENS=${GENERIC_OPEN_AI_MAX_TOKENS}
-      - GENERIC_OPEN_AI_API_KEY=${GENERIC_OPEN_AI_API_KEY}
-      - VECTOR_DB=${VECTOR_DB}
-      - AUTH_TOKEN=${AUTH_TOKEN}
-      - JWT_SECRET=${JWT_SECRET}
-      - DISABLE_TELEMETRY=${DISABLE_TELEMETRY}
+      - LLM_PROVIDER=${LLM_PROVIDER:-generic-openai}
+      - GENERIC_OPEN_AI_BASE_PATH=${GENERIC_OPEN_AI_BASE_PATH:-http://host.docker.internal:8000/v1}
+      - GENERIC_OPEN_AI_MODEL_PREF=${GENERIC_OPEN_AI_MODEL_PREF:-Qwen3-1.7B}
+      - GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT=${GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT:-4098}
+      - GENERIC_OPEN_AI_MAX_TOKENS=${GENERIC_OPEN_AI_MAX_TOKENS:-2048}
+      - GENERIC_OPEN_AI_API_KEY=${GENERIC_OPEN_AI_API_KEY:-AnyThing0f02d8295easdfadsaQBr0uz3sHAAb}
+      - VECTOR_DB=${VECTOR_DB:-lancedb}
+      - AUTH_TOKEN=${AUTH_TOKEN:-@hwKT1986}
+      - JWT_SECRET=${JWT_SECRET:-677c14ce-49cc-4471-a489-6446f5f6aedb}
+      - DISABLE_TELEMETRY=${DISABLE_TELEMETRY:-true}
     volumes:
-      - ${ANYTHINGLLM_DATA_PATH}/storage:/app/server/storage
-      - ${ANYTHINGLLM_DATA_PATH}/collector/hotdir/:/app/collector/hotdir
-      - ${ANYTHINGLLM_DATA_PATH}/collector/outputs/:/app/collector/outputs
+      - ${ANYTHINGLLM_DATA_PATH:-/home/anyadmin/data/anythingllm}/storage:/app/server/storage
+      - ${ANYTHINGLLM_DATA_PATH:-/home/anyadmin/data/anythingllm}/collector/hotdir/:/app/collector/hotdir
+      - ${ANYTHINGLLM_DATA_PATH:-/home/anyadmin/data/anythingllm}/collector/outputs/:/app/collector/outputs
     ports:
       - "${ANYTHINGLLM_PORT:-3001}:${ANYTHINGLLM_PORT:-3001}"
     extra_hosts:

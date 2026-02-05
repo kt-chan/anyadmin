@@ -73,8 +73,8 @@ const dashboardService = {
           const backendCfg = configResp.data[0];
           inferenceConfig = {
             mode: backendCfg.mode || 'balanced',
-            concurrency: backendCfg.maxConcurrency || 64,
-            tokenLimit: backendCfg.tokenLimit || 8192
+            concurrency: backendCfg.max_num_seqs || 64,
+            tokenLimit: backendCfg.max_model_len || 8192
           };
         }
       } catch (err) {
@@ -116,9 +116,22 @@ const dashboardService = {
   },
 
   saveConfig: async (token, configData) => {
-    logger.info('Saving config', configData);
-    // Mock saving
-    return true;
+    logger.info('Saving config to backend', configData);
+    try {
+      const config = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+
+      // Map the simple frontend data to the backend structure if necessary,
+      // or just send what the backend api.SaveInferenceConfig expects (global.InferenceConfig).
+      // Based on frontend/public/js/dashboard.js, it sends { name, mode }.
+      
+      const response = await apiClient.post('/api/v1/configs/inference', configData, config);
+      return response.data;
+    } catch (error) {
+      logger.error('Error saving config to backend', error);
+      throw error;
+    }
   },
 
   calculateVllmConfig: async (token, data) => {

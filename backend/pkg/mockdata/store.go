@@ -86,6 +86,21 @@ func InitData() {
 		MgmtPort = "8080"
 	}
 
+	if len(InferenceCfgs) == 0 {
+		InferenceCfgs = []global.InferenceConfig{
+			{
+				Name:                 "default",
+				Engine:               "vLLM",
+				ModelName:            "Qwen3-1.7B",
+				Mode:                 "balanced",
+				MaxModelLen:          4096,
+				MaxNumSeqs:           256,
+				MaxNumBatchedTokens:  2048,
+				GpuMemoryUtilization: 0.85,
+			},
+		}
+	}
+
 	SaveToFile()
 }
 

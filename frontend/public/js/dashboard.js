@@ -17,8 +17,38 @@ function updateTokenLimit(value) {
 async function saveConfigAndRestart() {
   const mode = document.getElementById('optimization-mode').value;
   
+  // Find model name from services data
+  const services = window.servicesData || [];
+  const vllmContainer = services.find(s => s.type === 'Container' && 
+    (s.name.toLowerCase().includes('vllm') || s.name.toLowerCase().includes('qwen') || s.name.toLowerCase().includes('llama')));
+  
+  // Prefer the explicit model_name from the suggestion UI if it has been calculated
+  const gpuLabel = document.getElementById('suggestion-gpu');
+  const suggestedModelName = gpuLabel ? gpuLabel.getAttribute('data-model-name') : null;
+  
+  const modelName = suggestedModelName || (vllmContainer && vllmContainer.model_name ? vllmContainer.model_name : (vllmContainer ? vllmContainer.name : 'Qwen3-1.7B'));
+
+  // Extract suggested vLLM parameters if visible
+  const suggestionContent = document.getElementById('suggestion-content');
+  let vllmConfig = {};
+  if (suggestionContent && !document.getElementById('vllm-suggestions').classList.contains('hidden')) {
+    const lines = suggestionContent.querySelectorAll('div');
+    lines.forEach(line => {
+      const labelSpan = line.querySelector('span:first-child');
+      const valueSpan = line.querySelector('.text-white.font-bold');
+      
+      const label = labelSpan ? labelSpan.innerText : '';
+      const value = valueSpan ? valueSpan.innerText : '';
+      
+      if (label.includes('--max-model-len')) vllmConfig.max_model_len = parseInt(value) || 0;
+      if (label.includes('--max-num-seqs')) vllmConfig.max_num_seqs = parseInt(value) || 0;
+      if (label.includes('--max-num-batched-tokens')) vllmConfig.max_num_batched_tokens = parseInt(value) || 0;
+      if (label.includes('--gpu-memory-utilization')) vllmConfig.gpu_memory_utilization = parseFloat(value) || 0;
+    });
+  }
+
   if (confirm(`确定要保存配置(模式: ${mode})并重启服务吗？这会导致服务短暂中断。`)) {
-    console.log('保存配置并重启服务');
+    console.log('保存配置并重启服务', vllmConfig);
     
     try {
       // 1. Save Config
@@ -26,8 +56,10 @@ async function saveConfigAndRestart() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: 'default', // Assuming default model
-          mode: mode
+          name: 'default', // Assuming default model config entry
+          model_name: modelName,
+          mode: mode,
+          ...vllmConfig
         })
       });
 
@@ -352,7 +384,10 @@ async function calculateVllmSuggestions(mode) {
     // Update UI Labels
     const gpuVendor = parseGpuVendor(agent.message || '');
     const modelDisplayName = modelConfig.Name || modelName;
-    if (gpuLabel) gpuLabel.innerText = `${gpuVendor}: ${gpuMemory}GB | Model: ${modelDisplayName}`;
+    if (gpuLabel) {
+      gpuLabel.innerText = `${gpuVendor}: ${gpuMemory}GB | Model: ${modelDisplayName}`;
+      gpuLabel.setAttribute('data-model-name', modelDisplayName);
+    }
     if (hardwareAccelDisplay) hardwareAccelDisplay.innerText = gpuVendor;
 
     // 4. Render from Backend Data

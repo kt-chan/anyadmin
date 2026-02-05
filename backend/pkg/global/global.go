@@ -17,14 +17,17 @@ type InferenceConfig struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deletedAt,omitempty"`
 	Name           string  `gorm:"uniqueIndex" json:"name"`
 	Engine         string  `json:"engine"`
+	ModelName      string  `json:"model_name"`
 	ModelPath      string  `json:"modelPath"`
 	IP             string  `json:"ip"`
 	Port           string  `json:"port"`
 	Mode           string  `json:"mode"` // max_token, max_concurrency, balanced
-	MaxConcurrency int     `json:"maxConcurrency"`
-	TokenLimit     int     `json:"tokenLimit"`
-	BatchSize      int     `json:"batchSize"`
-	GpuMemory      float64 `json:"gpuMemory"`
+	
+	// Unified parameters
+	MaxModelLen         int     `json:"max_model_len"`
+	MaxNumSeqs          int     `json:"max_num_seqs"`
+	MaxNumBatchedTokens int     `json:"max_num_batched_tokens"`
+	GpuMemoryUtilization float64 `json:"gpu_memory_utilization"`
 }
 
 type ImportTask struct {

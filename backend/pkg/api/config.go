@@ -1,11 +1,12 @@
 package api
 
 import (
-	"net/http"
-
 	"anyadmin-backend/pkg/global"
 	"anyadmin-backend/pkg/mockdata"
 	"anyadmin-backend/pkg/service"
+	"fmt"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -29,6 +30,39 @@ func SaveInferenceConfig(c *gin.Context) {
 		mockdata.InferenceCfgs = append(mockdata.InferenceCfgs, config)
 	}
 	mockdata.Mu.Unlock()
+
+	// Trigger Agent update if applicable
+	go func() {
+		// Find agent IP
+		nodeIP := config.IP // Use config.IP if available
+		if nodeIP == "" {
+			// Try to find from known agents
+			agents := service.GetAllAgents()
+			if len(agents) > 0 {
+				nodeIP = agents[0].NodeIP // Fallback to first agent
+			}
+		}
+
+		if nodeIP != "" {
+			agentConfig := make(map[string]string)
+			if config.MaxModelLen > 0 {
+				agentConfig["VLLM_MAX_MODEL_LEN"] = fmt.Sprintf("%d", config.MaxModelLen)
+			}
+			if config.MaxNumSeqs > 0 {
+				agentConfig["VLLM_MAX_NUM_SEQS"] = fmt.Sprintf("%d", config.MaxNumSeqs)
+			}
+			if config.MaxNumBatchedTokens > 0 {
+				agentConfig["VLLM_MAX_NUM_BATCHED_TOKENS"] = fmt.Sprintf("%d", config.MaxNumBatchedTokens)
+			}
+			if config.GpuMemoryUtilization > 0 {
+				agentConfig["VLLM_GPU_MEMORY_UTILIZATION"] = fmt.Sprintf("%.2f", config.GpuMemoryUtilization)
+			}
+
+			if len(agentConfig) > 0 {
+				service.UpdateVLLMConfig(nodeIP, agentConfig, true)
+			}
+		}
+	}()
 
 	username, _ := c.Get("username")
 	service.RecordLog(username.(string), "修改配置", "保存了模型 "+config.Name+" 的推理参数", "Info")

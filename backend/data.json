@@ -29,14 +29,15 @@
       "deletedAt": null,
       "name": "vllm",
       "engine": "vLLM",
+      "model_name": "",
       "modelPath": "Qwen3-1.7B",
       "ip": "172.20.0.10",
       "port": "8000",
       "mode": "",
-      "maxConcurrency": 0,
-      "tokenLimit": 0,
-      "batchSize": 0,
-      "gpuMemory": 0
+      "max_model_len": 0,
+      "max_num_seqs": 0,
+      "max_num_batched_tokens": 0,
+      "gpu_memory_utilization": 0
     },
     {
       "id": 0,
@@ -45,14 +46,15 @@
       "deletedAt": null,
       "name": "anythingllm",
       "engine": "RAG App",
+      "model_name": "",
       "modelPath": "",
       "ip": "172.20.0.10",
       "port": "3001",
       "mode": "",
-      "maxConcurrency": 0,
-      "tokenLimit": 0,
-      "batchSize": 0,
-      "gpuMemory": 0
+      "max_model_len": 0,
+      "max_num_seqs": 0,
+      "max_num_batched_tokens": 0,
+      "gpu_memory_utilization": 0
     }
   ],
   "deployment_nodes": [

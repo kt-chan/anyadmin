@@ -33,3 +33,28 @@ func ControlContainer(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Action triggered successfully"})
 }
+
+type UpdateVLLMConfigRequest struct {
+	NodeIP string            `json:"node_ip" binding:"required"`
+	Config map[string]string `json:"config" binding:"required"`
+}
+
+func UpdateVLLMConfig(c *gin.Context) {
+	var req UpdateVLLMConfigRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	// Always restart for now as per requirement
+	if err := service.UpdateVLLMConfig(req.NodeIP, req.Config, true); err != nil {
+		log.Printf("[Container] Config update failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	username, _ := c.Get("username")
+	service.RecordLog(username.(string), "配置更新", "更新了节点 "+req.NodeIP+" 的 vLLM 配置并重启服务", "Info")
+
+	c.JSON(http.StatusOK, gin.H{"message": "Configuration updated and restart triggered"})
+}

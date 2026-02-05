@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -330,10 +331,17 @@ type ContainerControlResponse struct {
 	Output  string `json:"output"`
 }
 
+type UpdateConfigRequest struct {
+	ContainerName string            `json:"container_name"`
+	Config        map[string]string `json:"config"`
+	Restart       bool              `json:"restart"`
+}
+
 func StartServer(port string) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", handleHealth)
 	mux.HandleFunc("/container/control", handleContainerControl)
+	mux.HandleFunc("/config/update", handleUpdateConfig)
 
 	addr := ":" + port
 	log.Printf("Agent server listening on %s", addr)
@@ -428,4 +436,100 @@ func handleContainerControl(w http.ResponseWriter, r *http.Request) {
 	} else {
 		log.Printf("Response sent successfully.")
 	}
+}
+
+func handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req UpdateConfigRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("Received config update for: %s, Restart: %v", req.ContainerName, req.Restart)
+
+	if req.ContainerName == "" {
+		http.Error(w, "Missing container_name", http.StatusBadRequest)
+		return
+	}
+	
+	// Only support vllm for now as per requirement, but could be generic
+	if req.ContainerName != "vllm" {
+		// Just warning, proceed if file exists
+	}
+
+	envPath := "/home/anyadmin/docker/.env-" + req.ContainerName
+
+	// Read existing file
+	content, err := os.ReadFile(envPath)
+	if err != nil {
+		// If not exists, maybe create? For now, error out if not found
+		if os.IsNotExist(err) {
+			// Try creating basic if needed, or just error
+			log.Printf("Env file %s not found", envPath)
+			// Create empty if not exists
+			content = []byte("")
+		} else {
+			http.Error(w, "Failed to read config file", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	strContent := string(content)
+	
+	// Update keys
+	for key, value := range req.Config {
+		// Simple regex replacement
+		// If key exists, replace it
+		re := regexp.MustCompile(fmt.Sprintf(`(?m)^%s=.*$`, key))
+		if re.MatchString(strContent) {
+			strContent = re.ReplaceAllString(strContent, fmt.Sprintf("%s=%s", key, value))
+		} else {
+			// Append if not exists
+			if len(strContent) > 0 && !strings.HasSuffix(strContent, "\n") {
+				strContent += "\n"
+			}
+			strContent += fmt.Sprintf("%s=%s\n", key, value)
+		}
+	}
+
+	// Write back
+	if err := os.WriteFile(envPath, []byte(strContent), 0644); err != nil {
+		log.Printf("Error writing env file: %v", err)
+		http.Error(w, "Failed to write config file", http.StatusInternalServerError)
+		return
+	}
+
+	msg := "Configuration updated."
+	
+	// Restart if requested
+	if req.Restart {
+		workDir := "/home/anyadmin/docker/"
+		args := []string{"compose", "--env-file", "/home/anyadmin/docker/.env", "--env-file", envPath, "up", "-d", "--force-recreate", req.ContainerName}
+		cmdStr := "docker " + strings.Join(args, " ")
+		log.Printf("Restarting service with command: %s", cmdStr)
+		
+		go func() {
+			cmd := exec.Command("bash", "-c", "cd "+workDir+" && "+cmdStr)
+			output, err := cmd.CombinedOutput()
+			if err != nil {
+				log.Printf("Restart failed: %v, Output: %s", err, output)
+			} else {
+				log.Printf("Restart succeeded: %s", output)
+			}
+		}()
+		msg += " Restart triggered."
+	}
+
+	resp := ContainerControlResponse{
+		Success: true,
+		Message: msg,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }

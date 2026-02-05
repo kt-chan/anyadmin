@@ -126,7 +126,19 @@ const deploymentController = {
 
       }
 
+    },
+
+  // API: Update vLLM Config
+  updateVLLMConfig: async (req, res) => {
+    try {
+      const token = req.session.user?.token;
+      const { node_ip, config } = req.body;
+      const result = await deploymentService.updateVLLMConfig(token, { node_ip, config });
+      res.json({ success: true, data: result });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
     }
+  }
 
   };
 

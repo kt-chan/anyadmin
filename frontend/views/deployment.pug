@@ -324,7 +324,47 @@ block content
         .flex-1.overflow-hidden
           .svc-name.text-xs.font-bold.text-slate-700.truncate
           div(class="svc-uptime text-xs text-slate-400 truncate")
+        button(class="svc-config-btn hidden w-6 h-6 rounded hover:bg-slate-100 text-slate-400 hover:text-blue-600", title="Configure")
+            i.fas.fa-cog.text-xs
         .svc-status-dot.w-2.h-2.rounded-full
+
+    //- vLLM Config Modal
+    #vllm-config-modal(class="fixed inset-0 bg-slate-900/50 hidden z-50 flex items-center justify-center backdrop-blur-sm")
+      .bg-white.rounded-2xl.shadow-2xl.w-full.max-w-lg.overflow-hidden
+        .px-6.py-4.border-b.border-slate-100.flex.justify-between.items-center.bg-slate-50
+          h3.font-bold.text-lg.text-slate-800 
+            i.fas.fa-sliders-h.mr-2.text-blue-600
+            | 模型推理配置 (vLLM)
+          button(onclick="closeVLLMConfigModal()", class="text-slate-400 hover:text-slate-600")
+            i.fas.fa-times
+
+        form#vllm-config-form.p-6.space-y-4
+          input(type="hidden", name="node_ip")
+          
+          div
+            label.block.text-xs.font-bold.text-slate-500.uppercase.mb-1 Max Model Len
+            input(type="number", name="max_model_len", value="4096", class="w-full rounded-lg border-slate-300 text-sm focus:ring-blue-500 focus:border-blue-500")
+            p.text-xs.text-slate-400.mt-1 Context window size.
+
+          div
+            label.block.text-xs.font-bold.text-slate-500.uppercase.mb-1 GPU Memory Utilization
+            input(type="number", step="0.01", min="0.1", max="1.0", name="gpu_memory_utilization", value="0.85", class="w-full rounded-lg border-slate-300 text-sm focus:ring-blue-500 focus:border-blue-500")
+            p.text-xs.text-slate-400.mt-1 Fraction of GPU memory to use (0.0 - 1.0).
+
+          div
+            label.block.text-xs.font-bold.text-slate-500.uppercase.mb-1 Max Num Seqs
+            input(type="number", name="max_num_seqs", value="256", class="w-full rounded-lg border-slate-300 text-sm focus:ring-blue-500 focus:border-blue-500")
+            p.text-xs.text-slate-400.mt-1 Maximum number of sequences per iteration.
+
+          div
+            label.block.text-xs.font-bold.text-slate-500.uppercase.mb-1 Max Num Batched Tokens
+            input(type="number", name="max_num_batched_tokens", value="2048", class="w-full rounded-lg border-slate-300 text-sm focus:ring-blue-500 focus:border-blue-500")
+
+          .pt-4.flex.gap-3
+            button(type="button", onclick="closeVLLMConfigModal()", class="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold text-sm hover:bg-slate-50") Cancel
+            button(type="submit", class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 shadow-lg shadow-blue-200") 
+              i.fas.fa-save.mr-2
+              | 保存配置并重启服务
 
     template#verification-area-template
       .mt-6.pt-6.border-t.border-slate-200.text-center

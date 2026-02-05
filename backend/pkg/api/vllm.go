@@ -19,6 +19,12 @@ type VLLMCalculateRequest struct {
 }
 
 func CalculateVLLMConfig(c *gin.Context) {
+	// Toggle debug mode based on query param
+	if c.Query("debug") == "true" {
+		utils.DebugMode = true
+		defer func() { utils.DebugMode = false }()
+	}
+
 	var req VLLMCalculateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request parameters"})

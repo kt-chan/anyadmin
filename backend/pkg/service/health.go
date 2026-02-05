@@ -10,10 +10,11 @@ import (
 )
 
 type ServiceStatus struct {
-	Name    string  `json:"name"`
-	Type    string  `json:"type"`
-	Status  string  `json:"status"` // Running, Stopped, Error
-	Health  string  `json:"health"` // Healthy, Unhealthy
+	Name      string  `json:"name"`
+	Type      string  `json:"type"`
+	ModelName string  `json:"model_name,omitempty"`
+	Status    string  `json:"status"` // Running, Stopped, Error
+	Health    string  `json:"health"` // Healthy, Unhealthy
 	Uptime  string  `json:"uptime"`
 	CPU     float64 `json:"cpu"`    // 进程 CPU 占用
 	Memory  uint64  `json:"memory"` // 进程内存占用 (Bytes)
@@ -147,13 +148,14 @@ func GetServicesHealth() []ServiceStatus {
 		}
 
 		results = append(results, ServiceStatus{
-			Name:    strings.ToLower(cfg.Name),
-			Type:    "Container",
-			Status:  svcStatus,
-			Health:  svcHealth,
-			Uptime:  svcUptime,
-			Message: svcMsg,
-			NodeIP:  cfg.IP,
+			Name:      strings.ToLower(cfg.Name),
+			Type:      "Container",
+			ModelName: cfg.ModelName,
+			Status:    svcStatus,
+			Health:    svcHealth,
+			Uptime:    svcUptime,
+			Message:   svcMsg,
+			NodeIP:    cfg.IP,
 		})
 	}
 

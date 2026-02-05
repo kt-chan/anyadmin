@@ -124,4 +124,20 @@ func sendAgentRequest(url string, payload interface{}) error {
 	return nil
 }
 
+// UpdateVLLMConfig updates the configuration for vLLM on a remote agent
+func UpdateVLLMConfig(nodeIP string, config map[string]string, restart bool) error {
+	log.Printf("[Agent] UpdateVLLMConfig on %s", nodeIP)
+
+	agentPort := "9090"
+	agentURL := fmt.Sprintf("http://%s:%s/config/update", nodeIP, agentPort)
+
+	payload := map[string]interface{}{
+		"container_name": "vllm",
+		"config":         config,
+		"restart":        restart,
+	}
+
+	return sendAgentRequest(agentURL, payload)
+}
+
 	

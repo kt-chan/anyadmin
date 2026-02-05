@@ -145,12 +145,26 @@ const deploymentService = {
       };
       const response = await apiClient.post('/api/v1/deploy/agent/control', { ip, action }, axiosConfig);
       return response.data;
-        } catch (error) {
-          logger.error(`Error ${action}ing agent on ${ip}:`, error);
-          throw error;
-        }
-      }
-    };
-    
-    module.exports = deploymentService;
+    } catch (error) {
+      logger.error(`Error ${action}ing agent on ${ip}:`, error);
+      throw error;
+    }
+  },
+
+  // Update vLLM Config
+  updateVLLMConfig: async (token, { node_ip, config }) => {
+    try {
+      const axiosConfig = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+      const response = await apiClient.post('/api/v1/services/vllm/config', { node_ip, config }, axiosConfig);
+      return response.data;
+    } catch (error) {
+      logger.error('Error updating vLLM config:', error);
+      throw error;
+    }
+  }
+};
+
+module.exports = deploymentService;
     

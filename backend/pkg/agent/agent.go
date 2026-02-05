@@ -377,14 +377,15 @@ func handleContainerControl(w http.ResponseWriter, r *http.Request) {
 	// We assume the directory exists as per the environment setup description.
 
 	var args []string
+	containerEnv := "/home/anyadmin/docker/.env-" + req.ContainerName
+
 	args = append(args, "compose")
 
 	// 1. Always load the base .env
 	args = append(args, "--env-file", "/home/anyadmin/docker/.env")
 
 	// 2. Load service-specific env files
-	args = append(args, "--env-file", "/home/anyadmin/docker/.env-vllm")
-	args = append(args, "--env-file", "/home/anyadmin/docker/.env-anythingllm")
+	args = append(args, "--env-file", containerEnv)
 
 	// 3. Determine command based on action
 	switch req.Action {

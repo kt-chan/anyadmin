@@ -142,7 +142,7 @@ func DeployModels(client *ssh.Client) error {
 		}
 
 		// Set ownership recursively
-		if _, err := ExecuteCommand(client, fmt.Sprintf("chown -R anyadmin:anyadmin %s", remoteExtractDir)); err != nil {
+		if _, err := ExecuteCommand(client, fmt.Sprintf("chown -R anyadmin:anyadmin %s && chmod -R 755 %s", remoteExtractDir, remoteExtractDir)); err != nil {
 			return fmt.Errorf("failed to set ownership for extracted files: %w", err)
 		}
 

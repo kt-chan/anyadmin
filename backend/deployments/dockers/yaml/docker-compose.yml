@@ -7,7 +7,13 @@ services:
       - "${VLLM_PORT:-8000}:8000"
     volumes:
       - ${VLLM_MODEL_PATH}:/model
-    command: --model /model --max-model-len ${VLLM_MAX_MODEL_LEN:-4096} --gpu-memory-utilization ${VLLM_GPU_MEMORY_UTILIZATION:-0.85} --served-model-name ${VLLM_MODEL_NAME} --host 0.0.0.0
+    entrypoint: python3 -m vllm.entrypoints.openai.api_server
+    command: >
+      --model /model
+      --max-model-len ${VLLM_MAX_MODEL_LEN}
+      --gpu-memory-utilization ${VLLM_GPU_MEMORY_UTILIZATION}
+      --served-model-name ${VLLM_MODEL_NAME}
+      --host 0.0.0.0
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -22,7 +28,6 @@ services:
               count: all
               capabilities: [gpu]
     env_file:
-      - /home/anyadmin/docker/.env
       - /home/anyadmin/docker/.env-vllm
 
   anythingllm:
@@ -53,5 +58,4 @@ services:
     extra_hosts:
       - host.docker.internal:host-gateway
     env_file:
-      - /home/anyadmin/docker/.env
       - /home/anyadmin/docker/.env-anythingllm

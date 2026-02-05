@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"io"
@@ -16,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -182,43 +182,35 @@ func ExecuteCommand(client *ssh.Client, cmd string) (string, error) {
 	return string(output), nil
 }
 
-// CopyFile transfers a local file to the remote host using base64 encoding for reliability
+// CopyFile transfers a local file to the remote host using SFTP
 func CopyFile(client *ssh.Client, localPath, remotePath string) error {
-	f, err := os.Open(localPath)
+	sftpClient, err := sftp.NewClient(client)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create sftp client: %w", err)
 	}
-	defer f.Close()
+	defer sftpClient.Close()
 
-	if _, err := f.Stat(); err != nil {
-		return err
+	// Ensure remote directory exists
+	if err := sftpClient.MkdirAll(path.Dir(remotePath)); err != nil {
+		return fmt.Errorf("failed to create remote directory: %w", err)
 	}
 
-	session, err := client.NewSession()
+	srcFile, err := os.Open(localPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to open local file: %w", err)
 	}
-	defer session.Close()
+	defer srcFile.Close()
 
-	stdin, err := session.StdinPipe()
+	dstFile, err := sftpClient.Create(remotePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create remote file: %w", err)
+	}
+	defer dstFile.Close()
+
+	if _, err := io.Copy(dstFile, srcFile); err != nil {
+		return fmt.Errorf("failed to copy file content: %w", err)
 	}
 
-	// Use base64 to ensure binary integrity across shell pipes
-	cmd := fmt.Sprintf("mkdir -p %s && base64 -d > %s", path.Dir(remotePath), remotePath)
-	
-	go func() {
-		defer stdin.Close()
-		encoder := base64.NewEncoder(base64.StdEncoding, stdin)
-		defer encoder.Close()
-		io.Copy(encoder, f)
-	}()
-
-	if err := session.Run(cmd); err != nil {
-		return fmt.Errorf("failed to copy file: %w", err)
-	}
-	
 	return nil
 }
 

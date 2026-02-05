@@ -93,6 +93,38 @@ func CalculateVLLMConfig(c *gin.Context) {
 		return
 	}
 
+	// 3. Enrich MockData and Save to File
+	if req.NodeIP != "" {
+		mockdata.Mu.Lock()
+		updated := false
+		for i, cfg := range mockdata.InferenceCfgs {
+			if cfg.IP == req.NodeIP {
+				// Only update if current values are zero or "missing"
+				if mockdata.InferenceCfgs[i].MaxModelLen == 0 {
+					mockdata.InferenceCfgs[i].MaxModelLen = vllmConfig.MaxModelLen
+				}
+				if mockdata.InferenceCfgs[i].MaxNumSeqs == 0 {
+					mockdata.InferenceCfgs[i].MaxNumSeqs = vllmConfig.MaxNumSeqs
+				}
+				if mockdata.InferenceCfgs[i].MaxNumBatchedTokens == 0 {
+					mockdata.InferenceCfgs[i].MaxNumBatchedTokens = vllmConfig.MaxNumBatchedTokens
+				}
+				if mockdata.InferenceCfgs[i].GpuMemoryUtilization == 0 {
+					mockdata.InferenceCfgs[i].GpuMemoryUtilization = vllmConfig.GPUMemoryUtil
+				}
+				if mockdata.InferenceCfgs[i].ModelName == "" {
+					mockdata.InferenceCfgs[i].ModelName = modelConfig.Name
+				}
+				updated = true
+				break
+			}
+		}
+		mockdata.Mu.Unlock()
+		if updated {
+			mockdata.SaveToFile()
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"vllm_config":  vllmConfig,
 		"model_config": modelConfig,

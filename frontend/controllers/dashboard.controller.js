@@ -11,7 +11,11 @@ const dashboardController = {
       res.render('dashboard', {
         user: req.session.user,
         page: 'dashboard',
-        ...data
+        metrics: data.metrics,
+        services: data.services,
+        backupInfo: data.backupInfo,
+        config: data.config,
+        auditLogs: data.auditLogs
       });
     } catch (error) {
       logger.error('Error rendering dashboard', error);

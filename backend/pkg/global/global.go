@@ -30,6 +30,17 @@ type InferenceConfig struct {
 	GpuMemoryUtilization float64 `json:"gpu_memory_utilization"`
 }
 
+type RagAppConfig struct {
+	ID        uint `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deletedAt,omitempty"`
+	Name      string `json:"name"`
+	Host      string `json:"host"`
+	Port      string `json:"port"`
+	VectorDB  string `json:"vector_db"`
+}
+
 type ImportTask struct {
 	ID        uint `gorm:"primarykey" json:"id"`
 	CreatedAt time.Time `json:"createdAt"`

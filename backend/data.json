@@ -24,37 +24,32 @@
   "inference_cfgs": [
     {
       "id": 0,
-      "createdAt": "2026-02-05T11:54:04.2171285+08:00",
-      "updatedAt": "2026-02-05T11:54:04.2171285+08:00",
+      "createdAt": "0001-01-01T00:00:00Z",
+      "updatedAt": "2026-02-05T18:00:20.9268841+08:00",
       "deletedAt": null,
       "name": "vllm",
       "engine": "vLLM",
-      "model_name": "",
-      "modelPath": "Qwen3-1.7B",
+      "model_name": "Qwen3-1.7B",
+      "modelPath": "",
       "ip": "172.20.0.10",
       "port": "8000",
-      "mode": "",
-      "max_model_len": 0,
-      "max_num_seqs": 0,
-      "max_num_batched_tokens": 0,
-      "gpu_memory_utilization": 0
-    },
+      "mode": "max_token",
+      "max_model_len": 15488,
+      "max_num_seqs": 1,
+      "max_num_batched_tokens": 15488,
+      "gpu_memory_utilization": 0.85
+    }
+  ],
+  "rag_app_cfgs": [
     {
       "id": 0,
       "createdAt": "2026-02-05T11:54:04.2171285+08:00",
       "updatedAt": "2026-02-05T11:54:04.2171285+08:00",
       "deletedAt": null,
       "name": "anythingllm",
-      "engine": "RAG App",
-      "model_name": "",
-      "modelPath": "",
-      "ip": "172.20.0.10",
+      "host": "172.20.0.10",
       "port": "3001",
-      "mode": "",
-      "max_model_len": 0,
-      "max_num_seqs": 0,
-      "max_num_batched_tokens": 0,
-      "gpu_memory_utilization": 0
+      "vector_db": "lancedb"
     }
   ],
   "deployment_nodes": [

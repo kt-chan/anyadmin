@@ -3,7 +3,9 @@ package api
 import (
 	"log"
 	"net/http"
+	"strconv"
 
+	"anyadmin-backend/pkg/mockdata"
 	"anyadmin-backend/pkg/service"
 	"github.com/gin-gonic/gin"
 )
@@ -44,6 +46,45 @@ func UpdateVLLMConfig(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
+	}
+
+	// Persist to mockdata (and file)
+	mockdata.Mu.Lock()
+	updated := false
+	for i, cfg := range mockdata.InferenceCfgs {
+		if cfg.IP == req.NodeIP { // Assuming one config per IP for now, or use name if available
+			if val, ok := req.Config["VLLM_MAX_MODEL_LEN"]; ok {
+				if v, err := strconv.Atoi(val); err == nil {
+					mockdata.InferenceCfgs[i].MaxModelLen = v
+				}
+			}
+			if val, ok := req.Config["VLLM_GPU_MEMORY_UTILIZATION"]; ok {
+				if v, err := strconv.ParseFloat(val, 64); err == nil {
+					mockdata.InferenceCfgs[i].GpuMemoryUtilization = v
+				}
+			}
+			if val, ok := req.Config["VLLM_MAX_NUM_SEQS"]; ok {
+				if v, err := strconv.Atoi(val); err == nil {
+					mockdata.InferenceCfgs[i].MaxNumSeqs = v
+				}
+			}
+			if val, ok := req.Config["VLLM_MAX_NUM_BATCHED_TOKENS"]; ok {
+				if v, err := strconv.Atoi(val); err == nil {
+					mockdata.InferenceCfgs[i].MaxNumBatchedTokens = v
+				}
+			}
+			updated = true
+			break
+		}
+	}
+
+	if updated {
+		mockdata.Mu.Unlock()
+		if err := mockdata.SaveToFile(); err != nil {
+			log.Printf("[Container] Failed to save config to file: %v", err)
+		}
+	} else {
+		mockdata.Mu.Unlock()
 	}
 
 	// Always restart for now as per requirement

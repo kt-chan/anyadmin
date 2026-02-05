@@ -14,6 +14,7 @@ var (
 	ImportTasks   []global.ImportTask
 	BackupRecords []global.BackupRecord
 	InferenceCfgs []global.InferenceConfig
+	RagAppCfgs    []global.RagAppConfig
 
 	// Deployment Nodes
 	DeploymentNodes []string
@@ -53,6 +54,7 @@ type DataStore struct {
 	ImportTasks     []global.ImportTask      `json:"import_tasks"`
 	BackupRecords   []global.BackupRecord    `json:"backup_records"`
 	InferenceCfgs   []global.InferenceConfig `json:"inference_cfgs"`
+	RagAppCfgs      []global.RagAppConfig    `json:"rag_app_cfgs"`
 	DeploymentNodes []string                 `json:"deployment_nodes"`
 	MgmtHost        string                   `json:"mgmt_host"`
 	MgmtPort        string                   `json:"mgmt_port"`
@@ -101,6 +103,17 @@ func InitData() {
 		}
 	}
 
+	if len(RagAppCfgs) == 0 {
+		RagAppCfgs = []global.RagAppConfig{
+			{
+				Name:     "anythingllm",
+				Host:     "172.20.0.10",
+				Port:     "3001",
+				VectorDB: "lancedb",
+			},
+		}
+	}
+
 	SaveToFile()
 }
 
@@ -113,6 +126,7 @@ func SaveToFile() error {
 		ImportTasks:     ImportTasks,
 		BackupRecords:   BackupRecords,
 		InferenceCfgs:   InferenceCfgs,
+		RagAppCfgs:      RagAppCfgs,
 		DeploymentNodes: DeploymentNodes,
 		MgmtHost:        MgmtHost,
 		MgmtPort:        MgmtPort,
@@ -149,6 +163,7 @@ func LoadFromFile() error {
 	ImportTasks = data.ImportTasks
 	BackupRecords = data.BackupRecords
 	InferenceCfgs = data.InferenceCfgs
+	RagAppCfgs = data.RagAppCfgs
 	DeploymentNodes = data.DeploymentNodes
 	MgmtHost = data.MgmtHost
 	MgmtPort = data.MgmtPort

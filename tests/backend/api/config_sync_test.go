@@ -1,0 +1,103 @@
+package api_test
+
+import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"testing"
+
+	"anyadmin-backend/pkg/api"
+	"anyadmin-backend/pkg/global"
+	"anyadmin-backend/pkg/mockdata"
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+)
+
+func setupConfigRouter() *gin.Engine {
+	r := gin.Default()
+	// Mock Auth Middleware
+	r.Use(func(c *gin.Context) {
+		c.Set("username", "testuser")
+		c.Next()
+	})
+	r.POST("/api/v1/services/vllm/config", api.UpdateVLLMConfig)
+	return r
+}
+
+func TestUpdateVLLMConfigPersistence(t *testing.T) {
+	// Setup temporary data file
+	tmpFile, err := os.CreateTemp("", "data_test_*.json")
+	assert.NoError(t, err)
+	defer os.Remove(tmpFile.Name())
+
+	// Initialize mockdata with known state
+	mockdata.DataFile = tmpFile.Name()
+	mockdata.InferenceCfgs = []global.InferenceConfig{
+		{
+			Name:                 "vllm",
+			IP:                   "172.20.0.10",
+			MaxModelLen:          2048,
+			GpuMemoryUtilization: 0.8,
+			MaxNumSeqs:           128,
+			MaxNumBatchedTokens:  1024,
+		},
+	}
+	// Save initial state
+	err = mockdata.SaveToFile()
+	assert.NoError(t, err)
+
+	router := setupConfigRouter()
+
+	// Prepare request
+	payload := map[string]interface{}{
+		"node_ip": "172.20.0.10",
+		"config": map[string]string{
+			"VLLM_MAX_MODEL_LEN":          "4096",
+			"VLLM_GPU_MEMORY_UTILIZATION": "0.95",
+			"VLLM_MAX_NUM_SEQS":           "256",
+			"VLLM_MAX_NUM_BATCHED_TOKENS": "2048",
+		},
+	}
+	jsonValue, _ := json.Marshal(payload)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/api/v1/services/vllm/config", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+
+	// Execute
+	router.ServeHTTP(w, req)
+
+	// Check Response
+	// Note: We expect 200 if agent succeeds, or 500 if agent fails.
+	// But valid persistence is our main goal here.
+	// Even if it returns 500 (due to network/agent), we check if mockdata is updated.
+	// t.Logf("Response Code: %d", w.Code)
+	// t.Logf("Response Body: %s", w.Body.String())
+
+	// Verify Mockdata Update
+	assert.Equal(t, 4096, mockdata.InferenceCfgs[0].MaxModelLen)
+	assert.Equal(t, 0.95, mockdata.InferenceCfgs[0].GpuMemoryUtilization)
+	assert.Equal(t, 256, mockdata.InferenceCfgs[0].MaxNumSeqs)
+	assert.Equal(t, 2048, mockdata.InferenceCfgs[0].MaxNumBatchedTokens)
+
+	// Verify File Persistence
+	content, err := os.ReadFile(tmpFile.Name())
+	assert.NoError(t, err)
+	
+	var data mockdata.DataStore
+	err = json.Unmarshal(content, &data)
+	assert.NoError(t, err)
+	
+	found := false
+	for _, cfg := range data.InferenceCfgs {
+		if cfg.Name == "vllm" {
+			assert.Equal(t, 4096, cfg.MaxModelLen)
+			assert.Equal(t, 0.95, cfg.GpuMemoryUtilization)
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "Config should be found in file")
+}

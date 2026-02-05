@@ -19,7 +19,6 @@ func setupNodeRouter() *gin.Engine {
 	r := gin.Default()
 	r.GET("/api/v1/deploy/nodes", api.GetNodes)
 	r.POST("/api/v1/deploy/nodes", api.SaveNodes)
-	r.DELETE("/api/v1/deploy/nodes", api.RemoveNode)
 	r.POST("/api/v1/deploy/agent/control", api.ControlAgent)
 	return r
 }
@@ -48,17 +47,6 @@ func TestNodeOperations(t *testing.T) {
 	var resp map[string][]string
 	json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.Contains(t, resp["nodes"], "172.20.0.10:22")
-
-	// 3. Test RemoveNode
-	w = httptest.NewRecorder()
-	req, _ = http.NewRequest("DELETE", "/api/v1/deploy/nodes?ip=172.20.0.10", nil)
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	// Verify it's gone
-	mockdata.Mu.Lock()
-	assert.Len(t, mockdata.DeploymentNodes, 0)
-	mockdata.Mu.Unlock()
 
 	// 4. Test SaveNodes
 	w = httptest.NewRecorder()

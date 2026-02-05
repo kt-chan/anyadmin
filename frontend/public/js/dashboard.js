@@ -353,7 +353,16 @@ async function calculateVllmSuggestions(mode) {
   }
 
   // 2. Prepare API Request
-  const modelName = vllmContainer ? vllmContainer.name : 'Qwen3-1.7B'; // Default if not found
+  // Use model_name from container if available, otherwise check if container name is generic
+  let modelName = 'Qwen3-1.7B';
+  if (vllmContainer) {
+    if (vllmContainer.model_name && vllmContainer.model_name !== "") {
+      modelName = vllmContainer.model_name;
+    } else if (!vllmContainer.name.toLowerCase().includes('vllm')) {
+      // If name is not just "vllm", it might be the model name (e.g. "qwen3-1.7b")
+      modelName = vllmContainer.name;
+    }
+  }
   const nodeIP = agent.node_ip;
 
   try {

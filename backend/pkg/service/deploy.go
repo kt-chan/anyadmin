@@ -386,9 +386,9 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	config := map[string]interface{}{
 		"mgmt_host":       mgmtHost,
-		"mgmt_port":       mgmtPort, // Can be string or int
+		"mgmt_port":       mgmtPort,
 		"node_ip":         nodeIP,
-		"node_port":       nodePort, // Can be string or int
+		"node_port":       nodePort,
 		"deployment_time": time.Now().Format(time.RFC3339),
 		"log_file":        "/home/anyadmin/logs/agent.log",
 	}

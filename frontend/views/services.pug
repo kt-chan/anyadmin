@@ -243,15 +243,11 @@ block content
         .space-y-4
           div
             label(class="block text-xs font-bold text-slate-700 mb-1") 存储目录 (Storage Dir)
-            input(type="text", name="storage_dir", class="w-full border rounded p-2 text-sm")
+            input(type="text", name="storage_dir", class="w-full border rounded p-2 text-sm bg-slate-50", readonly)
           
-          .grid.grid-cols-2.gap-4
-            div
-              label(class="block text-xs font-bold text-slate-700 mb-1") LLM 提供商
-              input(type="text", name="llm_provider", class="w-full border rounded p-2 text-sm")
-            div
-              label(class="block text-xs font-bold text-slate-700 mb-1") 向量数据库
-              input(type="text", name="vector_db", class="w-full border rounded p-2 text-sm")
+          div
+            label(class="block text-xs font-bold text-slate-700 mb-1") LLM 提供商
+            input(type="text", name="llm_provider", class="w-full border rounded p-2 text-sm")
           
           div
             label(class="block text-xs font-bold text-slate-700 mb-1") OpenAI 基础路径 (vLLM 地址)
@@ -272,6 +268,11 @@ block content
             div
               label(class="block text-xs font-bold text-slate-700 mb-1") 最大生成 Tokens
               input(type="number", name="generic_openai_max_tokens", class="w-full border rounded p-2 text-sm")
+        
+          .grid.grid-cols-1.gap-4
+            div
+              label(class="block text-xs font-bold text-slate-700 mb-1") 向量数据库
+              input(type="text", name="vector_db", class="w-full border rounded p-2 text-sm")
 
         .mt-8.pt-6.border-t.flex.justify-end.gap-3
           button(type="button", onclick="hideModal('ragConfigModal')", class="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg") 取消

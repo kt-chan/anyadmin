@@ -165,6 +165,33 @@ func DeployService(c *gin.Context) {
 	}
 
 	addOrUpdateRagCfg := func(nodeIP string, newCfg global.RagAppConfig) {
+		// Apply defaults from .env-anythingllm if missing
+		if newCfg.StorageDir == "" {
+			newCfg.StorageDir = "/app/server/storage"
+		}
+		if newCfg.LLMProvider == "" {
+			newCfg.LLMProvider = "generic-openai"
+		}
+		if newCfg.GenericOpenAIBasePath == "" {
+			newCfg.GenericOpenAIBasePath = "http://host.docker.internal:8000/v1"
+		}
+		if newCfg.GenericOpenAIModelPref == "" {
+			newCfg.GenericOpenAIModelPref = "Qwen3-1.7B"
+		}
+		if newCfg.GenericOpenAIModelTokenLimit == 0 {
+			newCfg.GenericOpenAIModelTokenLimit = 4098
+		}
+		if newCfg.GenericOpenAIMaxTokens == 0 {
+			newCfg.GenericOpenAIMaxTokens = 2048
+		}
+		// Hardcoded key from env
+		if newCfg.GenericOpenAIKey == "" {
+			newCfg.GenericOpenAIKey = "REPLACE_THIS_WITH_YOUR_ACTUAL_KEY"
+		}
+		if newCfg.VectorDB == "" {
+			newCfg.VectorDB = "lancedb"
+		}
+
 		for i, node := range mockdata.DeploymentNodes {
 			if node.NodeIP == nodeIP {
 				// Check if exists

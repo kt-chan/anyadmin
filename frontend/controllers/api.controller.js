@@ -204,6 +204,17 @@ const apiController = {
         } catch (err) {
             return response.error(res, '保存推理配置失败', 500, err);
         }
+    },
+
+    // 保存 RAG 配置 (AnythingLLM)
+    saveRagConfig: async (req, res) => {
+        try {
+            const token = req.session.user?.token;
+            await servicesService.saveRagConfig(req.body, token);
+            return response.success(res, {}, 'RAG配置已保存');
+        } catch (err) {
+            return response.error(res, '保存RAG配置失败', 500, err);
+        }
     }
 };
 

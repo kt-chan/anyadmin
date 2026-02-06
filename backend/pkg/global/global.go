@@ -51,8 +51,6 @@ type RagAppConfig struct {
 	GenericOpenAIModelTokenLimit int    `json:"generic_openai_model_token_limit"`
 	GenericOpenAIMaxTokens       int    `json:"generic_openai_max_tokens"`
 	GenericOpenAIKey             string `json:"generic_openai_api_key"`
-	AuthToken                    string `json:"auth_token"`
-	JWTSecret                    string `json:"jwt_secret"`
 	VectorDB                     string `json:"vector_db"`
 }
 

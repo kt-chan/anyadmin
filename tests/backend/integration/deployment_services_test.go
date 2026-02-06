@@ -27,7 +27,7 @@ func TestMain(m *testing.M) {
 				{Name: "vllm", Engine: "vLLM", ModelName: "Qwen3-Test"},
 			},
 			RagAppCfgs: []global.RagAppConfig{
-				{Name: "anythingllm"},
+				{Name: "anythingllm", Host: "172.20.0.10"},
 			},
 		},
 	}
@@ -140,6 +140,10 @@ func TestConfigSaveAndRestartFlow(t *testing.T) {
 		c.Set("username", "admin")
 		api.SaveInferenceConfig(c)
 	})
+	router.POST("/api/v1/configs/rag", func(c *gin.Context) {
+		c.Set("username", "admin")
+		api.SaveRagAppConfig(c)
+	})
 	router.POST("/api/v1/container/control", func(c *gin.Context) {
 		c.Set("username", "admin")
 		api.ControlContainer(c)
@@ -181,5 +185,35 @@ func TestConfigSaveAndRestartFlow(t *testing.T) {
 		
 		router.ServeHTTP(wRestart, reqRestart)
 		assert.Equal(t, http.StatusOK, wRestart.Code, "Restart should return 200")
+	})
+
+	t.Run("SaveConfigAndRestartAnythingLLM", func(t *testing.T) {
+		// 1. Save Config for AnythingLLM
+		configPayload := global.RagAppConfig{
+			Name: "anythingllm",
+			Host: targetIP,
+			LLMProvider: "generic-openai-updated",
+		}
+		body, _ := json.Marshal(configPayload)
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/api/v1/configs/rag", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code, "Save RAG config should return 200")
+		
+		// 2. Explicit Restart
+		controlPayload := map[string]interface{}{
+			"name":           "anythingllm",
+			"action":         "restart",
+			"node_ip":        targetIP,
+		}
+		bodyRestart, _ := json.Marshal(controlPayload)
+		wRestart := httptest.NewRecorder()
+		reqRestart, _ := http.NewRequest("POST", "/api/v1/container/control", bytes.NewBuffer(bodyRestart))
+		reqRestart.Header.Set("Content-Type", "application/json")
+		
+		router.ServeHTTP(wRestart, reqRestart)
+		assert.Equal(t, http.StatusOK, wRestart.Code, "Restart AnythingLLM should return 200")
 	})
 }

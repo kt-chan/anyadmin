@@ -257,106 +257,107 @@ document.addEventListener('DOMContentLoaded', () => {
         showModal('ragConfigModal');
     }
 
-    // Save Handlers for Modals
-    // vLLM Save
-    const vllmForm = document.getElementById('vllmConfigForm');
-    if (vllmForm) {
-        vllmForm.addEventListener('submit', async (e) => {
+    // --- Shared Save & Restart Logic ---
+    async function saveConfigAndRestart(formId, apiUrl, payloadBuilder, modalId, serviceType) {
+        const form = document.getElementById(formId);
+        if (!form) return;
+
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const formData = new FormData(vllmForm);
-            const data = Object.fromEntries(formData.entries());
-            // convert numbers
-            data.max_model_len = parseInt(data.max_model_len);
-            data.max_num_seqs = parseInt(data.max_num_seqs);
-            data.max_num_batched_tokens = parseInt(data.max_num_batched_tokens);
-            data.gpu_memory_utilization = parseFloat(data.gpu_memory_utilization);
-            data.gpu_utilization = data.gpu_memory_utilization; // Map to expected backend field
-            data.gpu_memory_size = parseFloat(data.gpu_memory_size);
-            data.mode = data.optimization_mode;
-            data.ip = data.node_ip; // Backend expects IP
+            const formData = new FormData(form);
+            const rawData = Object.fromEntries(formData.entries());
+            
+            // Build payload (custom logic per form)
+            let data;
+            try {
+                data = payloadBuilder(rawData);
+            } catch (err) {
+                showToast('Error', 'Invalid form data: ' + err.message, 'error');
+                return;
+            }
+
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerText;
+            submitBtn.disabled = true;
 
             try {
-                const res = await fetch('/api/v1/configs/inference', {
+                // 1. Save Config
+                const res = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
-                if (res.ok) {
-                    // Config saved, now restart service
-                    // We need to use the restartService function available in scope
-                    // serviceName is data.name, nodeIP is data.ip, type is 'Container' for vLLM
-                    
-                    // Show immediate feedback
-                    const submitBtn = vllmForm.querySelector('button[type="submit"]');
-                    const originalText = submitBtn.innerText;
-                    submitBtn.innerText = '正在重启服务...';
-                    submitBtn.disabled = true;
-
-                    try {
-                        const restartRes = await fetch('/api/service/restart', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                name: data.name,
-                                node_ip: data.ip,
-                                type: 'Container'
-                            })
-                        });
-
-                        if (restartRes.ok) {
-                             showToast('Success', '配置已保存并触发服务重启', 'success');
-                             hideModal('vllmConfigModal');
-                             setTimeout(() => window.location.reload(), 2000);
-                        } else {
-                             throw new Error('Config saved but restart failed');
-                        }
-                    } catch (restartErr) {
-                         showToast('Warning', '配置已保存，但自动重启失败: ' + restartErr.message, 'warning');
-                         hideModal('vllmConfigModal');
-                         setTimeout(() => window.location.reload(), 2000);
-                    }
-                } else {
+                
+                if (!res.ok) {
                     const errData = await res.json();
                     throw new Error(errData.message || 'Failed to save config');
                 }
-            } catch (err) {
-                showToast('Error', err.message, 'error');
-                const submitBtn = vllmForm.querySelector('button[type="submit"]');
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerText = '保存并重启';
-                }
-            }
-        });
-    }
 
-    // RAG Save
-    const ragForm = document.getElementById('ragConfigForm');
-    if (ragForm) {
-        ragForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(ragForm);
-            const data = Object.fromEntries(formData.entries());
-            // convert numbers
-            data.generic_openai_model_token_limit = parseInt(data.generic_openai_model_token_limit);
-            data.generic_openai_max_tokens = parseInt(data.generic_openai_max_tokens);
+                // 2. Restart Service
+                submitBtn.innerText = '正在重启服务...';
+                
+                // Determine restart params
+                // For vLLM: name=data.name, node_ip=data.ip, type='Container'
+                // For RAG: name=data.name, node_ip=data.host, type='Container' (AnythingLLM runs as container too)
+                const restartParams = {
+                    name: data.name,
+                    node_ip: serviceType === 'vLLM' ? data.ip : data.host, // vLLM uses 'ip', RAG uses 'host'
+                    type: 'Container'
+                };
 
-            try {
-                const res = await fetch('/api/v1/configs/rag', {
+                const restartRes = await fetch('/api/service/restart', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(restartParams)
                 });
-                if (res.ok) {
-                    showToast('Success', 'AnythingLLM config saved', 'success');
-                    hideModal('ragConfigModal');
-                    setTimeout(() => window.location.reload(), 1000);
+
+                if (restartRes.ok) {
+                    showToast('Success', '配置已保存并触发服务重启', 'success');
+                    hideModal(modalId);
+                    setTimeout(() => window.location.reload(), 2000);
+                } else {
+                    throw new Error('Config saved but restart failed');
                 }
+
             } catch (err) {
                 showToast('Error', err.message, 'error');
+                submitBtn.innerText = originalText;
+                submitBtn.disabled = false;
             }
         });
     }
+
+    // Initialize vLLM Save Handler
+    saveConfigAndRestart(
+        'vllmConfigForm',
+        '/api/v1/configs/inference',
+        (rawData) => ({
+            ...rawData,
+            max_model_len: parseInt(rawData.max_model_len),
+            max_num_seqs: parseInt(rawData.max_num_seqs),
+            max_num_batched_tokens: parseInt(rawData.max_num_batched_tokens),
+            gpu_memory_utilization: parseFloat(rawData.gpu_memory_utilization),
+            gpu_utilization: parseFloat(rawData.gpu_memory_utilization),
+            gpu_memory_size: parseFloat(rawData.gpu_memory_size),
+            mode: rawData.optimization_mode,
+            ip: rawData.node_ip
+        }),
+        'vllmConfigModal',
+        'vLLM'
+    );
+
+    // Initialize RAG (AnythingLLM) Save Handler
+    saveConfigAndRestart(
+        'ragConfigForm',
+        '/api/v1/configs/rag',
+        (rawData) => ({
+            ...rawData,
+            generic_openai_model_token_limit: parseInt(rawData.generic_openai_model_token_limit),
+            generic_openai_max_tokens: parseInt(rawData.generic_openai_max_tokens)
+        }),
+        'ragConfigModal',
+        'RAG'
+    );
 
     // --- Add Node Logic ---
     window.downloadSSHKey = async function() {

@@ -51,29 +51,40 @@ func UpdateVLLMConfig(c *gin.Context) {
 	// Persist to mockdata (and file)
 	mockdata.Mu.Lock()
 	updated := false
-	for i, cfg := range mockdata.InferenceCfgs {
-		if cfg.IP == req.NodeIP { // Assuming one config per IP for now, or use name if available
-			if val, ok := req.Config["VLLM_MAX_MODEL_LEN"]; ok {
-				if v, err := strconv.Atoi(val); err == nil {
-					mockdata.InferenceCfgs[i].MaxModelLen = v
+	
+	// Iterate DeploymentNodes to find the config
+	for i, node := range mockdata.DeploymentNodes {
+		if node.NodeIP == req.NodeIP {
+			// Find inference config in this node
+			for j, cfg := range node.InferenceCfgs {
+				// Assuming we are updating the first vLLM config or by name if needed.
+				// Since request doesn't specify config name, we assume standard vLLM.
+				// Or check if Engine is vLLM
+				if cfg.Engine == "vLLM" || cfg.Name == "vllm" {
+					if val, ok := req.Config["VLLM_MAX_MODEL_LEN"]; ok {
+						if v, err := strconv.Atoi(val); err == nil {
+							mockdata.DeploymentNodes[i].InferenceCfgs[j].MaxModelLen = v
+						}
+					}
+					if val, ok := req.Config["VLLM_GPU_MEMORY_UTILIZATION"]; ok {
+						if v, err := strconv.ParseFloat(val, 64); err == nil {
+							mockdata.DeploymentNodes[i].InferenceCfgs[j].GpuMemoryUtilization = v
+						}
+					}
+					if val, ok := req.Config["VLLM_MAX_NUM_SEQS"]; ok {
+						if v, err := strconv.Atoi(val); err == nil {
+							mockdata.DeploymentNodes[i].InferenceCfgs[j].MaxNumSeqs = v
+						}
+					}
+					if val, ok := req.Config["VLLM_MAX_NUM_BATCHED_TOKENS"]; ok {
+						if v, err := strconv.Atoi(val); err == nil {
+							mockdata.DeploymentNodes[i].InferenceCfgs[j].MaxNumBatchedTokens = v
+						}
+					}
+					updated = true
+					break
 				}
 			}
-			if val, ok := req.Config["VLLM_GPU_MEMORY_UTILIZATION"]; ok {
-				if v, err := strconv.ParseFloat(val, 64); err == nil {
-					mockdata.InferenceCfgs[i].GpuMemoryUtilization = v
-				}
-			}
-			if val, ok := req.Config["VLLM_MAX_NUM_SEQS"]; ok {
-				if v, err := strconv.Atoi(val); err == nil {
-					mockdata.InferenceCfgs[i].MaxNumSeqs = v
-				}
-			}
-			if val, ok := req.Config["VLLM_MAX_NUM_BATCHED_TOKENS"]; ok {
-				if v, err := strconv.Atoi(val); err == nil {
-					mockdata.InferenceCfgs[i].MaxNumBatchedTokens = v
-				}
-			}
-			updated = true
 			break
 		}
 	}

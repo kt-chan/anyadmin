@@ -21,39 +21,42 @@
   ],
   "import_tasks": null,
   "backup_records": null,
-  "inference_cfgs": [
-    {
-      "id": 0,
-      "createdAt": "0001-01-01T00:00:00Z",
-      "updatedAt": "2026-02-05T18:00:20.9268841+08:00",
-      "deletedAt": null,
-      "name": "vllm",
-      "engine": "vLLM",
-      "model_name": "Qwen3-1.7B",
-      "modelPath": "",
-      "ip": "172.20.0.10",
-      "port": "8000",
-      "mode": "max_token",
-      "max_model_len": 15488,
-      "max_num_seqs": 1,
-      "max_num_batched_tokens": 15488,
-      "gpu_memory_utilization": 0.85
-    }
-  ],
-  "rag_app_cfgs": [
-    {
-      "id": 0,
-      "createdAt": "2026-02-05T11:54:04.2171285+08:00",
-      "updatedAt": "2026-02-05T11:54:04.2171285+08:00",
-      "deletedAt": null,
-      "name": "anythingllm",
-      "host": "172.20.0.10",
-      "port": "3001",
-      "vector_db": "lancedb"
-    }
-  ],
   "deployment_nodes": [
-    "172.20.0.10"
+    {
+      "node_ip": "172.20.0.10",
+      "hostname": "172.20.0.10",
+      "inference_cfgs": [
+        {
+          "id": 0,
+          "createdAt": "2026-02-06T10:30:11.693235+08:00",
+          "updatedAt": "2026-02-06T10:47:17.5678755+08:00",
+          "deletedAt": null,
+          "name": "vllm",
+          "engine": "vLLM",
+          "model_name": "Qwen3-1.7B",
+          "modelPath": "Qwen3-1.7B",
+          "ip": "172.20.0.10",
+          "port": "8000",
+          "mode": "max_concurrency",
+          "max_model_len": 2048,
+          "max_num_seqs": 7,
+          "max_num_batched_tokens": 14336,
+          "gpu_memory_utilization": 0.85
+        }
+      ],
+      "rag_app_cfgs": [
+        {
+          "id": 0,
+          "createdAt": "2026-02-06T10:30:11.693235+08:00",
+          "updatedAt": "2026-02-06T10:30:11.693235+08:00",
+          "deletedAt": null,
+          "name": "anythingllm",
+          "host": "172.20.0.10",
+          "port": "3001",
+          "vector_db": ""
+        }
+      ]
+    }
   ],
   "mgmt_host": "172.20.0.1",
   "mgmt_port": "8080"

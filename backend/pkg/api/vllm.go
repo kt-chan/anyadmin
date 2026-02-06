@@ -59,12 +59,13 @@ func CalculateVLLMConfig(c *gin.Context) {
 	realModelPath := req.ModelName
 	if req.NodeIP != "" {
 		mockdata.Mu.Lock()
-		for _, cfg := range mockdata.InferenceCfgs {
-			if cfg.IP == req.NodeIP {
-				// If we found a config for this node, use its model path
-				// This handles cases where container name is "vllm" but real path is "Qwen/Qwen2.5-7B"
-				if cfg.ModelPath != "" {
-					realModelPath = cfg.ModelPath
+		for _, node := range mockdata.DeploymentNodes {
+			if node.NodeIP == req.NodeIP {
+				for _, cfg := range node.InferenceCfgs {
+					if cfg.ModelPath != "" && (cfg.Engine == "vLLM" || cfg.Name == "vllm" || strings.Contains(strings.ToLower(cfg.Name), "vllm")) {
+						realModelPath = cfg.ModelPath
+						break
+					}
 				}
 				break
 			}
@@ -97,25 +98,29 @@ func CalculateVLLMConfig(c *gin.Context) {
 	if req.NodeIP != "" {
 		mockdata.Mu.Lock()
 		updated := false
-		for i, cfg := range mockdata.InferenceCfgs {
-			if cfg.IP == req.NodeIP {
-				// Only update if current values are zero or "missing"
-				if mockdata.InferenceCfgs[i].MaxModelLen == 0 {
-					mockdata.InferenceCfgs[i].MaxModelLen = vllmConfig.MaxModelLen
+		for i, node := range mockdata.DeploymentNodes {
+			if node.NodeIP == req.NodeIP {
+				for j, cfg := range node.InferenceCfgs {
+					if cfg.Engine == "vLLM" || cfg.Name == "vllm" {
+						if mockdata.DeploymentNodes[i].InferenceCfgs[j].MaxModelLen == 0 {
+							mockdata.DeploymentNodes[i].InferenceCfgs[j].MaxModelLen = vllmConfig.MaxModelLen
+						}
+						if mockdata.DeploymentNodes[i].InferenceCfgs[j].MaxNumSeqs == 0 {
+							mockdata.DeploymentNodes[i].InferenceCfgs[j].MaxNumSeqs = vllmConfig.MaxNumSeqs
+						}
+						if mockdata.DeploymentNodes[i].InferenceCfgs[j].MaxNumBatchedTokens == 0 {
+							mockdata.DeploymentNodes[i].InferenceCfgs[j].MaxNumBatchedTokens = vllmConfig.MaxNumBatchedTokens
+						}
+						if mockdata.DeploymentNodes[i].InferenceCfgs[j].GpuMemoryUtilization == 0 {
+							mockdata.DeploymentNodes[i].InferenceCfgs[j].GpuMemoryUtilization = vllmConfig.GPUMemoryUtil
+						}
+						if mockdata.DeploymentNodes[i].InferenceCfgs[j].ModelName == "" {
+							mockdata.DeploymentNodes[i].InferenceCfgs[j].ModelName = modelConfig.Name
+						}
+						updated = true
+						break
+					}
 				}
-				if mockdata.InferenceCfgs[i].MaxNumSeqs == 0 {
-					mockdata.InferenceCfgs[i].MaxNumSeqs = vllmConfig.MaxNumSeqs
-				}
-				if mockdata.InferenceCfgs[i].MaxNumBatchedTokens == 0 {
-					mockdata.InferenceCfgs[i].MaxNumBatchedTokens = vllmConfig.MaxNumBatchedTokens
-				}
-				if mockdata.InferenceCfgs[i].GpuMemoryUtilization == 0 {
-					mockdata.InferenceCfgs[i].GpuMemoryUtilization = vllmConfig.GPUMemoryUtil
-				}
-				if mockdata.InferenceCfgs[i].ModelName == "" {
-					mockdata.InferenceCfgs[i].ModelName = modelConfig.Name
-				}
-				updated = true
 				break
 			}
 		}

@@ -11,83 +11,90 @@ import (
 var ServerPort string
 
 type InferenceConfig struct {
-	ID        uint `gorm:"primarykey" json:"id"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deletedAt,omitempty"`
-	Name           string  `gorm:"uniqueIndex" json:"name"`
-	Engine         string  `json:"engine"`
-	ModelName      string  `json:"model_name"`
-	ModelPath      string  `json:"modelPath"`
-	IP             string  `json:"ip"`
-	Port           string  `json:"port"`
-	Mode           string  `json:"mode"` // max_token, max_concurrency, balanced
-	
+	Name      string         `gorm:"uniqueIndex" json:"name"`
+	Engine    string         `json:"engine"`
+	ModelName string         `json:"model_name"`
+	ModelPath string         `json:"modelPath"`
+	IP        string         `json:"ip"`
+	Port      string         `json:"port"`
+	Mode      string         `json:"mode"` // max_token, max_concurrency, balanced
+
 	// Unified parameters
-	MaxModelLen         int     `json:"max_model_len"`
-	MaxNumSeqs          int     `json:"max_num_seqs"`
-	MaxNumBatchedTokens int     `json:"max_num_batched_tokens"`
+	MaxModelLen          int     `json:"max_model_len"`
+	MaxNumSeqs           int     `json:"max_num_seqs"`
+	MaxNumBatchedTokens  int     `json:"max_num_batched_tokens"`
 	GpuMemoryUtilization float64 `json:"gpu_memory_utilization"`
 }
 
 type RagAppConfig struct {
-	ID        uint `gorm:"primarykey" json:"id"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deletedAt,omitempty"`
-	Name      string `json:"name"`
-	Host      string `json:"host"`
-	Port      string `json:"port"`
-	VectorDB  string `json:"vector_db"`
+	Name      string         `json:"name"`
+	Host      string         `json:"host"`
+	Port      string         `json:"port"`
+	VectorDB  string         `json:"vector_db"`
+}
+
+type DeploymentNode struct {
+	NodeIP        string            `json:"node_ip"`
+	Hostname      string            `json:"hostname"`
+	InferenceCfgs []InferenceConfig `json:"inference_cfgs"`
+	RagAppCfgs    []RagAppConfig    `json:"rag_app_cfgs"`
 }
 
 type ImportTask struct {
-	ID        uint `gorm:"primarykey" json:"id"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"deletedAt,omitempty"`
-	Name       string `json:"name"`
-	SourceType string `json:"sourceType"`
-	SourcePath string `json:"sourcePath"`
-	Status     string `json:"status"`
-	Progress   int    `json:"progress"`
-	TotalFiles int    `json:"totalFiles"`
-	Processed  int    `json:"processed"`
-	Message    string `json:"message"`
+	ID         uint           `gorm:"primarykey" json:"id"`
+	CreatedAt  time.Time      `json:"createdAt"`
+	UpdatedAt  time.Time      `json:"updatedAt"`
+	DeletedAt  gorm.DeletedAt `gorm:"index" json:"deletedAt,omitempty"`
+	Name       string         `json:"name"`
+	SourceType string         `json:"sourceType"`
+	SourcePath string         `json:"sourcePath"`
+	Status     string         `json:"status"`
+	Progress   int            `json:"progress"`
+	TotalFiles int            `json:"totalFiles"`
+	Processed  int            `json:"processed"`
+	Message    string         `json:"message"`
 }
 
 type BackupRecord struct {
-	ID        uint `gorm:"primarykey" json:"id"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deletedAt,omitempty"`
-	Name    string `json:"name"`
-	Path    string `json:"path"`
-	Size    int64  `json:"size"`
-	Type    string `json:"type"`
-	Status  string `json:"status"`
-	Message string `json:"message"`
+	Name      string         `json:"name"`
+	Path      string         `json:"path"`
+	Size      int64          `json:"size"`
+	Type      string         `json:"type"`
+	Status    string         `json:"status"`
+	Message   string         `json:"message"`
 }
 
 type User struct {
-	ID        uint `gorm:"primarykey" json:"id"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deletedAt,omitempty"`
-	Username string `gorm:"uniqueIndex" json:"username"`
-	Password string `json:"password"`
-	Role     string `json:"role"`
+	Username  string         `gorm:"uniqueIndex" json:"username"`
+	Password  string         `json:"password"`
+	Role      string         `json:"role"`
 }
 
 type OperationLog struct {
-	ID        uint `gorm:"primarykey" json:"id"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deletedAt,omitempty"`
-	Username string `json:"username"`
-	Action   string `json:"action"`
-	Detail   string `json:"detail"`
-	Level    string `json:"level"`
+	Username  string         `json:"username"`
+	Action    string         `json:"action"`
+	Detail    string         `json:"detail"`
+	Level     string         `json:"level"`
 }
 
 type DeploymentConfig struct {

@@ -46,7 +46,7 @@ func GetServicesHealth() []ServiceStatus {
 		Message: "Backend service is operational",
 	})
 
-	// 2. Agents Status (Base on Deployment Configuration)
+	// 2. Agents & Services Status (Base on Deployment Configuration)
 	agents := GetAllAgents()
 	agentMap := make(map[string]AgentStatus)
 	for _, agent := range agents {
@@ -54,19 +54,46 @@ func GetServicesHealth() []ServiceStatus {
 	}
 
 	mockdata.Mu.Lock()
-	nodes := make([]string, len(mockdata.DeploymentNodes))
-	copy(nodes, mockdata.DeploymentNodes)
+	// Copy nodes to avoid holding lock during processing
+	nodes := make([]struct{
+		IP string
+		Hostname string
+		Configs []struct{
+			Name string
+			Engine string
+			ModelName string
+			IP string
+		}
+	}, len(mockdata.DeploymentNodes))
+	
+	for i, n := range mockdata.DeploymentNodes {
+		nodes[i].IP = n.NodeIP
+		nodes[i].Hostname = n.Hostname
+		// Collect all configs (Inference + RAG) into a generic list for checking
+		for _, cfg := range n.InferenceCfgs {
+			nodes[i].Configs = append(nodes[i].Configs, struct{Name, Engine, ModelName, IP string}{
+				Name: cfg.Name, Engine: cfg.Engine, ModelName: cfg.ModelName, IP: cfg.IP,
+			})
+		}
+		for _, cfg := range n.RagAppCfgs {
+			nodes[i].Configs = append(nodes[i].Configs, struct{Name, Engine, ModelName, IP string}{
+				Name: cfg.Name, Engine: "RAG App", ModelName: "", IP: cfg.Host,
+			})
+		}
+	}
 	mockdata.Mu.Unlock()
 
 	for _, node := range nodes {
-		nodeIP := node
-		if strings.Contains(node, ":") {
-			nodeIP = strings.Split(node, ":")[0]
+		nodeIP := node.IP
+		// Handle port in IP if present (legacy safety)
+		if strings.Contains(nodeIP, ":") {
+			nodeIP = strings.Split(nodeIP, ":")[0]
 		}
 
 		agentStatus := "Offline"
 		agentHealth := "Unhealthy"
-		hostname := "Unknown"
+		hostname := node.Hostname
+		if hostname == "" { hostname = "Unknown" }
 		osSpec := "-"
 		gpuStatus := "-"
 		uptime := "-"
@@ -98,65 +125,65 @@ func GetServicesHealth() []ServiceStatus {
 			Message: fmt.Sprintf("Node: %s, OS: %s, GPU: %s", nodeIP, osSpec, gpuStatus),
 			NodeIP:  nodeIP,
 		})
-	}
 
-	// 3. Services from Configuration (The Master List)
-	for _, cfg := range mockdata.InferenceCfgs {
-		svcStatus := "Offline"
-		svcHealth := "Unhealthy"
-		svcUptime := "-"
-		svcMsg := fmt.Sprintf("Node %s has not checked in", cfg.IP)
-		
-		if agent, ok := agentMap[cfg.IP]; ok {
-			agentOnline := time.Since(agent.LastSeen) <= 30*time.Second
+		// 3. Services from Configuration for this Node
+		for _, cfg := range node.Configs {
+			svcStatus := "Offline"
+			svcHealth := "Unhealthy"
+			svcUptime := "-"
+			svcMsg := fmt.Sprintf("Node %s has not checked in", nodeIP)
 			
-			if !agentOnline {
-				svcStatus = "Offline"
-				svcMsg = fmt.Sprintf("Node %s is offline", cfg.IP)
-			} else {
-				svcStatus = "Stopped"
-				svcMsg = fmt.Sprintf("Container not found on node %s", cfg.IP)
+			if agent, ok := agentMap[nodeIP]; ok {
+				agentOnline := time.Since(agent.LastSeen) <= 30*time.Second
 				
-				for _, dockerSvc := range agent.Services {
-					lcDockerName := strings.ToLower(dockerSvc.Name)
-					lcCfgName := strings.ToLower(cfg.Name)
-					lcEngine := strings.ToLower(cfg.Engine)
-
-					// Match if names are similar OR if it's a known engine container
-					isMatch := strings.Contains(lcDockerName, lcCfgName) || strings.Contains(lcCfgName, lcDockerName)
+				if !agentOnline {
+					svcStatus = "Offline"
+					svcMsg = fmt.Sprintf("Node %s is offline", nodeIP)
+				} else {
+					svcStatus = "Stopped"
+					svcMsg = fmt.Sprintf("Container not found on node %s", nodeIP)
 					
-					// Special case: if engine is vLLM, it might be named just "vllm"
-					if !isMatch && (lcEngine == "vllm" || lcEngine == "nvidia") {
-						isMatch = strings.Contains(lcDockerName, "vllm")
-					}
-					// Special case: if engine is MindIE, it might be named "mindie"
-					if !isMatch && (lcEngine == "mindie" || lcEngine == "ascend") {
-						isMatch = strings.Contains(lcDockerName, "mindie")
-					}
+					for _, dockerSvc := range agent.Services {
+						lcDockerName := strings.ToLower(dockerSvc.Name)
+						lcCfgName := strings.ToLower(cfg.Name)
+						lcEngine := strings.ToLower(cfg.Engine)
 
-					if isMatch {
-						if dockerSvc.State == "running" {
-							svcStatus = "Running"
-							svcHealth = "Healthy"
+						// Match if names are similar OR if it's a known engine container
+						isMatch := strings.Contains(lcDockerName, lcCfgName) || strings.Contains(lcCfgName, lcDockerName)
+						
+						// Special case: if engine is vLLM, it might be named just "vllm"
+						if !isMatch && (lcEngine == "vllm" || lcEngine == "nvidia") {
+							isMatch = strings.Contains(lcDockerName, "vllm")
 						}
-						svcUptime = dockerSvc.Uptime
-						svcMsg = fmt.Sprintf("Image: %s, Node: %s", dockerSvc.Image, agent.NodeIP)
-						break
+						// Special case: if engine is MindIE, it might be named "mindie"
+						if !isMatch && (lcEngine == "mindie" || lcEngine == "ascend") {
+							isMatch = strings.Contains(lcDockerName, "mindie")
+						}
+
+						if isMatch {
+							if dockerSvc.State == "running" {
+								svcStatus = "Running"
+								svcHealth = "Healthy"
+							}
+							svcUptime = dockerSvc.Uptime
+							svcMsg = fmt.Sprintf("Image: %s, Node: %s", dockerSvc.Image, agent.NodeIP)
+							break
+						}
 					}
 				}
 			}
-		}
 
-		results = append(results, ServiceStatus{
-			Name:      strings.ToLower(cfg.Name),
-			Type:      "Container",
-			ModelName: cfg.ModelName,
-			Status:    svcStatus,
-			Health:    svcHealth,
-			Uptime:    svcUptime,
-			Message:   svcMsg,
-			NodeIP:    cfg.IP,
-		})
+			results = append(results, ServiceStatus{
+				Name:      strings.ToLower(cfg.Name),
+				Type:      "Container",
+				ModelName: cfg.ModelName,
+				Status:    svcStatus,
+				Health:    svcHealth,
+				Uptime:    svcUptime,
+				Message:   svcMsg,
+				NodeIP:    nodeIP,
+			})
+		}
 	}
 
 	return results

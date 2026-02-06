@@ -18,10 +18,14 @@ type InferenceConfig struct {
 	Name      string         `gorm:"uniqueIndex" json:"name"`
 	Engine    string         `json:"engine"`
 	ModelName string         `json:"model_name"`
-	ModelPath string         `json:"modelPath"`
+	ModelPath string         `json:"model_path"`
 	IP        string         `json:"ip"`
 	Port      string         `json:"port"`
-	Mode      string         `json:"mode"` // max_token, max_concurrency, balanced
+
+	// CalculateConfigParams
+	Mode           string  `json:"mode"` // max_token, max_concurrency, balanced
+	GPUMemoryGB    float64 `json:"gpu_memory_size"`
+	GPUUtilization float64 `json:"gpu_utilization"`
 
 	// Unified parameters
 	MaxModelLen          int     `json:"max_model_len"`
@@ -38,7 +42,7 @@ type RagAppConfig struct {
 	Name      string         `json:"name"`
 	Host      string         `json:"host"`
 	Port      string         `json:"port"`
-	
+
 	// AnythingLLM Specifics
 	StorageDir                   string `json:"storage_dir"`
 	LLMProvider                  string `json:"llm_provider"`

@@ -56,14 +56,14 @@ func CalculateVLLMConfig(c *gin.Context) {
 	// 1.5 Lookup Real Model Path from MockData if available
 	// The frontend might send generic container names like "vllm" or "qwen"
 	// We want the actual model path from our deployment config
-	realModelPath := req.ModelName
+	real_model_path := req.ModelName
 	if req.NodeIP != "" {
 		mockdata.Mu.Lock()
 		for _, node := range mockdata.DeploymentNodes {
 			if node.NodeIP == req.NodeIP {
 				for _, cfg := range node.InferenceCfgs {
 					if cfg.ModelPath != "" && (cfg.Engine == "vLLM" || cfg.Name == "vllm" || strings.Contains(strings.ToLower(cfg.Name), "vllm")) {
-						realModelPath = cfg.ModelPath
+						real_model_path = cfg.ModelPath
 						break
 					}
 				}
@@ -74,7 +74,7 @@ func CalculateVLLMConfig(c *gin.Context) {
 	}
 
 	if !foundAgent {
-		// Log warning but proceed with default or error? 
+		// Log warning but proceed with default or error?
 		// Proceeding allows testing without live agents
 		// c.JSON(http.StatusNotFound, gin.H{"error": "Agent not found or offline"})
 		// return
@@ -82,10 +82,10 @@ func CalculateVLLMConfig(c *gin.Context) {
 
 	// 2. Calculate Config
 	params := utils.CalculateConfigParams{
-		ModelNameOrPath: realModelPath,
+		ModelNameOrPath: real_model_path,
 		GPUMemoryGB:     gpuMemoryGB,
 		Mode:            req.Mode,
-		GPUUtilization:  0.9,
+		GPUUtilization:  0.85,
 	}
 
 	vllmConfig, modelConfig, err := utils.CalculateVLLMConfig(params)
@@ -153,7 +153,7 @@ func parseGPUMemory(gpuStatus string) float64 {
 			return val
 		}
 	}
-	
+
 	// Fallback/Heuristics based on name if no explicit size found
 	lower := strings.ToLower(gpuStatus)
 	if strings.Contains(lower, "4090") {

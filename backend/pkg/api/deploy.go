@@ -29,7 +29,8 @@ func DeployService(c *gin.Context) {
 		Name:      "vllm", // Standardize name to match container reported by agent
 		IP:        req.InferenceHost,
 		Port:      req.InferencePort,
-		ModelPath: req.ModelName,
+		ModelName: req.ModelName,
+		// model_path: req.ModelName,
 	}
 
 	// Map Engine based on Platform
@@ -41,6 +42,42 @@ func DeployService(c *gin.Context) {
 		inferenceConfig.Name = "mindie" // Standard name for MindIE container
 	default:
 		inferenceConfig.Engine = "Unknown"
+	}
+
+	// Calculate default balanced config
+	// We assume a default GPU memory if not known (e.g. 24GB) or we could query agent status if node exists.
+	// For new deployment, we might not have status yet. Use safe defaults or 24GB.
+	// In a real scenario, we should probably fetch this from the agent if possible.
+	// Let's check if we have agent status for this IP.
+	var gpuMem float64 = 8.0 // Default fall back
+
+	calcParams := utils.CalculateConfigParams{
+		ModelNameOrPath: req.ModelName,
+		GPUMemoryGB:     gpuMem,
+		Mode:            "balanced",
+		GPUUtilization:  0.85,
+	}
+
+	vllmCfg, _, err := utils.CalculateVLLMConfig(calcParams)
+	if err == nil {
+		inferenceConfig.Mode = calcParams.Mode
+		inferenceConfig.GPUMemoryGB = calcParams.GPUMemoryGB
+		inferenceConfig.GPUUtilization = calcParams.GPUUtilization
+		inferenceConfig.MaxModelLen = vllmCfg.MaxModelLen
+		inferenceConfig.MaxNumSeqs = vllmCfg.MaxNumSeqs
+		inferenceConfig.MaxNumBatchedTokens = vllmCfg.MaxNumBatchedTokens
+		inferenceConfig.GpuMemoryUtilization = vllmCfg.GPUMemoryUtil
+
+	} else {
+		log.Printf("Failed to calculate default vllm config: %v", err)
+		// Set some safe defaults
+		inferenceConfig.Mode = "max_token"
+		inferenceConfig.MaxModelLen = 4096
+		inferenceConfig.MaxNumSeqs = 20
+		inferenceConfig.MaxNumBatchedTokens = 8192
+		inferenceConfig.GpuMemoryUtilization = 0.85
+		inferenceConfig.GPUMemoryGB = 0
+		inferenceConfig.GPUUtilization = 0
 	}
 
 	mockdata.Mu.Lock()

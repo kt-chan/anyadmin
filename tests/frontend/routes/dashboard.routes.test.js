@@ -20,8 +20,7 @@ jest.mock('../../../frontend/services/dashboard.service', () => ({
     config: {
       concurrency: 10,
       tokenOptions: [],
-      dynamicBatching: true,
-      hardwareAcceleration: 'CUDA'
+      dynamicBatching: true
     },
     auditLogs: []
   })

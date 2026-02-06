@@ -139,3 +139,19 @@ func UpdateVLLMConfig(nodeIP string, config map[string]string, restart bool) err
 
 	return sendAgentRequest(agentURL, payload)
 }
+
+// UpdateAnythingLLMConfig updates the configuration for AnythingLLM on a remote agent
+func UpdateAnythingLLMConfig(nodeIP string, config map[string]string, restart bool) error {
+	log.Printf("[Agent] UpdateAnythingLLMConfig on %s", nodeIP)
+
+	agentPort := "8082"
+	agentURL := fmt.Sprintf("http://%s:%s/config/update", nodeIP, agentPort)
+
+	payload := map[string]interface{}{
+		"container_name": "anythingllm",
+		"config":         config,
+		"restart":        restart,
+	}
+
+	return sendAgentRequest(agentURL, payload)
+}

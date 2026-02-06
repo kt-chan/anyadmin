@@ -90,8 +90,7 @@ const dashboardService = {
           { value: 16384, label: '16K', selected: inferenceConfig.tokenLimit === 16384 },
           { value: 32768, label: '32K', selected: inferenceConfig.tokenLimit === 32768 }
         ],
-        dynamicBatching: true,
-        hardwareAcceleration: system.npuUsage > 0 ? 'Ascend NPU' : (system.gpuUsage > 0 ? 'NVIDIA GPU' : 'CPU')
+        dynamicBatching: true
       };
 
       return {

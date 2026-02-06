@@ -24,11 +24,30 @@ func TestInferenceConfig(t *testing.T) {
 	})
 	router.GET("/api/v1/configs/inference", api.GetInferenceConfigs)
 
-	// Test Save Config with Mode
-	t.Run("SaveConfigWithMode", func(t *testing.T) {
+	// Initialize Mock Data
+	mockdata.DeploymentNodes = []global.DeploymentNode{
+		{
+			NodeIP: "192.168.1.1",
+			InferenceCfgs: []global.InferenceConfig{
+				{Name: "vllm-service", IP: "192.168.1.1", Port: "8000", MaxModelLen: 1024, Mode: "balanced"},
+			},
+		},
+		{
+			NodeIP: "192.168.1.2",
+			InferenceCfgs: []global.InferenceConfig{
+				{Name: "vllm-service", IP: "192.168.1.2", Port: "8000", MaxModelLen: 1024, Mode: "balanced"},
+				{Name: "other-service", IP: "192.168.1.2", Port: "9000", MaxModelLen: 1024, Mode: "balanced"},
+			},
+		},
+	}
+
+	// Test 1: Global Update (Empty IP)
+	t.Run("GlobalUpdate", func(t *testing.T) {
+		// Update "vllm-service" globally to MaxModelLen 2048
 		config := global.InferenceConfig{
-			Name: "default",
-			Mode: "max_concurrency",
+			Name:        "vllm-service",
+			IP:          "", // Empty IP implies global
+			MaxModelLen: 2048,
 		}
 		body, _ := json.Marshal(config)
 		w := httptest.NewRecorder()
@@ -37,22 +56,100 @@ func TestInferenceConfig(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		
-		var resp global.InferenceConfig
-		json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.Equal(t, "max_concurrency", resp.Mode)
 
-		// Verify it persists in mockdata
+		// Verify changes in Mock Data
 		mockdata.Mu.Lock()
-		found := false
-		for _, cfg := range mockdata.InferenceCfgs {
-			if cfg.Name == "default" {
-				assert.Equal(t, "max_concurrency", cfg.Mode)
-				found = true
-				break
-			}
+		defer mockdata.Mu.Unlock()
+
+		// Check Node 1
+		assert.Equal(t, 2048, mockdata.DeploymentNodes[0].InferenceCfgs[0].MaxModelLen)
+		
+		// Check Node 2
+		assert.Equal(t, 2048, mockdata.DeploymentNodes[1].InferenceCfgs[0].MaxModelLen)
+
+		// Check Unaffected Service
+		assert.Equal(t, 1024, mockdata.DeploymentNodes[1].InferenceCfgs[1].MaxModelLen)
+	})
+
+	// Test 2: Specific Node Update
+	t.Run("SpecificNodeUpdate", func(t *testing.T) {
+		// Update "vllm-service" on Node 1 only to MaxModelLen 4096
+		config := global.InferenceConfig{
+			Name:        "vllm-service",
+			IP:          "192.168.1.1",
+			MaxModelLen: 4096,
 		}
-		mockdata.Mu.Unlock()
-		assert.True(t, found)
+		body, _ := json.Marshal(config)
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/api/v1/configs/inference", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		// Verify changes
+		mockdata.Mu.Lock()
+		defer mockdata.Mu.Unlock()
+
+		// Node 1 should be updated
+		assert.Equal(t, 4096, mockdata.DeploymentNodes[0].InferenceCfgs[0].MaxModelLen)
+		
+		// Node 2 should NOT be updated (should remain 2048 from previous test)
+		assert.Equal(t, 2048, mockdata.DeploymentNodes[1].InferenceCfgs[0].MaxModelLen)
+	})
+}
+
+func TestRagConfig(t *testing.T) {
+	// Setup
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.POST("/api/v1/configs/rag", func(c *gin.Context) {
+		c.Set("username", "admin")
+		api.SaveRagAppConfig(c)
+	})
+
+	// Initialize Mock Data
+	mockdata.DeploymentNodes = []global.DeploymentNode{
+		{
+			NodeIP: "192.168.1.1",
+			RagAppCfgs: []global.RagAppConfig{
+				{Name: "anythingllm", Host: "192.168.1.1", Port: "3001", StorageDir: "/old/dir"},
+			},
+		},
+		{
+			NodeIP: "192.168.1.2",
+			RagAppCfgs: []global.RagAppConfig{
+				{Name: "anythingllm", Host: "192.168.1.2", Port: "3001", StorageDir: "/old/dir"},
+			},
+		},
+	}
+
+	// Test: Global Update for RAG
+	t.Run("GlobalUpdateRag", func(t *testing.T) {
+		config := global.RagAppConfig{
+			Name:       "anythingllm",
+			Host:       "", // Global
+			StorageDir: "/new/shared/dir",
+		}
+		body, _ := json.Marshal(config)
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/api/v1/configs/rag", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		mockdata.Mu.Lock()
+		defer mockdata.Mu.Unlock()
+
+		// Verify Node 1
+		cfg1 := mockdata.DeploymentNodes[0].RagAppCfgs[0]
+		assert.Equal(t, "/new/shared/dir", cfg1.StorageDir)
+		assert.Equal(t, "192.168.1.1", cfg1.Host) // Should be preserved
+
+		// Verify Node 2
+		cfg2 := mockdata.DeploymentNodes[1].RagAppCfgs[0]
+		assert.Equal(t, "/new/shared/dir", cfg2.StorageDir)
+		assert.Equal(t, "192.168.1.2", cfg2.Host) // Should be preserved
 	})
 }

@@ -64,39 +64,49 @@ func SaveInferenceConfig(c *gin.Context) {
 	}
 
 	for i, node := range mockdata.DeploymentNodes {
-		// Check if this node matches the target IP if provided
+		// If targetIP is provided, skip nodes that don't match.
+		// If targetIP is empty, we update matching services on ALL nodes (Service Level)
 		if targetIP != "" && node.NodeIP != targetIP {
 			continue
 		}
 
 		for j, cfg := range node.InferenceCfgs {
-			match := false
-			if config.Name != "" && cfg.Name == config.Name {
-				match = true
-			} else if config.IP != "" && cfg.IP == config.IP && cfg.Port == config.Port { // More strict matching if possible
-				match = true
-			} else if config.ModelName == cfg.ModelName {
-				match = true
-			}
+			match := config.ModelName != "" && cfg.ModelName == config.ModelName
 
 			if match {
 				updateFields(&mockdata.DeploymentNodes[i].InferenceCfgs[j], config)
 				updatedConfig = mockdata.DeploymentNodes[i].InferenceCfgs[j]
 				found = true
-				break
+				// If we are updating a specific IP, we can break after finding it.
+				// But if we are updating Service Level (targetIP == ""), we continue to next nodes.
+				if targetIP != "" {
+					break
+				}
 			}
-		}
-		if found {
-			break
 		}
 	}
 
-	// If not found, add to the node matching config.IP
+	// If not found, add to the node matching config.IP (only if IP was provided and not found)
 	if !found {
-		// Throw Error
 		mockdata.Mu.Unlock()
-		fmt.Printf("[DEBUG] Target Model not found Error at SaveInferenceConfig")
-		c.JSON(http.StatusInternalServerError, config)
+		fmt.Printf("[DEBUG] Target service not found Error at SaveInferenceConfig")
+		c.JSON(http.StatusNotFound, gin.H{"error": "Target service not found"})
+		return
+	}
+
+	// Capture updated configs for notification before unlocking
+	var affectedConfigs []global.InferenceConfig
+	if targetIP == "" {
+		// Global update: we need to find all instances of this service name
+		for _, node := range mockdata.DeploymentNodes {
+			for _, cfg := range node.InferenceCfgs {
+				if cfg.Name == config.Name {
+					affectedConfigs = append(affectedConfigs, cfg)
+				}
+			}
+		}
+	} else {
+		affectedConfigs = append(affectedConfigs, updatedConfig)
 	}
 
 	mockdata.Mu.Unlock()
@@ -105,33 +115,40 @@ func SaveInferenceConfig(c *gin.Context) {
 		fmt.Printf("[DEBUG] SaveToFile Error: %v\n", err)
 	}
 
-	// Trigger Agent update if applicable
+	// Trigger Agent update for ALL affected nodes
 	go func() {
-		// Find agent IP
-		nodeIP := updatedConfig.IP // Use config.IP if available
-		if nodeIP != "" {
-			agentConfig := make(map[string]string)
-			if updatedConfig.MaxModelLen > 0 {
-				agentConfig["VLLM_MAX_MODEL_LEN"] = fmt.Sprintf("%d", updatedConfig.MaxModelLen)
-			}
-			if updatedConfig.MaxNumSeqs > 0 {
-				agentConfig["VLLM_MAX_NUM_SEQS"] = fmt.Sprintf("%d", updatedConfig.MaxNumSeqs)
-			}
-			if updatedConfig.MaxNumBatchedTokens > 0 {
-				agentConfig["VLLM_MAX_NUM_BATCHED_TOKENS"] = fmt.Sprintf("%d", updatedConfig.MaxNumBatchedTokens)
-			}
-			if updatedConfig.GpuMemoryUtilization > 0 {
-				agentConfig["VLLM_GPU_MEMORY_UTILIZATION"] = fmt.Sprintf("%.2f", updatedConfig.GpuMemoryUtilization)
-			}
+		for _, cfg := range affectedConfigs {
+			// Find agent IP
+			nodeIP := cfg.IP
+			if nodeIP != "" {
+				agentConfig := make(map[string]string)
+				if cfg.MaxModelLen > 0 {
+					agentConfig["VLLM_MAX_MODEL_LEN"] = fmt.Sprintf("%d", cfg.MaxModelLen)
+				}
+				if cfg.MaxNumSeqs > 0 {
+					agentConfig["VLLM_MAX_NUM_SEQS"] = fmt.Sprintf("%d", cfg.MaxNumSeqs)
+				}
+				if cfg.MaxNumBatchedTokens > 0 {
+					agentConfig["VLLM_MAX_NUM_BATCHED_TOKENS"] = fmt.Sprintf("%d", cfg.MaxNumBatchedTokens)
+				}
+				if cfg.GpuMemoryUtilization > 0 {
+					agentConfig["VLLM_GPU_MEMORY_UTILIZATION"] = fmt.Sprintf("%.2f", cfg.GpuMemoryUtilization)
+				}
 
-			if len(agentConfig) > 0 {
-				service.UpdateVLLMConfig(nodeIP, agentConfig, true)
+				if len(agentConfig) > 0 {
+					fmt.Printf("[DEBUG] Triggering VLLM Config Update for Node: %s\n", nodeIP)
+					service.UpdateVLLMConfig(nodeIP, agentConfig, true)
+				}
 			}
 		}
 	}()
 
 	username, _ := c.Get("username")
-	service.RecordLog(username.(string), "修改配置", "保存了模型 "+config.Name+" 的推理参数", "Info")
+	targetStr := "全局"
+	if targetIP != "" {
+		targetStr = targetIP
+	}
+	service.RecordLog(username.(string), "修改配置", "保存了模型 "+config.Name+" 的推理参数 (目标: "+targetStr+")", "Info")
 
 	c.JSON(http.StatusOK, updatedConfig)
 }
@@ -189,10 +206,45 @@ func SaveSystemConfig(c *gin.Context) {
 func GetServicesConfig(c *gin.Context) {
 	mockdata.Mu.Lock()
 	defer mockdata.Mu.Unlock()
+
+	// Create a grouped view of services
+	// Map[ServiceName] -> []ServiceInstance
+	type ServiceInstance struct {
+		NodeIP string      `json:"node_ip"`
+		Type   string      `json:"type"` // "vLLM", "AnythingLLM", etc.
+		Port   string      `json:"port"`
+		Config interface{} `json:"config"`
+	}
+	groupedServices := make(map[string][]ServiceInstance)
+
+	for _, node := range mockdata.DeploymentNodes {
+		// Inference Services
+		for _, cfg := range node.InferenceCfgs {
+			instance := ServiceInstance{
+				NodeIP: node.NodeIP,
+				Type:   "vLLM",
+				Port:   cfg.Port,
+				Config: cfg,
+			}
+			groupedServices[cfg.Name] = append(groupedServices[cfg.Name], instance)
+		}
+		// RAG Apps
+		for _, cfg := range node.RagAppCfgs {
+			instance := ServiceInstance{
+				NodeIP: node.NodeIP,
+				Type:   "AnythingLLM",
+				Port:   cfg.Port,
+				Config: cfg,
+			}
+			groupedServices[cfg.Name] = append(groupedServices[cfg.Name], instance)
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"mgmt_host": mockdata.MgmtHost,
-		"mgmt_port": mockdata.MgmtPort,
-		"nodes":     mockdata.DeploymentNodes,
+		"mgmt_host":        mockdata.MgmtHost,
+		"mgmt_port":        mockdata.MgmtPort,
+		"nodes":            mockdata.DeploymentNodes,
+		"grouped_services": groupedServices,
 	})
 }
 
@@ -205,36 +257,129 @@ func SaveRagAppConfig(c *gin.Context) {
 
 	mockdata.Mu.Lock()
 	found := false
+	var updatedConfig global.RagAppConfig
+
+	// Helper to update fields selectively
+	updateRagFields := func(cfg *global.RagAppConfig, newCfg global.RagAppConfig) {
+		if newCfg.StorageDir != "" {
+			cfg.StorageDir = newCfg.StorageDir
+		}
+		if newCfg.LLMProvider != "" {
+			cfg.LLMProvider = newCfg.LLMProvider
+		}
+		if newCfg.VectorDB != "" {
+			cfg.VectorDB = newCfg.VectorDB
+		}
+		if newCfg.GenericOpenAIBasePath != "" {
+			cfg.GenericOpenAIBasePath = newCfg.GenericOpenAIBasePath
+		}
+		if newCfg.GenericOpenAIModelPref != "" {
+			cfg.GenericOpenAIModelPref = newCfg.GenericOpenAIModelPref
+		}
+		if newCfg.GenericOpenAIKey != "" {
+			cfg.GenericOpenAIKey = newCfg.GenericOpenAIKey
+		}
+		if newCfg.GenericOpenAIModelTokenLimit > 0 {
+			cfg.GenericOpenAIModelTokenLimit = newCfg.GenericOpenAIModelTokenLimit
+		}
+		if newCfg.GenericOpenAIMaxTokens > 0 {
+			cfg.GenericOpenAIMaxTokens = newCfg.GenericOpenAIMaxTokens
+		}
+		cfg.UpdatedAt = time.Now()
+	}
+
 	for i, node := range mockdata.DeploymentNodes {
-		// If Host matches NodeIP, or search all
-		if node.NodeIP == config.Host {
-			for j, cfg := range node.RagAppCfgs {
-				if cfg.Name == config.Name {
-					// Update fields
-					mockdata.DeploymentNodes[i].RagAppCfgs[j] = config // Replace entire struct for simplicity, assuming ID/Dates preserved or handled
-					mockdata.DeploymentNodes[i].RagAppCfgs[j].UpdatedAt = time.Now()
-					found = true
-					break
-				}
+		// If Host matches NodeIP, or search all if Host is empty (Service Level)
+		if config.Host != "" && node.NodeIP != config.Host {
+			continue
+		}
+
+		for j, cfg := range node.RagAppCfgs {
+			if cfg.Name == config.Name {
+				// Update fields selectively
+				updateRagFields(&mockdata.DeploymentNodes[i].RagAppCfgs[j], config)
+				updatedConfig = mockdata.DeploymentNodes[i].RagAppCfgs[j]
+				found = true
+				// For this node, we found the service. Break inner loop to move to next node (or finish if specific).
+				break
 			}
 		}
-		if found { break }
+
+		// If we targeted a specific host and found it, we can stop searching entirely.
+		if config.Host != "" && found {
+			break
+		}
 	}
-	
-	// If not found by exact match, try searching strictly by name across all nodes if Host isn't set correctly in request?
-	// But Host is key. Let's assume frontend sends correct Host.
-	
-	mockdata.Mu.Unlock()
 
 	if !found {
+		mockdata.Mu.Unlock()
 		c.JSON(http.StatusNotFound, gin.H{"error": "Config not found"})
 		return
 	}
+
+	// Capture affected configs
+	var affectedConfigs []global.RagAppConfig
+	if config.Host == "" {
+		for _, node := range mockdata.DeploymentNodes {
+			for _, cfg := range node.RagAppCfgs {
+				if cfg.Name == config.Name {
+					affectedConfigs = append(affectedConfigs, cfg)
+				}
+			}
+		}
+	} else {
+		affectedConfigs = append(affectedConfigs, updatedConfig)
+	}
+
+	mockdata.Mu.Unlock()
 
 	if err := mockdata.SaveToFile(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
 		return
 	}
+
+	// Trigger Agent update for ALL affected nodes
+	go func() {
+		for _, cfg := range affectedConfigs {
+			nodeIP := cfg.Host
+			if nodeIP != "" {
+				agentConfig := make(map[string]string)
+				if cfg.LLMProvider != "" {
+					agentConfig["LLM_PROVIDER"] = cfg.LLMProvider
+				}
+				if cfg.VectorDB != "" {
+					agentConfig["VECTOR_DB"] = cfg.VectorDB
+				}
+				if cfg.GenericOpenAIBasePath != "" {
+					agentConfig["GENERIC_OPEN_AI_BASE_PATH"] = cfg.GenericOpenAIBasePath
+				}
+				if cfg.GenericOpenAIModelPref != "" {
+					agentConfig["GENERIC_OPEN_AI_MODEL_PREF"] = cfg.GenericOpenAIModelPref
+				}
+				if cfg.GenericOpenAIKey != "" {
+					agentConfig["GENERIC_OPEN_AI_API_KEY"] = cfg.GenericOpenAIKey
+				}
+				if cfg.GenericOpenAIModelTokenLimit > 0 {
+					agentConfig["GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT"] = fmt.Sprintf("%d", cfg.GenericOpenAIModelTokenLimit)
+				}
+				if cfg.GenericOpenAIMaxTokens > 0 {
+					agentConfig["GENERIC_OPEN_AI_MAX_TOKENS"] = fmt.Sprintf("%d", cfg.GenericOpenAIMaxTokens)
+				}
+
+				if len(agentConfig) > 0 {
+					fmt.Printf("[DEBUG] Triggering AnythingLLM Config Update for Node: %s\n", nodeIP)
+					service.UpdateAnythingLLMConfig(nodeIP, agentConfig, true)
+				}
+			}
+		}
+	}()
+
+	username, _ := c.Get("username")
+	targetStr := "全局"
+	if config.Host != "" {
+		targetStr = config.Host
+	}
+	service.RecordLog(username.(string), "修改配置", "保存了应用 "+config.Name+" 的配置 (目标: "+targetStr+")", "Info")
 
 	c.JSON(http.StatusOK, config)
 }

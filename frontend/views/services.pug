@@ -11,8 +11,8 @@ block content
             h2(class="text-2xl font-bold text-slate-800") 服务与模型管理
             p(class="text-slate-500 text-sm") 管理注册的节点、服务以及系统全局配置
           div(class="flex gap-3")
-            button(class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700", onclick="showModal('addNodeModal')")
-              i(class="fas fa-plus mr-2")
+            button(class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-50", onclick="showModal('addNodeModal')")
+              i(class="fas fa-server mr-2 text-slate-400")
               | 注册新节点
             button(class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700", onclick="showModal('connectServiceModal')")
               i(class="fas fa-plus mr-2")
@@ -22,48 +22,81 @@ block content
         div(class="border-b border-slate-200 mb-6")
           nav(class="-mb-px flex space-x-8")
             button(class="tab-btn active border-b-2 border-blue-600 py-4 px-1 text-sm font-bold text-blue-600 hover:text-blue-800 whitespace-nowrap", data-target="tab-services") 服务矩阵
-            button(class="tab-btn border-b-2 border-transparent py-4 px-1 text-sm font-bold text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap", data-target="tab-nodes") 注册节点 (Agents)
+            button(class="tab-btn border-b-2 border-transparent py-4 px-1 text-sm font-bold text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap", data-target="tab-nodes") 注册节点
             button(class="tab-btn border-b-2 border-transparent py-4 px-1 text-sm font-bold text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap", data-target="tab-system") 系统设置
 
-        //- Tab Content: Services
+        //- Tab Content: Services (Service Level View)
         #tab-services.tab-content
-          if config && config.nodes && config.nodes.length
+          if config && config.grouped_services && Object.keys(config.grouped_services).length
             .space-y-6
-              each node in config.nodes
-                div(class="bg-white rounded-xl shadow-sm border border-slate-200 p-6")
-                  h3(class="text-lg font-bold text-slate-800 mb-4 flex items-center")
-                    i(class="fas fa-server mr-2 text-slate-400")
-                    | Node: #{node.node_ip}
-                  
-                  if node.inference_cfgs && node.inference_cfgs.length
-                    h4(class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3") Inference Services (vLLM)
-                    .grid.grid-cols-1.gap-4.mb-6(class="md:grid-cols-2")
-                      each svc in node.inference_cfgs
-                        div(class="border border-slate-200 rounded-lg p-4 hover:border-blue-300 transition cursor-pointer bg-slate-50", onclick=`editServiceConfig('${node.node_ip}', '${svc.name}', 'vllm')`)
-                          div(class="flex justify-between items-start")
-                            div
-                              h5(class="font-bold text-slate-700")= svc.name
-                              p(class="text-xs text-slate-500") Model: #{svc.model_name}
-                            i(class="fas fa-cog text-slate-300 hover:text-blue-500")
-                          div(class="mt-3 text-xs font-mono text-slate-500")
-                            span(class="bg-white px-2 py-1 rounded border") Port: #{svc.port}
-                  
-                  if node.rag_app_cfgs && node.rag_app_cfgs.length
-                    h4(class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3") RAG Applications (AnythingLLM)
-                    .grid.grid-cols-1.gap-4(class="md:grid-cols-2")
-                      each app in node.rag_app_cfgs
-                        div(class="border border-slate-200 rounded-lg p-4 hover:border-blue-300 transition cursor-pointer bg-slate-50", onclick=`editServiceConfig('${node.node_ip}', '${app.name}', 'rag')`)
-                          div(class="flex justify-between items-start")
-                            div
-                              h5(class="font-bold text-slate-700")= app.name
-                              p(class="text-xs text-slate-500") DB: #{app.vector_db || 'N/A'}
-                            i(class="fas fa-cog text-slate-300 hover:text-blue-500")
-                          div(class="mt-3 text-xs font-mono text-slate-500")
-                            span(class="bg-white px-2 py-1 rounded border") Port: #{app.port}
+              each instances, serviceName in config.grouped_services
+                - const first = instances[0]
+                div(class="bg-white rounded-xl shadow-sm border border-slate-200 p-8")
+                  .flex.justify-between.items-start.mb-6
+                    div
+                      h3(class="text-xl font-bold text-slate-800 flex items-center")
+                        i(class="fas fa-cubes mr-3 text-blue-500")
+                        | #{serviceName}
+                        span(class="ml-3 text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full uppercase tracking-wider") #{first.type}
+                      p(class="text-slate-400 text-xs mt-1") 集群化服务配置 (Unified Service Configuration)
+                    
+                    div(class="flex gap-2")
+                      button(class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition shadow-md shadow-blue-100", onclick=`editServiceConfig('', '${serviceName}', '${first.type === 'vLLM' ? 'vllm' : 'rag'}')`)
+                        i(class="fas fa-cog mr-2")
+                        | 配置全局参数
+
+                  .grid.grid-cols-1.gap-8(class="lg:grid-cols-3")
+                    //- Service Level Config Details
+                    div(class="lg:col-span-1 bg-slate-50 rounded-xl p-5 border border-slate-100")
+                      h4(class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center")
+                        i(class="fas fa-info-circle mr-2")
+                        | 配置概览
+                      
+                      if first.type === 'vLLM'
+                        .space-y-3
+                          .flex.justify-between.text-sm
+                            span(class="text-slate-500") 模型名称:
+                            span(class="font-mono font-bold text-slate-700") #{first.config.model_name}
+                          .flex.justify-between.text-sm
+                            span(class="text-slate-500") 优化模式:
+                            span(class="font-mono font-bold text-slate-700") #{first.config.mode || 'balanced'}
+                          .flex.justify-between.text-sm
+                            span(class="text-slate-500") 最大长度:
+                            span(class="font-mono text-slate-700") #{first.config.max_model_len}
+                      
+                      if first.type === 'AnythingLLM'
+                        .space-y-3
+                          .flex.justify-between.text-sm
+                            span(class="text-slate-500") 向量库:
+                            span(class="font-mono font-bold text-slate-700") #{first.config.vector_db || 'N/A'}
+                          .flex.justify-between.text-sm
+                            span(class="text-slate-500") LLM 驱动:
+                            span(class="font-mono font-bold text-slate-700") #{first.config.llm_provider || 'N/A'}
+
+                    //- Registered Nodes Details
+                    div(class="lg:col-span-2")
+                      h4(class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center")
+                        i(class="fas fa-network-wired mr-2")
+                        | 部署节点 (#{instances.length})
+                      .grid.grid-cols-1.gap-3(class="md:grid-cols-2")
+                        each instance in instances
+                          div(class="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-xl hover:border-blue-200 transition group")
+                            div(class="flex items-center gap-3")
+                              .w-8.h-8.rounded-lg.bg-slate-100.flex.items-center.justify-center.text-slate-400.group-hover_bg-blue-50.group-hover_text-blue-500.transition
+                                i(class="fas fa-server text-xs")
+                              div
+                                p(class="text-sm font-bold text-slate-700") #{instance.node_ip}
+                                p(class="text-[10px] text-slate-400 font-mono") Port: #{instance.port}
+                            div(class="flex gap-2")
+                               //- Node specific config moved to global
+                               span(class="w-2.h-2.rounded-full bg-green-500 mt-1", title="运行中")
 
           else
             .text-center.py-12
-              p(class="text-slate-500") No nodes registered.
+              div(class="inline-block p-4 rounded-full bg-slate-50 mb-4")
+                i(class="fas fa-cubes text-4xl text-slate-300")
+              p(class="text-slate-500 font-bold") 暂无注册服务
+              p(class="text-xs text-slate-400 mt-1") 请点击“注册新服务”或通过部署向导添加
 
         //- Tab Content: Nodes
         #tab-nodes.tab-content.hidden
@@ -71,43 +104,55 @@ block content
             table(class="min-w-full divide-y divide-slate-200")
               thead(class="bg-slate-50")
                 tr
-                  th(class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider") Node IP
-                  th(class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider") Hostname
-                  th(class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider") Agent Status
-                  th(class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider") Actions
+                  th(class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider") 节点 IP
+                  th(class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider") 主机名
+                  th(class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider") 已安装服务
+                  th(class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider") 操作
               tbody(class="bg-white divide-y divide-slate-200")
                 if config && config.nodes
                   each node in config.nodes
                     tr
                       td(class="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-700")= node.node_ip
                       td(class="px-6 py-4 whitespace-nowrap text-sm text-slate-500")= node.hostname
-                      td(class="px-6 py-4 whitespace-nowrap")
-                        span(class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800") Active
+                      td(class="px-6 py-4")
+                        .flex.flex-wrap.gap-2
+                          if node.inference_cfgs && node.inference_cfgs.length
+                            each svc in node.inference_cfgs
+                              span(class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800")
+                                i(class="fas fa-brain mr-1 text-[10px]")
+                                | #{svc.name} : #{svc.port}
+                          if node.rag_app_cfgs && node.rag_app_cfgs.length
+                            each app in node.rag_app_cfgs
+                              span(class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800")
+                                i(class="fas fa-layer-group mr-1 text-[10px]")
+                                | #{app.name} : #{app.port}
+                          if (!node.inference_cfgs || !node.inference_cfgs.length) && (!node.rag_app_cfgs || !node.rag_app_cfgs.length)
+                            span(class="text-xs text-slate-400 italic") 暂无服务
                       td(class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium")
-                        button(class="text-blue-600 hover:text-blue-900", onclick=`editAgentConfig('${node.node_ip}')`) Configure Agent
+                        button(class="text-blue-600 hover:text-blue-900 font-bold", onclick=`editAgentConfig('${node.node_ip}')`) 配置 Agent
 
         //- Tab Content: System
         #tab-system.tab-content.hidden
           .max-w-2xl.bg-white.rounded-xl.shadow-sm.border.border-slate-200.p-8
-            h3(class="text-lg font-bold text-slate-800 mb-6") Platform Configuration
+            h3(class="text-lg font-bold text-slate-800 mb-6") 平台全局配置
             form#systemForm
               .grid.grid-cols-1.gap-6
                 div
-                  label(class="block text-sm font-bold text-slate-700 mb-2") Management Backend Host
-                  input(type="text", name="mgmt_host", value=config.mgmt_host, class="w-full border rounded-lg p-2.5 text-sm focus:ring-blue-500 focus:border-blue-500")
-                  p(class="mt-1 text-xs text-slate-400") IP address where this backend is running.
+                  label(class="block text-sm font-bold text-slate-700 mb-2") 管理后台 Host (MGMT_HOST)
+                  input(type="text", name="mgmt_host", value=config.mgmt_host, class="w-full border rounded-lg p-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none")
+                  p(class="mt-1 text-xs text-slate-400") 后端服务运行的 IP 地址，Agent 将向此地址上报心跳。
                 
                 div
-                  label(class="block text-sm font-bold text-slate-700 mb-2") Management Backend Port
-                  input(type="text", name="mgmt_port", value=config.mgmt_port, class="w-full border rounded-lg p-2.5 text-sm focus:ring-blue-500 focus:border-blue-500")
+                  label(class="block text-sm font-bold text-slate-700 mb-2") 管理后台 Port (MGMT_PORT)
+                  input(type="text", name="mgmt_port", value=config.mgmt_port, class="w-full border rounded-lg p-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none")
                 
                 div
-                  label(class="block text-sm font-bold text-slate-700 mb-2") System Email
-                  input(type="email", name="system_email", value="admin@example.com", class="w-full border rounded-lg p-2.5 text-sm focus:ring-blue-500 focus:border-blue-500")
-                  p(class="mt-1 text-xs text-slate-400") For alerts and notifications (Not yet implemented).
+                  label(class="block text-sm font-bold text-slate-700 mb-2") 系统通知邮箱
+                  input(type="email", name="system_email", value="admin@example.com", class="w-full border rounded-lg p-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none")
+                  p(class="mt-1 text-xs text-slate-400") 用于发送告警及系统通知（尚未实现）。
 
               .mt-8.pt-6.border-t.flex.justify-end
-                button(type="submit", class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700") Save Changes
+                button(type="submit", class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 shadow-lg shadow-blue-200") 保存全局设置
 
   //- Modals
 
@@ -115,7 +160,7 @@ block content
   #agentConfigModal.modal
     .bg-white.rounded-xl.shadow-xl.max-w-lg.w-full.p-6
       .flex.justify-between.items-center.mb-6
-        h3(class="text-lg font-bold text-slate-800") Edit Reference Agent Config
+        h3(class="text-lg font-bold text-slate-800") 编辑 Agent 参考配置
         button(onclick="hideModal('agentConfigModal')", class="text-slate-400 hover:text-slate-600")
           i(class="fas fa-times")
       
@@ -129,18 +174,18 @@ block content
             label(class="block text-xs font-bold text-slate-700 mb-1") Management Port
             input(type="text", name="mgmt_port", class="w-full border rounded p-2 text-sm")
           div
-            label(class="block text-xs font-bold text-slate-700 mb-1") Log File Path
+            label(class="block text-xs font-bold text-slate-700 mb-1") 日志文件路径
             input(type="text", name="log_file", class="w-full border rounded p-2 text-sm")
         
         .mt-6.flex.justify-end.gap-3
-          button(type="button", onclick="hideModal('agentConfigModal')", class="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg") Cancel
-          button(type="submit", class="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg") Save
+          button(type="button", onclick="hideModal('agentConfigModal')", class="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg") 取消
+          button(type="submit", class="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg") 保存配置
 
   //- vLLM Config Modal
   #vllmConfigModal.modal
     .bg-white.rounded-xl.shadow-xl.max-w-2xl.w-full.p-6
       .flex.justify-between.items-center.mb-6
-        h3(class="text-lg font-bold text-slate-800") Edit vLLM Configuration
+        h3(class="text-lg font-bold text-slate-800") 编辑 vLLM 推理配置
         button(onclick="hideModal('vllmConfigModal')", class="text-slate-400 hover:text-slate-600")
           i(class="fas fa-times")
       
@@ -158,7 +203,7 @@ block content
 
           div(class="grid grid-cols-2 gap-4")
             div
-              label(class="block text-xs font-bold text-slate-700 mb-1") Model Name
+              label(class="block text-xs font-bold text-slate-700 mb-1") 模型名称 (Model Name)
               input(type="text", name="model_name", class="w-full border rounded p-2 text-sm bg-slate-50", readonly)
             div
               label(class="block text-xs font-bold text-slate-700 mb-1") Max Model Len
@@ -170,18 +215,22 @@ block content
               label(class="block text-xs font-bold text-slate-700 mb-1") Max Batched Tokens
               input(type="number", name="max_num_batched_tokens", class="w-full border rounded p-2 text-sm")
             div
-              label(class="block text-xs font-bold text-slate-700 mb-1") GPU Util (0-1)
+              label(class="block text-xs font-bold text-slate-700 mb-1") GPU 利用率 (0-1)
               input(type="number", name="gpu_memory_utilization", step="0.01", class="w-full border rounded p-2 text-sm")
 
-        .mt-6.flex.justify-end.gap-3
-          button(type="button", onclick="hideModal('vllmConfigModal')", class="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg") Cancel
-          button(type="submit", class="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg") Save & Restart
+        .mt-8.pt-6.border-t.flex.justify-between.items-center
+          p(class="text-[10px] text-orange-500 font-bold uppercase") 
+            i(class="fas fa-exclamation-triangle mr-1")
+            | 保存将触发相关节点服务重启
+          div(class="flex gap-3")
+            button(type="button", onclick="hideModal('vllmConfigModal')", class="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg") 取消
+            button(type="submit", class="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md shadow-blue-100") 保存并重启
 
   //- AnythingLLM Config Modal
   #ragConfigModal.modal
     .bg-white.rounded-xl.shadow-xl.max-w-2xl.w-full.p-6.my-8
       .flex.justify-between.items-center.mb-6
-        h3(class="text-lg font-bold text-slate-800") Edit AnythingLLM Configuration
+        h3(class="text-lg font-bold text-slate-800") 编辑 AnythingLLM 驱动配置
         button(onclick="hideModal('ragConfigModal')", class="text-slate-400 hover:text-slate-600")
           i(class="fas fa-times")
       
@@ -190,24 +239,24 @@ block content
         input(type="hidden", name="name")
         .space-y-4
           div
-            label(class="block text-xs font-bold text-slate-700 mb-1") Storage Directory
+            label(class="block text-xs font-bold text-slate-700 mb-1") 存储目录 (Storage Dir)
             input(type="text", name="storage_dir", class="w-full border rounded p-2 text-sm")
           
           .grid.grid-cols-2.gap-4
             div
-              label(class="block text-xs font-bold text-slate-700 mb-1") LLM Provider
+              label(class="block text-xs font-bold text-slate-700 mb-1") LLM 提供商
               input(type="text", name="llm_provider", class="w-full border rounded p-2 text-sm")
             div
-              label(class="block text-xs font-bold text-slate-700 mb-1") Vector DB
+              label(class="block text-xs font-bold text-slate-700 mb-1") 向量数据库
               input(type="text", name="vector_db", class="w-full border rounded p-2 text-sm")
           
           div
-            label(class="block text-xs font-bold text-slate-700 mb-1") OpenAI Base Path
+            label(class="block text-xs font-bold text-slate-700 mb-1") OpenAI 基础路径 (vLLM 地址)
             input(type="text", name="generic_openai_base_path", class="w-full border rounded p-2 text-sm")
           
           .grid.grid-cols-2.gap-4
             div
-              label(class="block text-xs font-bold text-slate-700 mb-1") Model Pref
+              label(class="block text-xs font-bold text-slate-700 mb-1") 默认模型
               input(type="text", name="generic_openai_model_pref", class="w-full border rounded p-2 text-sm")
             div
               label(class="block text-xs font-bold text-slate-700 mb-1") API Key
@@ -215,15 +264,15 @@ block content
           
           .grid.grid-cols-2.gap-4
             div
-              label(class="block text-xs font-bold text-slate-700 mb-1") Token Limit
+              label(class="block text-xs font-bold text-slate-700 mb-1") Token 限制
               input(type="number", name="generic_openai_model_token_limit", class="w-full border rounded p-2 text-sm")
             div
-              label(class="block text-xs font-bold text-slate-700 mb-1") Max Tokens
+              label(class="block text-xs font-bold text-slate-700 mb-1") 最大生成 Tokens
               input(type="number", name="generic_openai_max_tokens", class="w-full border rounded p-2 text-sm")
 
-        .mt-6.flex.justify-end.gap-3
-          button(type="button", onclick="hideModal('ragConfigModal')", class="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg") Cancel
-          button(type="submit", class="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg") Save & Restart
+        .mt-8.pt-6.border-t.flex.justify-end.gap-3
+          button(type="button", onclick="hideModal('ragConfigModal')", class="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg") 取消
+          button(type="submit", class="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg") 保存并重启
 
   include includes/modals/service-connect.pug
   include includes/modals/add-node.pug

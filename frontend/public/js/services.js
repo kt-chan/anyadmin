@@ -103,15 +103,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Service Config (vLLM / AnythingLLM) ---
     window.editServiceConfig = (nodeIP, serviceName, type) => {
-        const node = configData.nodes.find(n => n.node_ip === nodeIP);
-        if (!node) return;
-
         let config;
+
+        if (nodeIP) {
+            const node = configData.nodes.find(n => n.node_ip === nodeIP);
+            if (!node) return;
+            if (type === 'vllm') {
+                config = node.inference_cfgs.find(c => c.name === serviceName);
+            } else if (type === 'rag') {
+                config = node.rag_app_cfgs.find(c => c.name === serviceName);
+            }
+        } else {
+            // Global Config: Find first instance to populate defaults
+            if (configData.grouped_services && configData.grouped_services[serviceName]) {
+                const instances = configData.grouped_services[serviceName];
+                if (instances && instances.length > 0) {
+                    config = instances[0].config;
+                }
+            }
+        }
+
         if (type === 'vllm') {
-            config = node.inference_cfgs.find(c => c.name === serviceName);
             openVllmModal(config, nodeIP);
         } else if (type === 'rag') {
-            config = node.rag_app_cfgs.find(c => c.name === serviceName);
             openRagModal(config, nodeIP);
         }
     };

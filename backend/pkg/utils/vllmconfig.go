@@ -79,11 +79,11 @@ type CalculateConfigParams struct {
 func CalculateVLLMConfig(params CalculateConfigParams) (VLLMConfig, ModelConfig, error) {
 	// 默认利用率
 	if params.GPUUtilization <= 0 {
-		params.GPUUtilization = 0.9
+		params.GPUUtilization = 0.85
 	}
 
-	// 如果内存小于8GB且利用率为默认值0.9，则调低至0.85以更保守
-	if params.GPUMemoryGB < 8 && params.GPUUtilization == 0.9 {
+	// 如果内存小于8GB且利用率为默认值0.85，则保持一致
+	if params.GPUMemoryGB < 8 && params.GPUUtilization == 0.85 {
 		params.GPUUtilization = 0.85
 	}
 
@@ -126,7 +126,7 @@ func main() {
 	model := flag.String("model", "", "模型名称或本地路径")
 	gpuMemoryStr := flag.String("gpu_memory", "8G", "GPU内存")
 	mode := flag.String("mode", "balanced", "优化模式")
-	utilization := flag.Float64("utilization", 0.9, "GPU内存利用率")
+	utilization := flag.Float64("utilization", 0.85, "GPU内存利用率")
 	enableSwap := flag.Bool("enable_swap", false, "是否启用交换空间")
 
 	flag.Parse()
@@ -268,8 +268,8 @@ func CalculateMaxTokenConfig(model ModelConfig, gpu GPUConfig) VLLMConfig {
 	weightMemoryGB := calculateModelWeightMemory(model)
 	systemReservedGB := 1.5 // Standard reservation
 
-	// Fix 1: Add a safety buffer (0.9) to account for fragmentation/activation overhead
-	kvCacheMemoryGB := (availableMemoryGB - weightMemoryGB - systemReservedGB) * 0.9
+	// Fix 1: Add a safety buffer (0.85) to account for fragmentation/activation overhead
+	kvCacheMemoryGB := (availableMemoryGB - weightMemoryGB - systemReservedGB) * 0.85
 
 	if kvCacheMemoryGB < 0.5 {
 		kvCacheMemoryGB = 0.5
@@ -330,7 +330,7 @@ func CalculateMaxConcurrencyConfig(model ModelConfig, gpu GPUConfig) VLLMConfig 
 	systemReservedGB := 1.5
 
 	// Safety buffer
-	kvCacheMemoryGB := (availableMemoryGB - weightMemoryGB - systemReservedGB) * 0.9
+	kvCacheMemoryGB := (availableMemoryGB - weightMemoryGB - systemReservedGB) * 0.85
 	if kvCacheMemoryGB < 1.0 {
 		kvCacheMemoryGB = 1.0
 	}
@@ -394,8 +394,8 @@ func CalculateBalancedConfig(model ModelConfig, gpu GPUConfig) VLLMConfig {
 	weightMemoryGB := calculateModelWeightMemory(model)
 	systemReservedGB := 1.5
 
-	// Fix 1: Safety buffer of 0.9 (10% headroom for activation overhead/fragmentation)
-	kvCacheMemoryGB := (availableMemoryGB - weightMemoryGB - systemReservedGB) * 0.9
+	// Fix 1: Safety buffer of 0.85 (15% headroom for activation overhead/fragmentation)
+	kvCacheMemoryGB := (availableMemoryGB - weightMemoryGB - systemReservedGB) * 0.85
 
 	if kvCacheMemoryGB < 1.0 {
 		kvCacheMemoryGB = 1.0

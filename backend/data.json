@@ -25,35 +25,52 @@
     {
       "node_ip": "172.20.0.10",
       "hostname": "172.20.0.10",
+      "agent_config": {
+        "deployment_time": "",
+        "log_file": "/tmp/agent_test.log",
+        "mgmt_host": "172.20.0.1",
+        "mgmt_port": "8080",
+        "node_ip": "172.20.0.10",
+        "node_port": ""
+      },
       "inference_cfgs": [
         {
           "id": 0,
           "createdAt": "0001-01-01T00:00:00Z",
-          "updatedAt": "0001-01-01T00:00:00Z",
+          "updatedAt": "2026-02-06T14:50:29.5724177+08:00",
           "deletedAt": null,
           "name": "vllm",
           "engine": "vLLM",
-          "model_name": "",
+          "model_name": "Qwen3-1.7B",
           "modelPath": "Qwen3-1.7B",
           "ip": "172.20.0.10",
           "port": "8000",
-          "mode": "",
-          "max_model_len": 0,
-          "max_num_seqs": 0,
-          "max_num_batched_tokens": 0,
-          "gpu_memory_utilization": 0
+          "mode": "balanced",
+          "max_model_len": 4096,
+          "max_num_seqs": 3,
+          "max_num_batched_tokens": 8192,
+          "gpu_memory_utilization": 0.85
         }
       ],
       "rag_app_cfgs": [
         {
           "id": 0,
           "createdAt": "0001-01-01T00:00:00Z",
-          "updatedAt": "0001-01-01T00:00:00Z",
+          "updatedAt": "2026-02-06T14:46:55.8544373+08:00",
           "deletedAt": null,
           "name": "anythingllm",
           "host": "172.20.0.10",
           "port": "3001",
-          "vector_db": ""
+          "storage_dir": "/app/server/storage_updated",
+          "llm_provider": "",
+          "generic_openai_base_path": "",
+          "generic_openai_model_pref": "",
+          "generic_openai_model_token_limit": 0,
+          "generic_openai_max_tokens": 0,
+          "generic_openai_api_key": "",
+          "auth_token": "",
+          "jwt_secret": "",
+          "vector_db": "lancedb"
         }
       ]
     }

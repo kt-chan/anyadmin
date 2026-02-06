@@ -38,12 +38,33 @@ type RagAppConfig struct {
 	Name      string         `json:"name"`
 	Host      string         `json:"host"`
 	Port      string         `json:"port"`
-	VectorDB  string         `json:"vector_db"`
+	
+	// AnythingLLM Specifics
+	StorageDir                   string `json:"storage_dir"`
+	LLMProvider                  string `json:"llm_provider"`
+	GenericOpenAIBasePath        string `json:"generic_openai_base_path"`
+	GenericOpenAIModelPref       string `json:"generic_openai_model_pref"`
+	GenericOpenAIModelTokenLimit int    `json:"generic_openai_model_token_limit"`
+	GenericOpenAIMaxTokens       int    `json:"generic_openai_max_tokens"`
+	GenericOpenAIKey             string `json:"generic_openai_api_key"`
+	AuthToken                    string `json:"auth_token"`
+	JWTSecret                    string `json:"jwt_secret"`
+	VectorDB                     string `json:"vector_db"`
+}
+
+type AgentConfig struct {
+	DeploymentTime string `json:"deployment_time"`
+	LogFile        string `json:"log_file"`
+	MgmtHost       string `json:"mgmt_host"`
+	MgmtPort       string `json:"mgmt_port"`
+	NodeIP         string `json:"node_ip"`
+	NodePort       string `json:"node_port"`
 }
 
 type DeploymentNode struct {
 	NodeIP        string            `json:"node_ip"`
 	Hostname      string            `json:"hostname"`
+	AgentConfig   AgentConfig       `json:"agent_config"`
 	InferenceCfgs []InferenceConfig `json:"inference_cfgs"`
 	RagAppCfgs    []RagAppConfig    `json:"rag_app_cfgs"`
 }

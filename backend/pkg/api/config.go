@@ -160,3 +160,114 @@ func DeleteInferenceConfig(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "服务已彻底删除"})
 }
+
+// System Config
+type SystemConfig struct {
+	MgmtHost string `json:"mgmt_host"`
+	MgmtPort string `json:"mgmt_port"`
+}
+
+func SaveSystemConfig(c *gin.Context) {
+	var req SystemConfig
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	mockdata.Mu.Lock()
+	mockdata.MgmtHost = req.MgmtHost
+	mockdata.MgmtPort = req.MgmtPort
+	mockdata.Mu.Unlock()
+
+	if err := mockdata.SaveToFile(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save config"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "System config saved"})
+}
+
+func GetServicesConfig(c *gin.Context) {
+	mockdata.Mu.Lock()
+	defer mockdata.Mu.Unlock()
+	c.JSON(http.StatusOK, gin.H{
+		"mgmt_host": mockdata.MgmtHost,
+		"mgmt_port": mockdata.MgmtPort,
+		"nodes":     mockdata.DeploymentNodes,
+	})
+}
+
+func SaveRagAppConfig(c *gin.Context) {
+	var config global.RagAppConfig
+	if err := c.ShouldBindJSON(&config); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	mockdata.Mu.Lock()
+	found := false
+	for i, node := range mockdata.DeploymentNodes {
+		// If Host matches NodeIP, or search all
+		if node.NodeIP == config.Host {
+			for j, cfg := range node.RagAppCfgs {
+				if cfg.Name == config.Name {
+					// Update fields
+					mockdata.DeploymentNodes[i].RagAppCfgs[j] = config // Replace entire struct for simplicity, assuming ID/Dates preserved or handled
+					mockdata.DeploymentNodes[i].RagAppCfgs[j].UpdatedAt = time.Now()
+					found = true
+					break
+				}
+			}
+		}
+		if found { break }
+	}
+	
+	// If not found by exact match, try searching strictly by name across all nodes if Host isn't set correctly in request?
+	// But Host is key. Let's assume frontend sends correct Host.
+	
+	mockdata.Mu.Unlock()
+
+	if !found {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Config not found"})
+		return
+	}
+
+	if err := mockdata.SaveToFile(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
+		return
+	}
+
+	c.JSON(http.StatusOK, config)
+}
+
+func SaveAgentConfig(c *gin.Context) {
+	var req struct {
+		TargetNodeIP string             `json:"target_node_ip"`
+		Config       global.AgentConfig `json:"config"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	mockdata.Mu.Lock()
+	found := false
+	for i, node := range mockdata.DeploymentNodes {
+		if node.NodeIP == req.TargetNodeIP {
+			mockdata.DeploymentNodes[i].AgentConfig = req.Config
+			found = true
+			break
+		}
+	}
+	mockdata.Mu.Unlock()
+
+	if !found {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Node not found"})
+		return
+	}
+
+	if err := mockdata.SaveToFile(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Agent config saved"})
+}

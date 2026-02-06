@@ -27,6 +27,27 @@ const servicesService = {
     return response.data.services;
   },
 
+  getFullConfig: async (token) => {
+    const config = { headers: { Authorization: `Bearer ${token}` } };
+    const response = await apiClient.get('/api/v1/configs/services', config);
+    return response.data;
+  },
+
+  saveSystemConfig: async (data, token) => {
+    const config = { headers: { Authorization: `Bearer ${token}` } };
+    await apiClient.post('/api/v1/configs/system', data, config);
+  },
+
+  saveRagConfig: async (data, token) => {
+    const config = { headers: { Authorization: `Bearer ${token}` } };
+    await apiClient.post('/api/v1/configs/rag', data, config);
+  },
+
+  saveAgentConfig: async (nodeIP, agentConfig, token) => {
+    const config = { headers: { Authorization: `Bearer ${token}` } };
+    await apiClient.post('/api/v1/configs/agent', { target_node_ip: nodeIP, config: agentConfig }, config);
+  },
+
   restartService: async (serviceName, nodeIP, token, serviceType) => {
     logger.info(`Restarting service: ${serviceName} on node: ${nodeIP} (Type: ${serviceType})`);
     const config = {

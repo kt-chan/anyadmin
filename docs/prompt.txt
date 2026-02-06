@@ -797,3 +797,30 @@ analyze view @frontend\views\deployment.pug, then you have to rewrite and enrich
 - Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, use this powershell @scripts/stop-pids.ps1 to terminate proccess on port 3000 and 8080 
 
 
+
+## Task 25
+
+analyze view @frontend\views\services.pug then you have to rewrite and enrich this script as well as the corresponding frontend, backend, and remote agent services for below funcitonal features enrichment objective. And you have to follow Coding Guide provided in final section of below context.
+
+*** funcitonal features enrichment Objective ***
+
+1. redesign the services.pug to support addition, edition, and removal of below service categories
+	a. system setting for anyadmin (this running platform), such as backend listenning ip and port, system email setup etc.
+	b. registered nodes (agents), user are allowed to modify the reference agent configuration in the examples section.
+	c. registered service (container like vllm, and anythingllm), we should have a configuration view on each service given those service may be deployed across nodes, 
+		- vllm configuration covers environment variable in @backend\deployments\dockers\yaml\.env-anythingllm
+		- anythingllm configuration covers environment variable in @backend\deployments\dockers\yaml\.env-vllm
+2. you should only update codes in frontend, and make minimun change in backend to supply necessary data in @backend\data.json to make a prototype
+3. you do not need to update agent, unit test at this moment.
+
+*** Examples
+ agent configuration example : anyadmin@DESKTOP-OSLI7Q7:~/bin$ cat config.json
+{"deployment_time":"2026-02-06T12:37:22+08:00","log_file":"/home/anyadmin/logs/agent.log","mgmt_host":"172.20.0.1","mgmt_port":"8080","node_ip":"172.20.0.10","node_port":"8082"}
+
+**Coding Guide**  
+- this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO.
+- The remote host is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and you have to run ssh with passwordless id_rsa key at @backend\keys with root user to remote host. 
+- Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, use this powershell @scripts/stop-pids.ps1 to terminate proccess on port 3000 and 8080 
+
+

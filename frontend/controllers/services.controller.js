@@ -6,11 +6,16 @@ const servicesController = {
   showServices: async (req, res) => {
     try {
       const token = req.session.user?.token;
-      const data = await servicesService.getServicesList(token);
+      // Fetch full config which includes nodes, inference_cfgs, rag_app_cfgs, system settings
+      const fullConfig = await servicesService.getFullConfig(token);
+      
+      // We might still want status info if separate, but let's rely on config for now or merge if needed.
+      // The previous view used 'services' array which was simplified.
+      // The new view will need the raw structure.
       
       res.render('services', {
         user: req.session.user,
-        services: data.services,
+        config: fullConfig, // Pass the whole config tree
         page: 'services'
       });
     } catch (error) {

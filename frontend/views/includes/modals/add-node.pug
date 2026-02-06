@@ -1,0 +1,49 @@
+//- Add New Node Modal
+div(id="addNodeModal", class="modal")
+  div(class="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-8 max-h-[90vh] overflow-y-auto")
+    div(class="flex justify-between items-center mb-6")
+      h3(class="text-xl font-bold text-slate-800") 注册新计算节点
+      button(onclick="hideModal('addNodeModal')", class="text-slate-400 hover:text-slate-600")
+        i(class="fas fa-times text-xl")
+
+    form#addNodeForm
+      //- Management Config
+      div(class="grid grid-cols-2 gap-4 mb-6")
+        div
+          label(class="block text-sm font-bold text-slate-700 mb-1") 管理面板 Host
+          input(type="text", name="mgmt_host", value=config.mgmt_host, class="w-full rounded-lg border-2 border-slate-200 p-2 text-sm focus:border-blue-500 outline-none")
+        div
+          label(class="block text-sm font-bold text-slate-700 mb-1") 管理面板 Port
+          input(type="number", name="mgmt_port", value=config.mgmt_port, class="w-full rounded-lg border-2 border-slate-200 p-2 text-sm focus:border-blue-500 outline-none")
+
+      //- SSH Guide
+      div(class="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-100")
+        h4(class="font-bold text-sm text-blue-800 mb-2")
+          i(class="fas fa-key mr-2")
+          | 配置免密 SSH 访问
+        p(class="text-xs text-blue-600 mb-3") 为了管理远程节点，请使用系统生成的 SSH 公钥。
+        
+        div(class="flex items-center gap-4 mb-4")
+          button(type="button", onclick="downloadSSHKey()", class="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 shadow-sm")
+            i(class="fas fa-download mr-2")
+            | 下载系统 SSH 公钥
+          span(class="text-xs text-blue-400") (id_rsa.pub)
+
+        div(class="bg-white p-3 rounded-lg border border-blue-200")
+          code(class="text-xs text-slate-600 block mb-1") # 在每个目标节点上执行，将公钥添加到 authorized_keys:
+          code(class="text-xs font-mono text-slate-800 block") cat id_rsa.pub >> ~/.ssh/authorized_keys
+
+      //- Target Nodes
+      div(class="mb-6")
+        label(class="block text-sm font-bold text-slate-700 mb-2") 目标节点 IP 列表
+        textarea(name="target_nodes", rows="4", placeholder="输入 IP 地址，每行一个", class="w-full rounded-lg border-2 border-slate-200 p-3 text-sm font-mono focus:border-blue-500 outline-none")
+        p(class="text-[10px] text-slate-500 mt-2") * 系统将自动在这些节点上部署 Agent 服务。
+
+      div(class="flex items-center justify-between mt-8 pt-6 border-t")
+        button(type="button", onclick="testNodeSSH()", class="text-blue-600 text-xs font-bold hover:underline")
+          i(class="fas fa-terminal mr-1")
+          | 验证 SSH 连接性
+        
+        div(class="flex gap-3")
+          button(type="button", onclick="hideModal('addNodeModal')", class="px-6 py-2 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-100") 取消
+          button(type="submit", class="bg-blue-600 text-white px-8 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-200") 确认注册

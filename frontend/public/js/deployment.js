@@ -251,12 +251,15 @@ async function updateNodeStatusInDashboard(ip) {
                     else if (isWarning) svcColor = 'bg-yellow-500';
                     dot.classList.add(svcColor);
                     
-                    if (svc.name.toLowerCase().includes('vllm')) {
-                        const configBtn = sc.querySelector('.svc-config-btn');
-                        if (configBtn) {
-                            configBtn.classList.remove('hidden');
-                            configBtn.onclick = () => openVLLMConfigModal(ip);
-                        }
+                    // Attach handlers for Restart/Stop
+                    const restartBtn = sc.querySelector('.svc-restart-btn');
+                    if (restartBtn) {
+                        restartBtn.onclick = () => restartService(svc.name, ip, 'Container');
+                    }
+                    
+                    const stopBtn = sc.querySelector('.svc-stop-btn');
+                    if (stopBtn) {
+                         stopBtn.onclick = () => stopService(svc.name, ip, 'Container');
                     }
 
                     list.appendChild(sc);
@@ -292,6 +295,63 @@ async function updateNodeStatusInDashboard(ip) {
     console.error(e);
     if (badge) badge.innerText = "Error";
     if (details) details.innerHTML = '<div class="col-span-3 text-center py-4 text-red-400">Error fetching status.</div>';
+  }
+}
+
+// --- Service Control ---
+async function restartService(serviceName, nodeIP, serviceType) {
+  if (confirm(`确定要重启服务 ${serviceName} 吗？`)) {
+    try {
+      // Use the generic API endpoint available in dashboard
+      const response = await fetch('/api/service/restart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: serviceName,
+          node_ip: nodeIP,
+          type: serviceType
+        })
+      });
+      
+      if (response.ok) {
+        // Trigger immediate status update for this node
+        setTimeout(() => updateNodeStatusInDashboard(nodeIP), 2000);
+      } else {
+        alert('Restart failed');
+      }
+    } catch (error) {
+      console.error('Restart failed:', error);
+      alert('Network error during restart');
+    }
+  }
+}
+
+async function stopService(serviceName, nodeIP, serviceType) {
+  if (confirm(`确定要停止服务 ${serviceName} 吗？`)) {
+    try {
+      const response = await fetch('/api/service/stop', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: serviceName,
+          node_ip: nodeIP,
+          type: serviceType
+        })
+      });
+      
+      if (response.ok) {
+        setTimeout(() => updateNodeStatusInDashboard(nodeIP), 2000);
+      } else {
+        alert('Stop failed');
+      }
+    } catch (error) {
+      console.error('Stop failed:', error);
+      alert('Network error during stop');
+    }
   }
 }
 
@@ -1140,63 +1200,3 @@ window.copyContent = function(btn) {
         setTimeout(() => btn.innerHTML = original, 2000);
     });
 };
-
-window.openVLLMConfigModal = function(nodeIp) {
-  const modal = document.getElementById('vllm-config-modal');
-  if (modal) {
-    modal.classList.remove('hidden');
-    const input = modal.querySelector('input[name="node_ip"]');
-    if (input) input.value = nodeIp;
-  }
-};
-
-window.closeVLLMConfigModal = function() {
-  const modal = document.getElementById('vllm-config-modal');
-  if (modal) modal.classList.add('hidden');
-};
-
-document.getElementById('vllm-config-form')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const formData = new FormData(e.target);
-  const data = Object.fromEntries(formData.entries());
-  const nodeIp = data.node_ip;
-  delete data.node_ip;
-  
-  // Convert config values
-  const config = {
-      VLLM_MAX_MODEL_LEN: data.max_model_len,
-      VLLM_GPU_MEMORY_UTILIZATION: data.gpu_memory_utilization,
-      VLLM_MAX_NUM_SEQS: data.max_num_seqs,
-      VLLM_MAX_NUM_BATCHED_TOKENS: data.max_num_batched_tokens
-  };
-
-  const btn = e.target.querySelector('button[type="submit"]');
-  const originalText = btn.innerHTML;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
-  btn.disabled = true;
-
-  try {
-    const res = await fetch('/deployment/api/config/vllm', {
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ node_ip: nodeIp, config: config })
-    });
-    
-    const result = await res.json();
-    if (result.success) {
-        alert("Configuration saved and service restart triggered.");
-        closeVLLMConfigModal();
-        // Trigger dashboard update
-        updateNodeStatusInDashboard(nodeIp);
-    } else {
-        alert('Failed: ' + (result.message || 'Unknown error'));
-    }
-  } catch (err) {
-      alert('Failed: ' + err.message);
-  } finally {
-      btn.innerHTML = originalText;
-      btn.disabled = false;
-  }
-});

@@ -11,14 +11,14 @@ import (
 
 func TestAgentDeploymentAndControl(t *testing.T) {
 	nodeIP := "172.20.0.10"
-	mgmtHost := "172.20.0.1" 
+	mgmtHost := "172.20.0.1"
 	mgmtPort := "8080"
 
 	// 2. Deploy Agent (simulates "send to target host" and "start")
 	// "integrate" mode bypasses Go installation, assuming we just update the agent.
 	// NOTE: DeployAgent now handles stopping existing agent first.
 	t.Log("Deploying agent...")
-	
+
 	// Use a channel to detect timeout of the synchronous DeployAgent call if it hangs
 	done := make(chan bool)
 	go func() {
@@ -32,19 +32,19 @@ func TestAgentDeploymentAndControl(t *testing.T) {
 	case <-time.After(60 * time.Second):
 		t.Fatal("DeployAgent timed out after 60s")
 	}
-	
+
 	// Give it some time to start up
 	t.Log("Waiting for agent startup (5s)...")
 	time.Sleep(5 * time.Second)
 
 	// 3. Check Health
-	healthURL := fmt.Sprintf("http://%s:9090/health", nodeIP)
+	healthURL := fmt.Sprintf("http://%s:8082/health", nodeIP)
 	t.Logf("Checking health at %s", healthURL)
-	
+
 	client := http.Client{
 		Timeout: 5 * time.Second,
 	}
-	
+
 	var lastErr error
 	// Poll for health (up to 60s)
 	for i := 0; i < 12; i++ {
@@ -64,7 +64,7 @@ func TestAgentDeploymentAndControl(t *testing.T) {
 			sshClient, sshErr := service.GetSSHClient(nodeIP, "22")
 			if sshErr == nil {
 				// Check using curl on localhost
-				out, cmdErr := service.ExecuteCommand(sshClient, "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9090/health")
+				out, cmdErr := service.ExecuteCommand(sshClient, "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8082/health")
 				sshClient.Close()
 				if cmdErr == nil && strings.TrimSpace(out) == "200" {
 					t.Log("Agent is healthy (via internal curl)")
@@ -82,7 +82,6 @@ func TestAgentDeploymentAndControl(t *testing.T) {
 		t.Fatalf("Agent failed to become healthy: %v", lastErr)
 	}
 	// assert.Equal is removed as we checked it in the loop
-
 
 	// 4. Test Control Container (Restart anythingllm)
 	t.Log("Testing ControlContainer restart for anythingllm...")

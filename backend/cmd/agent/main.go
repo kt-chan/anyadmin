@@ -2,12 +2,12 @@ package main
 
 import (
 	"anyadmin-backend/pkg/agent"
+	"encoding/json"
 	"flag"
+	"io/ioutil"
 	"log"
 	"os"
 	"time"
-	"encoding/json"
-	"io/ioutil"
 )
 
 var (
@@ -23,7 +23,7 @@ func init() {
 	flag.StringVar(&nodeIP, "ip", "127.0.0.1", "Node IP Address")
 	flag.StringVar(&configFile, "config", "config.json", "Path to config file")
 	flag.StringVar(&logFile, "log", "", "Path to log file")
-	flag.StringVar(&port, "port", "9090", "Agent Server Port")
+	flag.StringVar(&port, "port", "8082", "Agent Server Port")
 }
 
 type Config struct {

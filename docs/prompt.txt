@@ -536,7 +536,7 @@ anyadmin@DESKTOP-OSLI7Q7:~/docker$
 **Coding Guide**  
 - this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO.
 - The remote host managed by  @backend/cmd/agent/main.go  is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and passwordless ssh is configured for root. 
-- You should always deploy agent to this ip  172.20.0.10 with port 9090 for unit test.
+- You should always deploy agent to this ip  172.20.0.10 with port 8082 for unit test.
 - You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
 - Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
 - Write unit tests to verify any update systematically by accessing the frontend app and backend services code changes. Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
@@ -554,7 +554,7 @@ analyze view @frontend\views\dashboard.pug, and GO script @backend\pkg\service\d
 **Coding Guide**  
 - this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO.
 - The remote host managed by  @backend/cmd/agent/main.go  is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and passwordless ssh is configured for root. 
-- You should always deploy agent to this ip  172.20.0.10 with port 9090 for unit test.
+- You should always deploy agent to this ip  172.20.0.10 with port 8082 for unit test.
 - You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
 - Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
 - Write unit tests to verify any update systematically by accessing the frontend app and backend services code changes. Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
@@ -576,7 +576,7 @@ analyze view pug @frontend/views/deployment.pug  and the container docker-compos
 **Coding Guide**  
 - this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO.
 - The remote host managed by  @backend/cmd/agent/main.go  is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and passwordless ssh is configured for root. 
-- You should always deploy agent to this ip  172.20.0.10 with port 9090 for unit test.
+- You should always deploy agent to this ip  172.20.0.10 with port 8082 for unit test.
 - You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
 - Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
 - Write unit tests to verify any update systematically by accessing the frontend app and backend services code changes. Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
@@ -623,7 +623,7 @@ analyze view pug @frontend/views/deployment.pug, then you have to rewrite and en
 **Coding Guide**  
 - this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO.
 - The remote host managed by  @backend/cmd/agent/main.go  is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and passwordless ssh is configured for root. 
-- You should always deploy agent to this ip  172.20.0.10 with port 9090 for unit test.
+- You should always deploy agent to this ip  172.20.0.10 with port 8082 for unit test.
 - You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
 - Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
 - Write unit tests to verify any update systematically by accessing the frontend app and backend services code changes. Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
@@ -646,7 +646,7 @@ analyze view pug  @frontend/views/deployment.pug, then you have to rewrite and e
 **Coding Guide**  
 - this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO.
 - The remote host managed by  @backend/cmd/agent/main.go  is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and passwordless ssh is configured for root. 
-- You should always deploy agent to this ip  172.20.0.10 with port 9090 for unit test.
+- You should always deploy agent to this ip  172.20.0.10 with port 8082 for unit test.
 - You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
 - Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
 - Write unit tests to verify any update systematically by accessing the frontend app and backend services code changes. Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
@@ -668,7 +668,7 @@ analyze backend/pkg/agent/agent.go and @backend/deployments/dockers/yaml/docker-
 **Coding Guide**  
 - this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO.
 - The remote host managed by  @backend/cmd/agent/main.go  is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and you have to run ssh with passwordless with root user. 
-- You should always deploy agent to this ip  172.20.0.10 with port 9090 for unit test.
+- You should always deploy agent to this ip  172.20.0.10 with port 8082 for unit test.
 - You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
 - Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
 - Write unit tests to verify any update systematically by accessing the frontend app and backend services code changes. Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
@@ -696,7 +696,7 @@ analyze view @frontend\views\deployment.pug, then you have to rewrite and enrich
 - You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
 - Write unit tests to verify any update systematically by accessing the frontend app and backend services code changes. Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
 - All the unit test should be put under /tests folder, and all the loggging should be put under /logs folder
-- All the unit test related to agent should use the remote host on this ip 172.20.0.10 with port 9090 for agent interaction 
+- All the unit test related to agent should use the remote host on this ip 172.20.0.10 with port 8082 for agent interaction 
 - Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
 - Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, use this powershell @scripts/stop-pids.ps1 to terminate proccess on port 3000 and 8080 
 
@@ -722,7 +722,7 @@ analyze view @frontend\views\deployment.pug and @backend\pkg\mockdata\store.go, 
 - You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
 - Write unit tests to verify any update systematically by accessing the frontend app and backend services code changes. Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
 - All the unit test should be put under /tests folder, and all the loggging should be put under /logs folder
-- All the unit test related to agent should use the remote host on this ip 172.20.0.10 with port 9090 for agent interaction 
+- All the unit test related to agent should use the remote host on this ip 172.20.0.10 with port 8082 for agent interaction 
 - Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
 - Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, use this powershell @scripts/stop-pids.ps1 to terminate proccess on port 3000 and 8080 
 
@@ -747,7 +747,7 @@ analyze view @frontend\views\deployment.pug and @frontend\views\dashboard.pug an
 - You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
 - Write unit tests to verify any update systematically by accessing the frontend app and backend services code changes. Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
 - All the unit test should be put under /tests folder, and all the loggging should be put under /logs folder
-- All the unit test related to agent should use the remote host on this ip 172.20.0.10 with port 9090 for agent interaction 
+- All the unit test related to agent should use the remote host on this ip 172.20.0.10 with port 8082 for agent interaction 
 - Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
 - Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, use this powershell @scripts/stop-pids.ps1 to terminate proccess on port 3000 and 8080 
 
@@ -769,7 +769,30 @@ analyze view @frontend\views\deployment.pug and @frontend\views\dashboard.pug, t
 - You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
 - Write unit tests to verify any update systematically by accessing the frontend app and backend services code changes. Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
 - All the unit test should be put under /tests folder, and all the loggging should be put under /logs folder
-- All the unit test related to agent should use the remote host on this ip 172.20.0.10 with port 9090 for agent interaction 
+- All the unit test related to agent should use the remote host on this ip 172.20.0.10 with port 8082 for agent interaction 
+- Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, use this powershell @scripts/stop-pids.ps1 to terminate proccess on port 3000 and 8080 
+
+
+
+## Task 24
+
+analyze view @frontend\views\deployment.pug, then you have to rewrite and enrich this script as well as the corresponding frontend, backend, and remote agent services for below funcitonal features enrichment objective. And you have to follow Coding Guide provided in final section of below context.
+
+*** funcitonal features enrichment Objective ***
+
+1. the servicies of 节点状态 at @frontend\views\deployment.pug should be loaded from @backend\data.json if it is configured. The current implementaiton logics hearing heartbeat service from agent would make the services not being rendered, such that i cannot re/start the service.
+2. analyze the logic in @frontend\views\dashboard.pug for service display, and reimplemnet this at deployment.pug page.
+3. this should be simple fix on frontend, do not make changes on the agent.
+
+
+**Coding Guide**  
+- this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO.
+- The remote host is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and you have to run ssh with passwordless id_rsa key at @backend\keys with root user to remote host. 
+- You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
+- Write unit tests to verify any update systematically by accessing the frontend app and backend services code changes. Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
+- All the unit test should be put under /tests folder, and all the loggging should be put under /logs folder
+- All the unit test related to agent should use the remote host on this ip 172.20.0.10 with port 8082 for agent interaction 
 - Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
 - Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, use this powershell @scripts/stop-pids.ps1 to terminate proccess on port 3000 and 8080 
 

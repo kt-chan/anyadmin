@@ -86,7 +86,7 @@ func ControlContainer(containerName string, action string, nodeIP string) error 
 	containerNameLower := strings.ToLower(containerName)
 	log.Printf("[Agent] ControlContainer: %s %s on %s", action, containerName, nodeIP)
 
-	agentPort := "9090" // Default agent port
+	agentPort := "8082" // Default agent port
 	agentURL := fmt.Sprintf("http://%s:%s/container/control", nodeIP, agentPort)
 
 	// Default action
@@ -128,7 +128,7 @@ func sendAgentRequest(url string, payload interface{}) error {
 func UpdateVLLMConfig(nodeIP string, config map[string]string, restart bool) error {
 	log.Printf("[Agent] UpdateVLLMConfig on %s", nodeIP)
 
-	agentPort := "9090"
+	agentPort := "8082"
 	agentURL := fmt.Sprintf("http://%s:%s/config/update", nodeIP, agentPort)
 
 	payload := map[string]interface{}{
@@ -139,5 +139,3 @@ func UpdateVLLMConfig(nodeIP string, config map[string]string, restart bool) err
 
 	return sendAgentRequest(agentURL, payload)
 }
-
-	

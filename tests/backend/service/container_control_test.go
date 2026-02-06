@@ -1,11 +1,11 @@
 package service_test
 
 import (
+	"anyadmin-backend/pkg/utils"
 	"fmt"
 	"net/http"
 	"testing"
 	"time"
-    "anyadmin-backend/pkg/utils"
 )
 
 type ContainerControlRequest struct {
@@ -14,8 +14,8 @@ type ContainerControlRequest struct {
 }
 
 func TestContainerControl(t *testing.T) {
-	agentURL := "http://172.20.0.10:9090/container/control"
-	
+	agentURL := "http://172.20.0.10:8082/container/control"
+
 	// Test Stop vLLM
 	t.Log("Testing STOP vllm")
 	if err := sendControlRequest(agentURL, "vllm", "stop"); err != nil {
@@ -28,7 +28,7 @@ func TestContainerControl(t *testing.T) {
 	if err := sendControlRequest(agentURL, "vllm", "start"); err != nil {
 		t.Errorf("Failed to start vllm: %v", err)
 	}
-    time.Sleep(2 * time.Second)
+	time.Sleep(2 * time.Second)
 }
 
 func sendControlRequest(url, name, action string) error {

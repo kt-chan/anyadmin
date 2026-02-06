@@ -29,7 +29,7 @@
         {
           "id": 0,
           "createdAt": "0001-01-01T00:00:00Z",
-          "updatedAt": "0001-01-01T00:00:00Z",
+          "updatedAt": "2026-02-06T11:33:22.380825+08:00",
           "deletedAt": null,
           "name": "vllm",
           "engine": "vLLM",
@@ -37,10 +37,10 @@
           "modelPath": "Qwen3-1.7B",
           "ip": "172.20.0.10",
           "port": "8000",
-          "mode": "",
-          "max_model_len": 4096,
-          "max_num_seqs": 3,
-          "max_num_batched_tokens": 8192,
+          "mode": "max_token",
+          "max_model_len": 15488,
+          "max_num_seqs": 1,
+          "max_num_batched_tokens": 15488,
           "gpu_memory_utilization": 0.85
         }
       ],

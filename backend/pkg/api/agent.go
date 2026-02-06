@@ -2,6 +2,7 @@ package api
 
 import (
 	"anyadmin-backend/pkg/global"
+	"anyadmin-backend/pkg/mockdata"
 	"anyadmin-backend/pkg/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -44,13 +45,64 @@ func CheckAgentStatus(c *gin.Context) {
 	}
 
 	status, exists := service.GetAgentStatus(ip)
+	
+	// Load configured services for this IP from mockdata
+	configuredServices := []global.DockerServiceStatus{}
+	hostname := ip
+	mockdata.Mu.Lock()
+	for _, node := range mockdata.DeploymentNodes {
+		if node.NodeIP == ip {
+			hostname = node.Hostname
+			for _, cfg := range node.InferenceCfgs {
+				configuredServices = append(configuredServices, global.DockerServiceStatus{
+					Name:   cfg.Name,
+					Image:  cfg.Engine,
+					Status: "Configured (Stopped)",
+					State:  "stopped",
+				})
+			}
+			for _, cfg := range node.RagAppCfgs {
+				configuredServices = append(configuredServices, global.DockerServiceStatus{
+					Name:   cfg.Name,
+					Image:  "RAG Application",
+					Status: "Configured (Stopped)",
+					State:  "stopped",
+				})
+			}
+			break
+		}
+	}
+	mockdata.Mu.Unlock()
+
 	if !exists {
-		c.JSON(http.StatusNotFound, gin.H{"status": "offline", "message": "Agent not yet seen"})
+		// Return placeholder status if agent never seen
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data": gin.H{
+				"node_ip":       ip,
+				"hostname":      hostname,
+				"status":        "offline",
+				"services":      configuredServices,
+				"docker_status": "unknown",
+			},
+		})
 		return
 	}
 
-	// Simple check: if last seen > 30 seconds ago, consider offline
-	// (Though the map logic in service just returns the raw struct, let's refine logic here if needed)
+	// If exists, merge configured services if they are not in the reported heartbeat
+	for _, cfgSvc := range configuredServices {
+		found := false
+		for _, hbSvc := range status.Services {
+			if hbSvc.Name == cfgSvc.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			status.Services = append(status.Services, cfgSvc)
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    status,

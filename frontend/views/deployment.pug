@@ -318,12 +318,15 @@ block content
         .node-footer.px-6.pb-6.border-t.border-slate-50.hidden
 
     template#service-item-template
-      .service-item.flex.items-center.gap-3.p-3.border.border-slate-100.rounded-lg
+      .service-item.flex.items-center.gap-3.p-3.border.border-slate-100.rounded-lg.hover_bg-slate-50.transition-colors
         .w-8.h-8.rounded.bg-slate-50.flex.items-center.justify-center.text-slate-400
           i.fas.fa-box
         .flex-1.overflow-hidden
-          .svc-name.text-xs.font-bold.text-slate-700.truncate
-          div(class="svc-uptime text-xs text-slate-400 truncate")
+          .flex.items-center.gap-2
+            .svc-name.text-xs.font-bold.text-slate-700.truncate
+            span(class="svc-type bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold") CONTAINER
+          div(class="svc-uptime text-[10px] text-slate-400 truncate")
+        .svc-status-text.text-xs.font-medium.hidden.md_flex.items-center.gap-1
         button(class="svc-restart-btn w-6 h-6 rounded hover:bg-slate-100 text-slate-400 hover:text-blue-600 mr-1", title="Restart Service")
             i.fas.fa-redo.text-xs
         button(class="svc-stop-btn w-6 h-6 rounded hover:bg-slate-100 text-slate-400 hover:text-red-600 mr-1", title="Stop Service")

@@ -2,16 +2,39 @@ package integration_test
 
 import (
 	"anyadmin-backend/pkg/api"
+	"anyadmin-backend/pkg/global"
+	"anyadmin-backend/pkg/mockdata"
 	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestMain(m *testing.M) {
+	// Setup mock data for tests
+	mockdata.Mu.Lock()
+	mockdata.DeploymentNodes = []global.DeploymentNode{
+		{
+			NodeIP:   "172.20.0.10",
+			Hostname: "TestNode",
+			InferenceCfgs: []global.InferenceConfig{
+				{Name: "vllm", Engine: "vLLM"},
+			},
+			RagAppCfgs: []global.RagAppConfig{
+				{Name: "anythingllm"},
+			},
+		},
+	}
+	mockdata.Mu.Unlock()
+	
+	os.Exit(m.Run())
+}
 
 func TestDeploymentViewContainerControl(t *testing.T) {
 	// Setup Router
@@ -71,4 +94,41 @@ func TestDeploymentViewContainerControl(t *testing.T) {
 
 	// Give a little time for the async operations to clear (optional)
 	time.Sleep(1 * time.Second)
+}
+
+func TestCheckAgentStatusMerging(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.GET("/api/v1/deploy/status", api.CheckAgentStatus)
+
+	targetIP := "172.20.0.10"
+
+	t.Run("OfflineAgentReturnsConfiguredServices", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/api/v1/deploy/status?ip="+targetIP, nil)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		
+		var resp map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.Equal(t, true, resp["success"])
+		
+		data := resp["data"].(map[string]interface{})
+		services := data["services"].([]interface{})
+		
+		// Based on data.json provided in context, we expect vllm and anythingllm
+		assert.GreaterOrEqual(t, len(services), 2, "Should return at least 2 configured services")
+		
+		foundVllm := false
+		for _, s := range services {
+			svc := s.(map[string]interface{})
+			if svc["name"] == "vllm" {
+				foundVllm = true
+				assert.Equal(t, "stopped", svc["state"])
+				assert.Equal(t, "Configured (Stopped)", svc["status"])
+			}
+		}
+		assert.True(t, foundVllm, "vllm service should be found in configured list")
+	})
 }

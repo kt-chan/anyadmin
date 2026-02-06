@@ -30,10 +30,14 @@ func setupDashboardRouter() *gin.Engine {
 func TestDashboardEnrichment(t *testing.T) {
 	// Setup mock config
 	mockdata.Mu.Lock()
-	mockdata.InferenceCfgs = []global.InferenceConfig{
-		{Name: "vllm", IP: "172.20.0.10", Engine: "vLLM"},
+	mockdata.DeploymentNodes = []global.DeploymentNode{
+		{
+			NodeIP: "172.20.0.10",
+			InferenceCfgs: []global.InferenceConfig{
+				{Name: "vllm", IP: "172.20.0.10", Engine: "vLLM"},
+			},
+		},
 	}
-	mockdata.DeploymentNodes = []string{"172.20.0.10:22"}
 	mockdata.Mu.Unlock()
 
 	router := setupDashboardRouter()

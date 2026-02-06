@@ -100,17 +100,23 @@ func DeployService(c *gin.Context) {
 				continue
 			}
 
+			// Standardize IP (strip port)
+			host, _, err := net.SplitHostPort(nodeIP)
+			if err != nil {
+				host = nodeIP
+			}
+
 			// Async deployment of agent
-			go service.DeployAgent(nodeIP, req.MgmtHost, req.MgmtPort, req.Mode)
+			go service.DeployAgent(host, req.MgmtHost, req.MgmtPort, req.Mode)
 
 			// Preserve existing config or create new node
-			if existing, ok := existingNodes[nodeIP]; ok {
+			if existing, ok := existingNodes[host]; ok {
 				updatedNodes = append(updatedNodes, existing)
-				delete(existingNodes, nodeIP) // Remove so we know what's left
+				delete(existingNodes, host) // Remove so we know what's left
 			} else {
 				updatedNodes = append(updatedNodes, global.DeploymentNode{
-					NodeIP:        nodeIP,
-					Hostname:      nodeIP,
+					NodeIP:        host,
+					Hostname:      host,
 					InferenceCfgs: []global.InferenceConfig{},
 					RagAppCfgs:    []global.RagAppConfig{},
 				})

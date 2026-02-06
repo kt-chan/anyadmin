@@ -49,10 +49,12 @@ func CheckAgentStatus(c *gin.Context) {
 	// Load configured services for this IP from mockdata
 	configuredServices := []global.DockerServiceStatus{}
 	hostname := ip
+	foundInConfig := false
 	mockdata.Mu.Lock()
 	for _, node := range mockdata.DeploymentNodes {
 		if node.NodeIP == ip {
 			hostname = node.Hostname
+			foundInConfig = true
 			for _, cfg := range node.InferenceCfgs {
 				configuredServices = append(configuredServices, global.DockerServiceStatus{
 					Name:   cfg.Name,
@@ -74,8 +76,13 @@ func CheckAgentStatus(c *gin.Context) {
 	}
 	mockdata.Mu.Unlock()
 
+	if !exists && !foundInConfig {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Agent status not found for IP: " + ip})
+		return
+	}
+
 	if !exists {
-		// Return placeholder status if agent never seen
+		// Return placeholder status if agent never seen but exists in config
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
 			"data": gin.H{

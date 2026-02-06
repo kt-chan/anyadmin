@@ -77,7 +77,9 @@ func SaveInferenceConfig(c *gin.Context) {
 		}
 
 		for j, cfg := range node.InferenceCfgs {
-			match := config.ModelName != "" && cfg.ModelName == config.ModelName
+			// Match by ModelName (if provided) or Name
+			match := (config.ModelName != "" && cfg.ModelName == config.ModelName) || 
+			         (config.Name != "" && cfg.Name == config.Name)
 
 			if match {
 				updateFields(&mockdata.DeploymentNodes[i].InferenceCfgs[j], config)

@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"anyadmin-backend/pkg/api"
+	"anyadmin-backend/pkg/global"
 	"anyadmin-backend/pkg/mockdata"
 	"bytes"
 	"encoding/json"
@@ -35,7 +36,9 @@ func TestNodeOperations(t *testing.T) {
 
 	// 1. Initial nodes
 	mockdata.Mu.Lock()
-	mockdata.DeploymentNodes = []string{"172.20.0.10:22"}
+	mockdata.DeploymentNodes = []global.DeploymentNode{
+		{NodeIP: "172.20.0.10", Hostname: "172.20.0.10"},
+	}
 	mockdata.Mu.Unlock()
 
 	// 2. Test GetNodes
@@ -46,7 +49,7 @@ func TestNodeOperations(t *testing.T) {
 
 	var resp map[string][]string
 	json.Unmarshal(w.Body.Bytes(), &resp)
-	assert.Contains(t, resp["nodes"], "172.20.0.10:22")
+	assert.Contains(t, resp["nodes"], "172.20.0.10")
 
 	// 4. Test SaveNodes
 	w = httptest.NewRecorder()
@@ -59,7 +62,14 @@ func TestNodeOperations(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	mockdata.Mu.Lock()
-	assert.Contains(t, mockdata.DeploymentNodes, "172.20.0.10:22")
+	found := false
+	for _, n := range mockdata.DeploymentNodes {
+		if n.NodeIP == "172.20.0.10" {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found)
 	mockdata.Mu.Unlock()
 }
 

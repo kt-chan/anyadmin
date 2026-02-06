@@ -34,14 +34,19 @@ func TestUpdateVLLMConfigPersistence(t *testing.T) {
 
 	// Initialize mockdata with known state
 	mockdata.DataFile = tmpFile.Name()
-	mockdata.InferenceCfgs = []global.InferenceConfig{
+	mockdata.DeploymentNodes = []global.DeploymentNode{
 		{
-			Name:                 "vllm",
-			IP:                   "172.20.0.10",
-			MaxModelLen:          2048,
-			GpuMemoryUtilization: 0.8,
-			MaxNumSeqs:           128,
-			MaxNumBatchedTokens:  1024,
+			NodeIP: "172.20.0.10",
+			InferenceCfgs: []global.InferenceConfig{
+				{
+					Name:                 "vllm",
+					IP:                   "172.20.0.10",
+					MaxModelLen:          2048,
+					GpuMemoryUtilization: 0.8,
+					MaxNumSeqs:           128,
+					MaxNumBatchedTokens:  1024,
+				},
+			},
 		},
 	}
 	// Save initial state
@@ -62,25 +67,17 @@ func TestUpdateVLLMConfigPersistence(t *testing.T) {
 	}
 	jsonValue, _ := json.Marshal(payload)
 
+	// Execute
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/api/v1/services/vllm/config", bytes.NewBuffer(jsonValue))
 	req.Header.Set("Content-Type", "application/json")
-
-	// Execute
 	router.ServeHTTP(w, req)
 
-	// Check Response
-	// Note: We expect 200 if agent succeeds, or 500 if agent fails.
-	// But valid persistence is our main goal here.
-	// Even if it returns 500 (due to network/agent), we check if mockdata is updated.
-	// t.Logf("Response Code: %d", w.Code)
-	// t.Logf("Response Body: %s", w.Body.String())
-
 	// Verify Mockdata Update
-	assert.Equal(t, 4096, mockdata.InferenceCfgs[0].MaxModelLen)
-	assert.Equal(t, 0.95, mockdata.InferenceCfgs[0].GpuMemoryUtilization)
-	assert.Equal(t, 256, mockdata.InferenceCfgs[0].MaxNumSeqs)
-	assert.Equal(t, 2048, mockdata.InferenceCfgs[0].MaxNumBatchedTokens)
+	assert.Equal(t, 4096, mockdata.DeploymentNodes[0].InferenceCfgs[0].MaxModelLen)
+	assert.Equal(t, 0.95, mockdata.DeploymentNodes[0].InferenceCfgs[0].GpuMemoryUtilization)
+	assert.Equal(t, 256, mockdata.DeploymentNodes[0].InferenceCfgs[0].MaxNumSeqs)
+	assert.Equal(t, 2048, mockdata.DeploymentNodes[0].InferenceCfgs[0].MaxNumBatchedTokens)
 
 	// Verify File Persistence
 	content, err := os.ReadFile(tmpFile.Name())
@@ -91,12 +88,14 @@ func TestUpdateVLLMConfigPersistence(t *testing.T) {
 	assert.NoError(t, err)
 	
 	found := false
-	for _, cfg := range data.InferenceCfgs {
-		if cfg.Name == "vllm" {
-			assert.Equal(t, 4096, cfg.MaxModelLen)
-			assert.Equal(t, 0.95, cfg.GpuMemoryUtilization)
-			found = true
-			break
+	for _, node := range data.DeploymentNodes {
+		for _, cfg := range node.InferenceCfgs {
+			if cfg.Name == "vllm" {
+				assert.Equal(t, 4096, cfg.MaxModelLen)
+				assert.Equal(t, 0.95, cfg.GpuMemoryUtilization)
+				found = true
+				break
+			}
 		}
 	}
 	assert.True(t, found, "Config should be found in file")

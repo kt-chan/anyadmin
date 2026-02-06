@@ -24,20 +24,20 @@
   "deployment_nodes": [
     {
       "node_ip": "172.20.0.10",
-      "hostname": "TestNode",
+      "hostname": "DESKTOP-OSLI7Q7",
       "agent_config": {
-        "deployment_time": "",
-        "log_file": "",
-        "mgmt_host": "",
-        "mgmt_port": "",
-        "node_ip": "",
-        "node_port": ""
+        "deployment_time": "2026-02-06T18:40:20+08:00",
+        "log_file": "/home/anyadmin/logs/agent.log",
+        "mgmt_host": "172.20.0.1",
+        "mgmt_port": "8080",
+        "node_ip": "172.20.0.10",
+        "node_port": "8082"
       },
       "inference_cfgs": [
         {
           "id": 0,
           "createdAt": "0001-01-01T00:00:00Z",
-          "updatedAt": "2026-02-06T17:46:16.0938858+08:00",
+          "updatedAt": "0001-01-01T00:00:00Z",
           "deletedAt": null,
           "name": "vllm",
           "engine": "vLLM",
@@ -45,12 +45,12 @@
           "model_path": "",
           "ip": "172.20.0.10",
           "port": "8000",
-          "mode": "max_token",
+          "mode": "balanced",
           "gpu_memory_size": 8,
           "gpu_utilization": 0.85,
-          "max_model_len": 14592,
-          "max_num_seqs": 1,
-          "max_num_batched_tokens": 14592,
+          "max_model_len": 4096,
+          "max_num_seqs": 3,
+          "max_num_batched_tokens": 8192,
           "gpu_memory_utilization": 0.85
         }
       ],

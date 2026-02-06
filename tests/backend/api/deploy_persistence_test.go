@@ -51,10 +51,12 @@ func TestDeployServicePersistence(t *testing.T) {
 
 	// Verify InMemory Update
 	found := false
-	for _, cfg := range mockdata.InferenceCfgs {
-		if cfg.Name == "vllm" {
-			found = true
-			break
+	for _, node := range mockdata.DeploymentNodes {
+		for _, cfg := range node.InferenceCfgs {
+			if cfg.Name == "vllm" {
+				found = true
+				break
+			}
 		}
 	}
 	assert.True(t, found, "Config should be in memory")
@@ -69,10 +71,12 @@ func TestDeployServicePersistence(t *testing.T) {
 	assert.NoError(t, err)
 
 	foundInFile := false
-	for _, cfg := range data.InferenceCfgs {
-		if cfg.Name == "vllm" {
-			foundInFile = true
-			break
+	for _, node := range data.DeploymentNodes {
+		for _, cfg := range node.InferenceCfgs {
+			if cfg.Name == "vllm" {
+				foundInFile = true
+				break
+			}
 		}
 	}
 	assert.True(t, foundInFile, "Config should be persisted to file")

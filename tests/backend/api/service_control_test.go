@@ -17,11 +17,15 @@ import (
 func TestRemoteServiceControlAndHealth(t *testing.T) {
 	// Setup mock config
 	mockdata.Mu.Lock()
-	mockdata.InferenceCfgs = []global.InferenceConfig{
-		{Name: "vllm", IP: "172.20.0.10", Engine: "vLLM"},
-		{Name: "anythingllm", IP: "172.20.0.10", Engine: "RAG App"},
+	mockdata.DeploymentNodes = []global.DeploymentNode{
+		{
+			NodeIP: "172.20.0.10",
+			InferenceCfgs: []global.InferenceConfig{
+				{Name: "vllm", IP: "172.20.0.10", Engine: "vLLM"},
+				{Name: "anythingllm", IP: "172.20.0.10", Engine: "RAG App"},
+			},
+		},
 	}
-	mockdata.DeploymentNodes = []string{"172.20.0.10:22"}
 	mockdata.Mu.Unlock()
 
 	gin.SetMode(gin.TestMode)

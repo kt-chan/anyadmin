@@ -50,7 +50,7 @@ func TestDeploymentFlow(t *testing.T) {
 
 	// 2. Step 1: Save Target Nodes
 	t.Run("SaveNodes", func(t *testing.T) {
-		nodes := []string{"192.168.1.100:22", "192.168.1.101:22"}
+		nodes := []string{"127.0.0.1:22", "192.168.1.101:22"}
 		body, _ := json.Marshal(map[string]interface{}{"nodes": nodes})
 		
 		w := httptest.NewRecorder()
@@ -60,7 +60,13 @@ func TestDeploymentFlow(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		
 		// Verify persistence
-		assert.Equal(t, nodes, mockdata.DeploymentNodes)
+		var savedNodes []string
+		for _, n := range mockdata.DeploymentNodes {
+			savedNodes = append(savedNodes, n.NodeIP)
+		}
+		// Note: SaveNodes strips port for NodeIP
+		assert.Contains(t, savedNodes, "127.0.0.1")
+		assert.Contains(t, savedNodes, "192.168.1.101")
 	})
 
 	// 3. Step 1: Test SSH Connection
@@ -127,10 +133,12 @@ func TestDeploymentFlow(t *testing.T) {
 		assert.Contains(t, artifacts, "deploy_script.sh")
 		
 		found := false
-		for _, cfg := range mockdata.InferenceCfgs {
-			if cfg.Name == "vllm" {
-				found = true
-				break
+		for _, node := range mockdata.DeploymentNodes {
+			for _, cfg := range node.InferenceCfgs {
+				if cfg.Name == "vllm" {
+					found = true
+					break
+				}
 			}
 		}
 		assert.True(t, found, "Deployment config should be saved")

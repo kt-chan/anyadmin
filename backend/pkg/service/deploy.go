@@ -516,6 +516,24 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 	}
 	log.Printf("Agent successfully started on %s (count: %d)", nodeIP, count)
 
+	// Sync agent_config back to mockdata
+	mockdata.Mu.Lock()
+	for i, node := range mockdata.DeploymentNodes {
+		if node.NodeIP == nodeIP {
+			mockdata.DeploymentNodes[i].AgentConfig = global.AgentConfig{
+				MgmtHost:       mgmtHost,
+				MgmtPort:       mgmtPort,
+				NodeIP:         nodeIP,
+				NodePort:       nodePort,
+				DeploymentTime: time.Now().Format(time.RFC3339),
+				LogFile:        "/home/anyadmin/logs/agent.log",
+			}
+			break
+		}
+	}
+	mockdata.Mu.Unlock()
+	mockdata.SaveToFile()
+
 	return nil
 }
 

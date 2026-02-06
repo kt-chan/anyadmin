@@ -902,12 +902,13 @@ async function pollAgent(ip) {
                                 servicesList.appendChild(svcEl);
                             });
 
-                            // All verified, redirect to dashboard
+                            // All verified, switch to Nodes Status tab
                             clearInterval(interval);
-                            if (statusText) statusText.innerText = "部署验证成功！正在跳转仪表板...";
+                            if (statusText) statusText.innerText = "部署验证成功！正在切换至节点状态...";
                             setTimeout(() => {
-                                window.location.href = '/dashboard';
-                            }, 2000);
+                                const nodesTabBtn = document.querySelector('button[data-target="tab-nodes-content"]');
+                                if (nodesTabBtn) nodesTabBtn.click();
+                            }, 1500);
                         } else if (agent.docker_status === 'active') {
                             servicesList.innerHTML = '<p class="text-xs text-slate-400 italic">尚未检测到目标服务。正在启动中...</p>';
                         }

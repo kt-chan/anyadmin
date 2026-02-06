@@ -28,8 +28,8 @@
       "inference_cfgs": [
         {
           "id": 0,
-          "createdAt": "2026-02-06T10:30:11.693235+08:00",
-          "updatedAt": "2026-02-06T10:47:17.5678755+08:00",
+          "createdAt": "0001-01-01T00:00:00Z",
+          "updatedAt": "0001-01-01T00:00:00Z",
           "deletedAt": null,
           "name": "vllm",
           "engine": "vLLM",
@@ -37,18 +37,18 @@
           "modelPath": "Qwen3-1.7B",
           "ip": "172.20.0.10",
           "port": "8000",
-          "mode": "max_concurrency",
-          "max_model_len": 2048,
-          "max_num_seqs": 7,
-          "max_num_batched_tokens": 14336,
+          "mode": "",
+          "max_model_len": 4096,
+          "max_num_seqs": 3,
+          "max_num_batched_tokens": 8192,
           "gpu_memory_utilization": 0.85
         }
       ],
       "rag_app_cfgs": [
         {
           "id": 0,
-          "createdAt": "2026-02-06T10:30:11.693235+08:00",
-          "updatedAt": "2026-02-06T10:30:11.693235+08:00",
+          "createdAt": "0001-01-01T00:00:00Z",
+          "updatedAt": "0001-01-01T00:00:00Z",
           "deletedAt": null,
           "name": "anythingllm",
           "host": "172.20.0.10",

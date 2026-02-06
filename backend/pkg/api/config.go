@@ -60,6 +60,12 @@ func SaveInferenceConfig(c *gin.Context) {
 		if newCfg.GpuMemoryUtilization > 0 {
 			cfg.GpuMemoryUtilization = newCfg.GpuMemoryUtilization
 		}
+		if newCfg.GPUUtilization > 0 {
+			cfg.GPUUtilization = newCfg.GPUUtilization
+		}
+		if newCfg.GPUMemoryGB > 0 {
+			cfg.GPUMemoryGB = newCfg.GPUMemoryGB
+		}
 		cfg.UpdatedAt = time.Now()
 	}
 
@@ -133,6 +139,9 @@ func SaveInferenceConfig(c *gin.Context) {
 				}
 				if cfg.GpuMemoryUtilization > 0 {
 					agentConfig["VLLM_GPU_MEMORY_UTILIZATION"] = fmt.Sprintf("%.2f", cfg.GpuMemoryUtilization)
+				}
+				if cfg.GPUMemoryGB > 0 {
+					agentConfig["VLLM_GPU_MEMORY_SIZE"] = fmt.Sprintf("%.1f", cfg.GPUMemoryGB)
 				}
 
 				if len(agentConfig) > 0 {

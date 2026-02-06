@@ -13,9 +13,11 @@ import (
 )
 
 type VLLMCalculateRequest struct {
-	ModelName string `json:"model_name"`
-	NodeIP    string `json:"node_ip"`
-	Mode      string `json:"mode"`
+	ModelName      string  `json:"model_name"`
+	NodeIP         string  `json:"node_ip"`
+	Mode           string  `json:"mode"`
+	GPUMemorySize  float64 `json:"gpu_memory_size"`
+	GPUUtilization float64 `json:"gpu_utilization"`
 }
 
 func CalculateVLLMConfig(c *gin.Context) {
@@ -31,14 +33,13 @@ func CalculateVLLMConfig(c *gin.Context) {
 		return
 	}
 
-	// 1. Get GPU Info from Agent
+	// 1. Get GPU Info from Agent or Request
 	var gpuMemoryGB float64 = 24.0 // Default fallback
-	var foundAgent bool = false
-
-	if req.NodeIP != "" {
+	if req.GPUMemorySize > 0 {
+		gpuMemoryGB = req.GPUMemorySize
+	} else if req.NodeIP != "" {
 		if agent, exists := service.GetAgentStatus(req.NodeIP); exists {
 			gpuMemoryGB = parseGPUMemory(agent.GPUStatus)
-			foundAgent = true
 		}
 	} else {
 		// Try to find any running agent if IP not specified (optional convenience)
@@ -47,10 +48,14 @@ func CalculateVLLMConfig(c *gin.Context) {
 			if agent.Status == "Running" || agent.Status == "Healthy" {
 				gpuMemoryGB = parseGPUMemory(agent.GPUStatus)
 				req.NodeIP = agent.NodeIP // Update for response context if needed
-				foundAgent = true
 				break
 			}
 		}
+	}
+
+	gpuUtilization := 0.85
+	if req.GPUUtilization > 0 {
+		gpuUtilization = req.GPUUtilization
 	}
 
 	// 1.5 Lookup Real Model Path from MockData if available
@@ -73,19 +78,12 @@ func CalculateVLLMConfig(c *gin.Context) {
 		mockdata.Mu.Unlock()
 	}
 
-	if !foundAgent {
-		// Log warning but proceed with default or error?
-		// Proceeding allows testing without live agents
-		// c.JSON(http.StatusNotFound, gin.H{"error": "Agent not found or offline"})
-		// return
-	}
-
 	// 2. Calculate Config
 	params := utils.CalculateConfigParams{
 		ModelNameOrPath: real_model_path,
 		GPUMemoryGB:     gpuMemoryGB,
 		Mode:            req.Mode,
-		GPUUtilization:  0.85,
+		GPUUtilization:  gpuUtilization,
 	}
 
 	vllmConfig, modelConfig, err := utils.CalculateVLLMConfig(params)

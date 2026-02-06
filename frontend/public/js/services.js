@@ -135,25 +135,38 @@ document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('vllmConfigForm');
         if (!config) return;
 
-        // Populate
+        // Populate basic fields
         form.querySelector('[name="name"]').value = config.name;
         form.querySelector('[name="node_ip"]').value = nodeIP; // Hidden
         form.querySelector('[name="model_name"]').value = config.model_name;
-        form.querySelector('[name="max_model_len"]').value = config.max_model_len;
-        form.querySelector('[name="max_num_seqs"]').value = config.max_num_seqs;
-        form.querySelector('[name="max_num_batched_tokens"]').value = config.max_num_batched_tokens;
-        form.querySelector('[name="gpu_memory_utilization"]').value = config.gpu_memory_utilization;
 
-        // Reset and trigger suggestions if we have node info
+        // Set default values from data.json if available
         const modeSelect = document.getElementById('vllm-optimization-mode');
         if (modeSelect) {
-            calculateVllmSuggestionsForServices(modeSelect.value, config.model_name, nodeIP);
+            modeSelect.value = config.mode || 'balanced';
         }
+
+        form.querySelector('[name="gpu_memory_size"]').value = config.gpu_memory_size || 24;
+        form.querySelector('[name="gpu_memory_utilization"]').value = config.gpu_memory_utilization || 0.85;
+
+        // Set other parameters from config (which might be 0 if not set yet, recalculation will fill them)
+        form.querySelector('[name="max_model_len"]').value = config.max_model_len || '';
+        form.querySelector('[name="max_num_seqs"]').value = config.max_num_seqs || '';
+        form.querySelector('[name="max_num_batched_tokens"]').value = config.max_num_batched_tokens || '';
+
+        // Trigger suggestions using the values read from data.json
+        calculateVllmSuggestionsForServices(
+            modeSelect.value, 
+            config.model_name, 
+            nodeIP, 
+            parseFloat(form.querySelector('[name="gpu_memory_size"]').value),
+            parseFloat(form.querySelector('[name="gpu_memory_utilization"]').value)
+        );
 
         showModal('vllmConfigModal');
     }
 
-    async function calculateVllmSuggestionsForServices(mode, modelName, nodeIP) {
+    async function calculateVllmSuggestionsForServices(mode, modelName, nodeIP, gpuMemorySize, gpuUtilization) {
         const form = document.getElementById('vllmConfigForm');
         if (!form) return;
 
@@ -161,17 +174,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/v1/configs/vllm-calculate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ model_name: modelName, node_ip: nodeIP, mode: mode })
+                body: JSON.stringify({ 
+                    model_name: modelName, 
+                    node_ip: nodeIP, 
+                    mode: mode,
+                    gpu_memory_size: gpuMemorySize,
+                    gpu_utilization: gpuUtilization
+                })
             });
 
             if (!response.ok) throw new Error(`API Error: ${response.status}`);
             const data = await response.json();
             
-            // Directly set input values
+            // Update the calculated parameters
             form.querySelector('[name="max_model_len"]').value = data.vllm_config.max_model_len;
             form.querySelector('[name="max_num_seqs"]').value = data.vllm_config.max_num_seqs;
             form.querySelector('[name="max_num_batched_tokens"]').value = data.vllm_config.max_num_batched_tokens;
-            form.querySelector('[name="gpu_memory_utilization"]').value = data.vllm_config.gpu_memory_util;
+            // Note: We don't overwrite gpu_memory_utilization or size here if they were inputs
 
         } catch (error) {
             console.error('Calculation failed:', error);
@@ -186,9 +205,28 @@ document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('vllmConfigForm');
             const modelName = form.querySelector('[name="model_name"]').value;
             const nodeIP = form.querySelector('[name="node_ip"]').value;
-            calculateVllmSuggestionsForServices(this.value, modelName, nodeIP);
+            const gpuMemorySize = parseFloat(form.querySelector('[name="gpu_memory_size"]').value);
+            const gpuUtilization = parseFloat(form.querySelector('[name="gpu_memory_utilization"]').value);
+            calculateVllmSuggestionsForServices(this.value, modelName, nodeIP, gpuMemorySize, gpuUtilization);
         });
     }
+
+    // Also add listeners for memory size and utilization changes to recalculate
+    const vllmCalcInputs = ['gpu_memory_size', 'gpu_memory_utilization'];
+    vllmCalcInputs.forEach(name => {
+        const input = document.querySelector(`#vllmConfigForm [name="${name}"]`);
+        if (input) {
+            input.addEventListener('change', function() {
+                const form = document.getElementById('vllmConfigForm');
+                const mode = document.getElementById('vllm-optimization-mode').value;
+                const modelName = form.querySelector('[name="model_name"]').value;
+                const nodeIP = form.querySelector('[name="node_ip"]').value;
+                const gpuMemorySize = parseFloat(form.querySelector('[name="gpu_memory_size"]').value);
+                const gpuUtilization = parseFloat(form.querySelector('[name="gpu_memory_utilization"]').value);
+                calculateVllmSuggestionsForServices(mode, modelName, nodeIP, gpuMemorySize, gpuUtilization);
+            });
+        }
+    });
 
     function openRagModal(config, nodeIP) {
         const modal = document.getElementById('ragConfigModal');
@@ -232,6 +270,9 @@ document.addEventListener('DOMContentLoaded', () => {
             data.max_num_seqs = parseInt(data.max_num_seqs);
             data.max_num_batched_tokens = parseInt(data.max_num_batched_tokens);
             data.gpu_memory_utilization = parseFloat(data.gpu_memory_utilization);
+            data.gpu_utilization = data.gpu_memory_utilization; // Map to expected backend field
+            data.gpu_memory_size = parseFloat(data.gpu_memory_size);
+            data.mode = data.optimization_mode;
             data.ip = data.node_ip; // Backend expects IP
 
             try {

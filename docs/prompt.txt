@@ -880,3 +880,26 @@ analyze view @frontend\views\services.pug then you have to rewrite and enrich th
 - Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, use this powershell @scripts/stop-pids.ps1 to terminate proccess on port 3000 and 8080 
 
 
+
+## Task 28
+
+analyze view @frontend\views\services.pug then you have to rewrite and enrich this script as well as the corresponding frontend, backend, and remote agent services for below funcitonal features enrichment objective. And you have to follow Coding Guide provided in final section of below context.
+
+*** funcitonal features enrichment Objective ***
+1. for @frontend/views/services.pug on 编辑 vLLM 推理配置, you should set default value accrodign to @backend\data.json setup.
+2. you should keep the existing structure in persisting data into @backend\data.json, just rebuild those logics with remapping in the go backend code.
+3. do not write unit test, do not perform unit test. just update the required sections.
+
+**design info**
+1. the tab-nodes at @frontend\views\services.pug to includes its regiestered services, given that a node can install multiple services
+2. the tab-services at @frontend\views\services.pug to includes its regiestered nodes, given that a service can be installed across multiple nodes
+3. you should keep the existing structure in persisting data into @backend\data.json, just rebuild those logics with remapping in the go backend code.
+
+
+**Coding Guide**  
+- this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO.
+- The remote host is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and you have to run ssh with passwordless id_rsa key at @backend\keys with root user to remote host. 
+- Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, use this powershell @scripts/stop-pids.ps1 to terminate proccess on port 3000 and 8080 
+
+

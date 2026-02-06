@@ -36,27 +36,29 @@
       "inference_cfgs": [
         {
           "id": 0,
-          "createdAt": "2026-02-06T15:50:39.8941049+08:00",
-          "updatedAt": "2026-02-06T15:50:39.8941049+08:00",
+          "createdAt": "2026-02-06T16:38:41.7135949+08:00",
+          "updatedAt": "2026-02-06T16:42:54.9560005+08:00",
           "deletedAt": null,
           "name": "vllm",
           "engine": "vLLM",
-          "model_name": "",
-          "model_path": "Qwen3-1.7B",
+          "model_name": "Qwen3-1.7B",
+          "model_path": "",
           "ip": "172.20.0.10",
           "port": "8000",
-          "mode": "",
-          "max_model_len": 0,
-          "max_num_seqs": 0,
-          "max_num_batched_tokens": 0,
-          "gpu_memory_utilization": 0
+          "mode": "max_token",
+          "gpu_memory_size": 8,
+          "gpu_utilization": 0.85,
+          "max_model_len": 14592,
+          "max_num_seqs": 1,
+          "max_num_batched_tokens": 14592,
+          "gpu_memory_utilization": 0.85
         }
       ],
       "rag_app_cfgs": [
         {
           "id": 0,
-          "createdAt": "2026-02-06T15:50:39.8941049+08:00",
-          "updatedAt": "2026-02-06T15:50:39.8941049+08:00",
+          "createdAt": "2026-02-06T16:38:41.7135949+08:00",
+          "updatedAt": "2026-02-06T16:38:41.7135949+08:00",
           "deletedAt": null,
           "name": "anythingllm",
           "host": "172.20.0.10",

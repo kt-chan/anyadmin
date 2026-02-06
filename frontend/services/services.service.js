@@ -48,6 +48,11 @@ const servicesService = {
     await apiClient.post('/api/v1/configs/agent', { target_node_ip: nodeIP, config: agentConfig }, config);
   },
 
+  saveInferenceConfig: async (data, token) => {
+    const config = { headers: { Authorization: `Bearer ${token}` } };
+    await apiClient.post('/api/v1/configs/inference', data, config);
+  },
+
   restartService: async (serviceName, nodeIP, token, serviceType) => {
     logger.info(`Restarting service: ${serviceName} on node: ${nodeIP} (Type: ${serviceType})`);
     const config = {

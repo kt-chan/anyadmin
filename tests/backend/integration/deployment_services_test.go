@@ -24,7 +24,7 @@ func TestMain(m *testing.M) {
 			NodeIP:   "172.20.0.10",
 			Hostname: "TestNode",
 			InferenceCfgs: []global.InferenceConfig{
-				{Name: "vllm", Engine: "vLLM"},
+				{Name: "vllm", Engine: "vLLM", ModelName: "Qwen3-Test"},
 			},
 			RagAppCfgs: []global.RagAppConfig{
 				{Name: "anythingllm"},
@@ -130,5 +130,56 @@ func TestCheckAgentStatusMerging(t *testing.T) {
 			}
 		}
 		assert.True(t, foundVllm, "vllm service should be found in configured list")
+	})
+}
+
+func TestConfigSaveAndRestartFlow(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.POST("/api/v1/configs/inference", func(c *gin.Context) {
+		c.Set("username", "admin")
+		api.SaveInferenceConfig(c)
+	})
+	router.POST("/api/v1/container/control", func(c *gin.Context) {
+		c.Set("username", "admin")
+		api.ControlContainer(c)
+	})
+
+	targetIP := "172.20.0.10"
+
+	t.Run("SaveConfigAndRestartVLLM", func(t *testing.T) {
+		// 1. Save Config
+		configPayload := global.InferenceConfig{
+			Name: "vllm",
+			IP:   targetIP, // This matches the node IP in TestMain
+			ModelName: "Qwen3-Test",
+			MaxModelLen: 4096,
+		}
+		body, _ := json.Marshal(configPayload)
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/api/v1/configs/inference", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		
+		router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code, "Save config should return 200")
+		
+		// Verify response contains updated value
+		var savedConfig global.InferenceConfig
+		json.Unmarshal(w.Body.Bytes(), &savedConfig)
+		assert.Equal(t, 4096, savedConfig.MaxModelLen)
+
+		// 2. Explicit Restart (simulating frontend logic)
+		controlPayload := map[string]interface{}{
+			"name":           "vllm",
+			"action":         "restart",
+			"node_ip":        targetIP,
+		}
+		bodyRestart, _ := json.Marshal(controlPayload)
+		wRestart := httptest.NewRecorder()
+		reqRestart, _ := http.NewRequest("POST", "/api/v1/container/control", bytes.NewBuffer(bodyRestart))
+		reqRestart.Header.Set("Content-Type", "application/json")
+		
+		router.ServeHTTP(wRestart, reqRestart)
+		assert.Equal(t, http.StatusOK, wRestart.Code, "Restart should return 200")
 	})
 }

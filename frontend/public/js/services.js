@@ -282,12 +282,50 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify(data)
                 });
                 if (res.ok) {
-                    showToast('Success', 'vLLM config saved', 'success');
-                    hideModal('vllmConfigModal');
-                    setTimeout(() => window.location.reload(), 1000);
+                    // Config saved, now restart service
+                    // We need to use the restartService function available in scope
+                    // serviceName is data.name, nodeIP is data.ip, type is 'Container' for vLLM
+                    
+                    // Show immediate feedback
+                    const submitBtn = vllmForm.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.innerText;
+                    submitBtn.innerText = '正在重启服务...';
+                    submitBtn.disabled = true;
+
+                    try {
+                        const restartRes = await fetch('/api/service/restart', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                name: data.name,
+                                node_ip: data.ip,
+                                type: 'Container'
+                            })
+                        });
+
+                        if (restartRes.ok) {
+                             showToast('Success', '配置已保存并触发服务重启', 'success');
+                             hideModal('vllmConfigModal');
+                             setTimeout(() => window.location.reload(), 2000);
+                        } else {
+                             throw new Error('Config saved but restart failed');
+                        }
+                    } catch (restartErr) {
+                         showToast('Warning', '配置已保存，但自动重启失败: ' + restartErr.message, 'warning');
+                         hideModal('vllmConfigModal');
+                         setTimeout(() => window.location.reload(), 2000);
+                    }
+                } else {
+                    const errData = await res.json();
+                    throw new Error(errData.message || 'Failed to save config');
                 }
             } catch (err) {
                 showToast('Error', err.message, 'error');
+                const submitBtn = vllmForm.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = '保存并重启';
+                }
             }
         });
     }

@@ -33,6 +33,8 @@ router.get('/metrics', requireLogin, apiController.getSystemMetrics);
 
 // VLLM 配置计算 API (对应前端调用的 /api/v1/configs/vllm-calculate)
 router.post('/v1/configs/vllm-calculate', requireLogin, apiController.calculateVllmConfig);
+// 保存推理配置 API
+router.post('/v1/configs/inference', requireLogin, apiController.saveInferenceConfig);
 
 // 调试API (公开访问)
 router.get('/debug', apiController.debugInfo);

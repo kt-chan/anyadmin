@@ -193,6 +193,17 @@ const apiController = {
             const status = err.response?.status || 500;
             return res.status(status).json({ error: err.message });
         }
+    },
+
+    // 保存推理配置 (vLLM)
+    saveInferenceConfig: async (req, res) => {
+        try {
+            const token = req.session.user?.token;
+            await servicesService.saveInferenceConfig(req.body, token);
+            return response.success(res, {}, '推理配置已保存');
+        } catch (err) {
+            return response.error(res, '保存推理配置失败', 500, err);
+        }
     }
 };
 

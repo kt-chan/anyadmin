@@ -34,7 +34,7 @@ func CalculateVLLMConfig(c *gin.Context) {
 	}
 
 	// 1. Get GPU Info from Agent or Request
-	var gpuMemoryGB float64 = 24.0 // Default fallback
+	var gpuMemoryGB float64 = 8.0 // Default fallback
 	if req.GPUMemorySize > 0 {
 		gpuMemoryGB = req.GPUMemorySize
 	} else if req.NodeIP != "" {

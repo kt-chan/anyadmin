@@ -15,7 +15,7 @@ var (
 	nodeIP     string
 	configFile string
 	logFile    string
-	port       string
+	nodePort   string
 )
 
 func init() {
@@ -23,7 +23,7 @@ func init() {
 	flag.StringVar(&nodeIP, "ip", "127.0.0.1", "Node IP Address")
 	flag.StringVar(&configFile, "config", "config.json", "Path to config file")
 	flag.StringVar(&logFile, "log", "", "Path to log file")
-	flag.StringVar(&port, "port", "8082", "Agent Server Port")
+	flag.StringVar(&nodePort, "port", "8082", "Agent Server Port")
 }
 
 type Config struct {
@@ -32,7 +32,7 @@ type Config struct {
 	MgmtPort       string `json:"mgmt_port"`
 	NodeIP         string `json:"node_ip"`
 	DeploymentTime string `json:"deployment_time"`
-	Port           string `json:"port"`
+	NodePort       string `json:"node_port"`
 	LogFile        string `json:"log_file"`
 }
 
@@ -64,8 +64,8 @@ func main() {
 		}
 		nodeIP = cfg.NodeIP
 		deploymentTime = cfg.DeploymentTime
-		if cfg.Port != "" {
-			port = cfg.Port
+		if cfg.NodePort != "" {
+			nodePort = cfg.NodePort
 		}
 		if cfg.LogFile != "" && logFile == "" {
 			logFile = cfg.LogFile
@@ -91,7 +91,7 @@ func main() {
 	log.Printf("Management Server: %s", mgmtURL)
 
 	// Start Agent Server
-	go agent.StartServer(port)
+	go agent.StartServer(nodePort)
 
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()

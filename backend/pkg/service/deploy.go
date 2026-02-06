@@ -5,6 +5,7 @@ import (
 	"anyadmin-backend/pkg/mockdata"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -186,17 +187,17 @@ func DeployAgent(nodeIP, mgmtHost, mgmtPort, mode string) {
 	user := "admin" // Local log user
 	// Handle Port in nodeIP
 	nodeHost := nodeIP
-	nodePort := "22"
+	nodeSshPort := "22"
 	if strings.Contains(nodeIP, ":") {
 		parts := strings.Split(nodeIP, ":")
 		nodeHost = parts[0]
-		nodePort = parts[1]
+		nodeSshPort = parts[1]
 	}
 
 	RecordLog(user, "Agent Deployment", fmt.Sprintf("Starting deployment to %s (Mode: %s)", nodeIP, mode), "Info")
 
 	// 1. Connect (Assume root or key-based user has rights)
-	client, err := GetSSHClient(nodeHost, nodePort)
+	client, err := GetSSHClient(nodeHost, nodeSshPort)
 	if err != nil {
 		RecordLog(user, "Agent Deployment", fmt.Sprintf("SSH connection failed to %s: %v", nodeIP, err), "Error")
 		return
@@ -327,7 +328,9 @@ func installGo(client *ssh.Client) error {
 
 func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) error {
 
-	log.Printf("Deploying agent to %s with Management Server: %s:%s", nodeIP, mgmtHost, mgmtPort)
+	nodePort := "8082"
+
+	log.Printf("Deploying agent to %s:%s with Management Server: %s:%s", nodeIP, nodePort, mgmtHost, mgmtPort)
 
 	log.Println("[Deploy] Starting RebuildAgent...")
 
@@ -381,9 +384,17 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	log.Println("[Deploy] Creating config file...")
 
-	configContent := fmt.Sprintf(`{"mgmt_host": "%s", "mgmt_port": "%s", "node_ip": "%s", "deployment_time": "%s", "log_file": "/home/anyadmin/logs/agent.log"}`,
+	config := map[string]interface{}{
+		"mgmt_host":       mgmtHost,
+		"mgmt_port":       mgmtPort, // Can be string or int
+		"node_ip":         nodeIP,
+		"node_port":       nodePort, // Can be string or int
+		"deployment_time": time.Now().Format(time.RFC3339),
+		"log_file":        "/home/anyadmin/logs/agent.log",
+	}
 
-		mgmtHost, mgmtPort, nodeIP, time.Now().Format(time.RFC3339))
+	configBytes, _ := json.Marshal(config)
+	configContent := string(configBytes)
 
 	localConfigPath := filepath.Join(os.TempDir(), fmt.Sprintf("config_%s.json", strings.ReplaceAll(nodeIP, ".", "_")))
 
@@ -527,18 +538,18 @@ func calculateHash(filePath string) (string, error) {
 func ControlAgent(nodeIP, action string) error {
 	user := "admin"
 	nodeHost := nodeIP
-	nodePort := "22"
+	nodeSshPort := "22"
 	if strings.Contains(nodeIP, ":") {
 		parts := strings.Split(nodeIP, ":")
 		nodeHost = parts[0]
-		nodePort = parts[1]
+		nodeSshPort = parts[1]
 	}
 
 	// Run long operations in background
 	go func() {
 		RecordLog(user, "Agent Control", fmt.Sprintf("Initiating %s on agent %s", action, nodeIP), "Info")
 
-		client, err := GetSSHClient(nodeHost, nodePort)
+		client, err := GetSSHClient(nodeHost, nodeSshPort)
 		if err != nil {
 			msg := fmt.Sprintf("[Agent Control] SSH connection failed to %s: %v", nodeIP, err)
 			log.Println(msg)

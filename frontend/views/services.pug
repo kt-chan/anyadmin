@@ -204,7 +204,12 @@ block content
           div(class="grid grid-cols-2 gap-4")
             div
               label(class="block text-xs font-bold text-slate-700 mb-1") 模型名称 (Model Name)
-              input(type="text", name="model_name", class="w-full border rounded p-2 text-sm bg-slate-50", readonly)
+              .flex.gap-2
+                select#vllm-model-select(name="model_name_select", class="w-full border rounded p-2 text-sm bg-white")
+                  option(value="", disabled) Loading models...
+                input(type="hidden", name="model_name")
+                button(type="button", onclick="refreshVllmModels()", class="px-3 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 text-slate-600 shadow-sm", title="刷新模型列表")
+                  i.fas.fa-sync-alt
             div
               label(class="block text-xs font-bold text-slate-700 mb-1") GPU 显存 (GB)
               input(type="number", name="gpu_memory_size", step="0.1", class="w-full border rounded p-2 text-sm bg-slate-50", readonly)

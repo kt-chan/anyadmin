@@ -36,12 +36,25 @@
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "Deploy Agent",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/frontend/app.js",
+      "preLaunchTask": "deploy-agent",
+      "runtimeArgs": [
+        "--version"
+      ]
     }
   ],
   "compounds": [
     {
       "name": "Run Full Stack",
-      "configurations": ["Run Backend (Go)", "Run Frontend"]
+      "configurations": [
+        "Run Backend (Go)",
+        "Run Frontend"
+      ]
     }
   ]
 }

@@ -366,22 +366,33 @@ func FetchVLLMModels(c *gin.Context) {
 		return
 	}
 
-	url := fmt.Sprintf("http://%s:%s/v1/models", req.Host, req.Port)
+	// Try vLLM service first (usually port 8000)
+	vllmUrl := fmt.Sprintf("http://%s:%s/v1/models", req.Host, req.Port)
+	resp, err := utils.Get(vllmUrl, 5*time.Second)
+	if err == nil {
+		defer resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		if err == nil {
+			c.Data(resp.StatusCode, "application/json", body)
+			return
+		}
+	}
 
-	resp, err := utils.Get(url, 10*time.Second)
+	// Fallback: Try Agent discovery (usually port 8082)
+	agentUrl := fmt.Sprintf("http://%s:8082/models/discover", req.Host)
+	resp, err = utils.Get(agentUrl, 5*time.Second)
 	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to connect to vLLM service: " + err.Error()})
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to connect to both vLLM and Agent service: " + err.Error()})
 		return
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read response"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read response from agent"})
 		return
 	}
 
-	// Proxy the JSON response directly
 	c.Data(resp.StatusCode, "application/json", body)
 }
 

@@ -342,12 +342,42 @@ func StartServer(port string) {
 	mux.HandleFunc("/health", handleHealth)
 	mux.HandleFunc("/container/control", handleContainerControl)
 	mux.HandleFunc("/config/update", handleUpdateConfig)
+	mux.HandleFunc("/models/discover", handleDiscoverModels)
 
 	addr := ":" + port
 	log.Printf("Agent server listening on %s", addr)
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatalf("Failed to start agent server: %v", err)
 	}
+}
+
+func handleDiscoverModels(w http.ResponseWriter, r *http.Request) {
+	modelHome := "/home/anyadmin/data/model"
+	entries, err := os.ReadDir(modelHome)
+	if err != nil {
+		// If dir doesn't exist, return empty list
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"object": "list",
+			"data":   []interface{}{},
+		})
+		return
+	}
+
+	var models []map[string]interface{}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			models = append(models, map[string]interface{}{
+				"id": entry.Name(),
+			})
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"object": "list",
+		"data":   models,
+	})
 }
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {

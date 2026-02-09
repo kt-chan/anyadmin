@@ -154,16 +154,76 @@ document.addEventListener('DOMContentLoaded', () => {
         form.querySelector('[name="max_num_seqs"]').value = config.max_num_seqs || '';
         form.querySelector('[name="max_num_batched_tokens"]').value = config.max_num_batched_tokens || '';
 
-        // Trigger suggestions using the values read from data.json
-        calculateVllmSuggestionsForServices(
-            modeSelect.value, 
-            config.model_name, 
-            nodeIP, 
-            parseFloat(form.querySelector('[name="gpu_memory_size"]').value),
-            parseFloat(form.querySelector('[name="gpu_memory_utilization"]').value)
-        );
+        // Initialize model selection
+        refreshVllmModels(config.model_name);
 
         showModal('vllmConfigModal');
+    }
+
+    window.refreshVllmModels = async function(selectedModel) {
+        const form = document.getElementById('vllmConfigForm');
+        const modelSelect = document.getElementById('vllm-model-select');
+        const nodeIP = form.querySelector('[name="node_ip"]').value;
+        const syncIcon = document.querySelector('button[onclick="refreshVllmModels()"] i');
+
+        if (!modelSelect) return;
+
+        modelSelect.disabled = true;
+        if (syncIcon) syncIcon.classList.add('fa-spin');
+        modelSelect.innerHTML = '<option value="" disabled selected>Loading models...</option>';
+
+        try {
+            // Use current config or default if nodeIP is missing (global config)
+            const host = nodeIP || '127.0.0.1'; 
+            const payload = { host, port: '8000', mode: 'new_deployment' }; // Default to new_deployment for local discovery
+            
+            const response = await fetch('/deployment/api/discover-models', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const result = await response.json();
+            modelSelect.innerHTML = '<option value="" disabled>Select a Model</option>';
+            
+            if (result.success && result.data && result.data.data) {
+                result.data.data.forEach(model => {
+                    const opt = document.createElement('option');
+                    opt.value = model.id;
+                    opt.textContent = model.id;
+                    if (model.id === selectedModel) opt.selected = true;
+                    modelSelect.appendChild(opt);
+                });
+            } else {
+                const opt = document.createElement('option');
+                opt.value = "";
+                opt.textContent = "No models found";
+                modelSelect.appendChild(opt);
+            }
+        } catch (error) {
+            console.error('Error refreshing models:', error);
+            modelSelect.innerHTML = '<option value="">Error loading models</option>';
+        } finally {
+            modelSelect.disabled = false;
+            if (syncIcon) syncIcon.classList.remove('fa-spin');
+        }
+    };
+
+    // Model selection change handler
+    const vllmModelSelect = document.getElementById('vllm-model-select');
+    if (vllmModelSelect) {
+        vllmModelSelect.addEventListener('change', function() {
+            const form = document.getElementById('vllmConfigForm');
+            const modelNameInput = form.querySelector('[name="model_name"]');
+            modelNameInput.value = this.value;
+            
+            // Trigger recalculation
+            const mode = document.getElementById('vllm-optimization-mode').value;
+            const nodeIP = form.querySelector('[name="node_ip"]').value;
+            const gpuMemorySize = parseFloat(form.querySelector('[name="gpu_memory_size"]').value);
+            const gpuUtilization = parseFloat(form.querySelector('[name="gpu_memory_utilization"]').value);
+            calculateVllmSuggestionsForServices(mode, this.value, nodeIP, gpuMemorySize, gpuUtilization);
+        });
     }
 
     async function calculateVllmSuggestionsForServices(mode, modelName, nodeIP, gpuMemorySize, gpuUtilization) {

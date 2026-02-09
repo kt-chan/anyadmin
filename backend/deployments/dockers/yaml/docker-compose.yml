@@ -6,10 +6,10 @@ services:
     ports:
       - "${VLLM_PORT:-8000}:8000"
     volumes:
-      - ${VLLM_MODEL_PATH:-/home/anyadmin/data/model/Qwen3-1.7B}:/model
+      - ${VLLM_MODEL_PATH:-/home/anyadmin/data/model}:/model
     entrypoint: python3 -m vllm.entrypoints.openai.api_server
     command: >
-      --model /model
+      --model /model/Qwen3-1.7B
       --served-model-name ${VLLM_MODEL_NAME:-Qwen3-1.7B}
       --max-model-len ${VLLM_MAX_MODEL_LEN:-4096}
       --max-num-seqs ${VLLM_MAX_NUM_SEQS:-8}

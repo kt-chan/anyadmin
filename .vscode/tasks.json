@@ -8,11 +8,27 @@
       "args": [
         "-NoProfile",
         "-Command",
-        "write-host ''Waiting for Backend (port 8080)...''; $retries = 30; while ($retries -gt 0) { try { $client = New-Object System.Net.Sockets.TcpClient(''127.0.0.1'', 8080); $client.Close(); write-host ''Backend is ready!''; exit 0 } catch { start-sleep -seconds 1; $retries-- } } write-host ''Backend failed to start.''; exit 1"
+        "write-host 'Waiting for Backend (port 8080)...'; $retries = 30; while ($retries -gt 0) { try { $client = New-Object System.Net.Sockets.TcpClient('127.0.0.1', 8080); $client.Close(); write-host 'Backend is ready!'; exit 0 } catch { start-sleep -seconds 1; $retries-- } } write-host 'Backend failed to start.'; exit 1"
       ],
       "isBackground": false,
       "presentation": {
         "reveal": "silent"
+      }
+    },
+    {
+      "label": "deploy-agent",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/scripts/deploy-agent.ps1"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
       }
     }
   ]

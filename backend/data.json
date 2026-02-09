@@ -37,7 +37,7 @@
         {
           "id": 0,
           "createdAt": "0001-01-01T00:00:00Z",
-          "updatedAt": "2026-02-09T17:30:43.8167002+08:00",
+          "updatedAt": "2026-02-09T17:42:42.1490489+08:00",
           "deletedAt": null,
           "name": "vllm",
           "engine": "vLLM",
@@ -45,11 +45,11 @@
           "model_path": "",
           "ip": "172.20.0.10",
           "port": "8000",
-          "mode": "max_token",
+          "mode": "balanced",
           "gpu_memory_size": 8,
           "gpu_utilization": 0.85,
-          "max_model_len": 8192,
-          "max_num_seqs": 1,
+          "max_model_len": 4096,
+          "max_num_seqs": 8,
           "max_num_batched_tokens": 8192,
           "gpu_memory_utilization": 0.85
         }

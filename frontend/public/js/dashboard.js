@@ -27,6 +27,9 @@ async function saveConfigAndRestart() {
   const suggestedModelName = gpuLabel ? gpuLabel.getAttribute('data-model-name') : null;
   
   const modelName = suggestedModelName || (vllmContainer && vllmContainer.model_name ? vllmContainer.model_name : (vllmContainer ? vllmContainer.name : 'Qwen3-1.7B'));
+  
+  const serviceName = vllmContainer ? vllmContainer.name : 'vllm';
+  const nodeIP = vllmContainer ? vllmContainer.node_ip : (services.find(s => s.type === 'Agent')?.node_ip || '');
 
   // Extract suggested vLLM parameters if visible
   const suggestionContent = document.getElementById('suggestion-content');
@@ -56,7 +59,8 @@ async function saveConfigAndRestart() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: 'default', // Assuming default model config entry
+          name: serviceName,
+          ip: nodeIP,
           model_name: modelName,
           mode: mode,
           ...vllmConfig

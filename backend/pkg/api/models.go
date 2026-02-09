@@ -291,7 +291,59 @@ func FinalizeUpload(c *gin.Context) {
 	// Save the checksum file as well
 	os.WriteFile(destPath+".sha256", []byte(expectedSum), 0644)
 
+	// Extract config.json for the dashboard/wizard to read model details
+	if err := extractConfigFile(destPath, dir); err != nil {
+		// Log warning but don't fail the whole upload if just config extraction fails
+		fmt.Printf("Warning: Failed to extract config.json: %v\n", err)
+	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "Model uploaded and verified successfully"})
+}
+
+// extractConfigFile pulls specifically config.json from a tar/tar.gz
+func extractConfigFile(tarPath string, destDir string) error {
+	f, err := os.Open(tarPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	var tr *tar.Reader
+	// Try gzip first
+	gzr, err := gzip.NewReader(f)
+	if err != nil {
+		// Fallback to plain tar
+		f.Seek(0, 0)
+		tr = tar.NewReader(f)
+	} else {
+		defer gzr.Close()
+		tr = tar.NewReader(gzr)
+	}
+
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		// Look for config.json (case insensitive or exact?) - usually exact
+		if filepath.Base(header.Name) == "config.json" {
+			target := filepath.Join(destDir, "config.json")
+			outFile, err := os.Create(target)
+			if err != nil {
+				return err
+			}
+			defer outFile.Close()
+			if _, err := io.Copy(outFile, tr); err != nil {
+				return err
+			}
+			return nil
+		}
+	}
+	return fmt.Errorf("config.json not found")
 }
 
 // AbortUpload deletes the temporary files for an upload session

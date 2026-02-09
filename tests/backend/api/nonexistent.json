@@ -1,0 +1,27 @@
+{
+  "users": [
+    {
+      "id": 0,
+      "createdAt": "0001-01-01T00:00:00Z",
+      "updatedAt": "0001-01-01T00:00:00Z",
+      "deletedAt": null,
+      "username": "envadmin",
+      "password": "TWCZ1/fYoxFSNZHpQq0tBUP3cmVgg1NlMYxINxU3+VHz7lUi8mGF8I9BrWlT9ebaT7JDxbA5hPvxLIgu4JZJavaTfIacAzyZD+O+5+pFTBrrjuEElujt3rFF6nm8MsSxi/TA9VmzgFcUpAlKOLCBKCTfGt74zNWJ1aWbx0jGpvfuOv1JWkuk50LiD95MY9xSEc+5Wt2Jbp7ravrGBJRbusqxMX7DCL+/U3r+Xu8Sy+IkOL7Gyv1ayTUzcEn2xz2GX855bNzwc4822qlCgKmGjT5ayoGY0rD9I6JrJGGMXQSYe57GyYRxQj0EEIT9CAzuz9QPFhZTJq05GBJX85wlbBOTSjgRCjxr51r7uI9sykqd9I9e3YuZ70INz91B061i8vE/5Yti9zMCQVqwL3rF4+WdGjy2u+U33HRAaL2leuxnuPGm0+AZ1s88SnmIDsRIbywcKL4AhrwtjO2wXw+Or9GcizfRNcgChtcYg+1PmNqaEgwokyKwcWbjMQajDSeldcLbmxZNKie+P752fUZhVZvWVLt4h7c5cysxkhK2EZx8SSmUCAsL8zFMeGuSlfwk6eDigJx5CUpkOKonUL504r0zDpooIsZ1s/5vlqgYjdWBYzSAzjIcj4soxzcf1Ru87fV3mBPHOo4MkFXrMl0sicCNDQLb2chgdTAhj31dhC4=",
+      "role": "admin"
+    },
+    {
+      "id": 0,
+      "createdAt": "0001-01-01T00:00:00Z",
+      "updatedAt": "0001-01-01T00:00:00Z",
+      "deletedAt": null,
+      "username": "operator_01",
+      "password": "Rs2c9UE7gNrhix3hKbWZtenb+fSLQ/0JoY9PT4R7H2NwM1QvFuBsXLROlD5QPz+1DW+9kezwsyIqFeuxwfWwSe4uTThept+pp+WqMcnjPtUcmYgo4CbyRHtLlDYC2M+V6EfAi2DEKbBv68kDIUIHZYlEkhpW+NT8t/GzDAUwMtMv4Kx78jsDkExa8AyxY86zz055mij6eQwCpZEg7xtX7B+lTmI1pWzWGI1pZMYlEwKo2bXELxR+8qsEVopQsMei+1NG7PD3GN3W30MwT2jRHUH8Vfs3oPY2hQlrt9lCB0NBpaaBCIjY7uNcUopYc8sGeP5Scs9J28fhoXWYsoz9S2Bv146KU2gCGJOguykFV8rDX+mEZ+tHzXXFKmOEGtckfgxxnXXUtaJXs/5Mb0k1qRO7OTiz12l5A2/aj+I/ghRU9bXOzZEOr/KR7p8hWsDg8Vv6qKz081IaCqk4rcKg/tQYLO5P79CJg2kKOvqqGWJ9klCJjb79MI2IcP2sEDE0M5XqoAX/pAkoSg3LLcC3PN4YhZTT/HfkZAElmQU1r6vqZfXcb9/01nYQw9RSJaqWypAazkShWSfx4fXRgN5K3E/76DiQm+I7sDUV9865r9tfeE4EOmiMWBem2rJ+sBmnl6DYIc9FG2NfF0NyTecYUaHUxcc0WSAkVNwzDyW7Slo=",
+      "role": "operator"
+    }
+  ],
+  "import_tasks": null,
+  "backup_records": null,
+  "deployment_nodes": null,
+  "mgmt_host": "172.20.0.1",
+  "mgmt_port": "8080"
+}

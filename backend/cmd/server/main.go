@@ -17,7 +17,7 @@ func main() {
 	r := server.NewRouter()
 
 	address := "0.0.0.0:" + global.ServerPort
-	log.Printf("AnythingLLM Admin Backend (Mock Mode) starting on %s\n", address)
+	log.Printf("AnyAdmin Backend (Mock Mode) starting on %s\n", address)
 	if err := r.Run(address); err != nil {
 		log.Fatal("Server failed to start:", err)
 	}

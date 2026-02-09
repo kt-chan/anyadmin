@@ -11,6 +11,7 @@ import (
 	"anyadmin-backend/pkg/global"
 	"anyadmin-backend/pkg/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -91,5 +92,36 @@ func TestAuth(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+
+	t.Run("Admin From Env", func(t *testing.T) {
+		// Mock environment variables via viper
+		viper.Set("admin.username", "envadmin")
+		viper.Set("admin.password", "envpass")
+		
+		// Backup and mock DataFile to avoid loading existing data.json
+		oldDataFile := utils.DataFile
+		utils.DataFile = "nonexistent.json"
+		defer func() { utils.DataFile = oldDataFile }()
+
+		// Reset Users and call InitData
+		utils.ExecuteWrite(func() {
+			utils.Users = []global.User{}
+		}, false)
+		
+		utils.InitData()
+		
+		var userFound bool
+		utils.ExecuteRead(func() {
+			for _, u := range utils.Users {
+				if u.Username == "envadmin" {
+					userFound = true
+					// Verify password works
+					storedPass, _ := utils.DecryptPassword(u.Password)
+					assert.Equal(t, "envpass", storedPass)
+				}
+			}
+		})
+		assert.True(t, userFound)
 	})
 }

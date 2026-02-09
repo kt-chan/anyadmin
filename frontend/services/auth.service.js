@@ -3,7 +3,9 @@ const logger = require('../utils/logger');
 
 const authService = {
   authenticate: async (username, password) => {
-    logger.debug(`Attempting login for user: ${username}`);
+    const loginUrl = `${apiClient.defaults.baseURL}/api/v1/login`;
+    logger.debug(`Attempting login for user: ${username} at URL: ${loginUrl}`);
+    logger.debug(`Password sent to backend service (first 20 chars): ${password.substring(0, 20)}...`);
     try {
       const response = await apiClient.post('/api/v1/login', { username, password });
       const data = response.data;

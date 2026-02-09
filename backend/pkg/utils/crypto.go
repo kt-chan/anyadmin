@@ -3,7 +3,6 @@ package utils
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
@@ -34,6 +33,86 @@ func init() {
 			break
 		}
 	}
+}
+
+// EnsureKeysExist checks if the RSA keys exist, and generates them if not.
+func EnsureKeysExist() error {
+	cwd, _ := os.Getwd()
+	keysDir := ""
+	checkPaths := []string{
+		filepath.Join(cwd, "backend", "keys"),
+		filepath.Join(cwd, "..", "backend", "keys"),
+		filepath.Join(cwd, "keys"),
+	}
+
+	for _, p := range checkPaths {
+		if _, err := os.Stat(p); err == nil {
+			keysDir = p
+			break
+		}
+	}
+
+	if keysDir == "" {
+		// Create keys directory in backend if not found
+		if _, err := os.Stat(filepath.Join(cwd, "backend")); err == nil {
+			keysDir = filepath.Join(cwd, "backend", "keys")
+		} else {
+			keysDir = filepath.Join(cwd, "keys")
+		}
+		os.MkdirAll(keysDir, 0755)
+	}
+
+	PrivateKeyPath = filepath.Join(keysDir, "id_rsa")
+	PublicKeyPath = filepath.Join(keysDir, "id_rsa.pub")
+
+	if _, err := os.Stat(PrivateKeyPath); err == nil {
+		return nil // Keys already exist
+	}
+
+	fmt.Println("Generating RSA keys...")
+	// Generate key pair
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return err
+	}
+
+	// Save Private Key
+	privFile, err := os.OpenFile(PrivateKeyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	defer privFile.Close()
+
+	privBlock := &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(priv),
+	}
+	if err := pem.Encode(privFile, privBlock); err != nil {
+		return err
+	}
+
+	// Save Public Key (OpenSSH format for compatibility with remote agent scripts if needed, but we also use PKIX for frontend)
+	// Actually the prompt specifically asked for id_rsa and id_rsa.pub.
+	// We'll save the public key in PKIX format as well for our GetPublicKeyContent.
+	pubFile, err := os.OpenFile(PublicKeyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer pubFile.Close()
+
+	pubBytes, err := x509.MarshalPKIXPublicKey(&priv.PublicKey)
+	if err != nil {
+		return err
+	}
+	pubBlock := &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: pubBytes,
+	}
+	if err := pem.Encode(pubFile, pubBlock); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // GetPublicKeyContent reads and returns the content of the public key file
@@ -110,12 +189,10 @@ func EncryptPassword(password string) (string, error) {
 		return "", fmt.Errorf("key is not an RSA public key")
 	}
 
-	encryptedBytes, err := rsa.EncryptOAEP(
-		sha256.New(),
+	encryptedBytes, err := rsa.EncryptPKCS1v15(
 		rand.Reader,
 		rsaPub,
 		[]byte(password),
-		nil,
 	)
 	if err != nil {
 		return "", err
@@ -140,7 +217,8 @@ func DecryptPassword(encryptedPassword string) (string, error) {
 		return "", fmt.Errorf("failed to parse PEM block containing the private key")
 	}
 
-	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	var priv *rsa.PrivateKey
+	priv, err = x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
 		// Try parsing as PKCS8
 		key, errPKCS8 := x509.ParsePKCS8PrivateKey(block.Bytes)
@@ -159,12 +237,10 @@ func DecryptPassword(encryptedPassword string) (string, error) {
 		return "", err
 	}
 
-	decryptedBytes, err := rsa.DecryptOAEP(
-		sha256.New(),
+	decryptedBytes, err := rsa.DecryptPKCS1v15(
 		rand.Reader,
 		priv,
 		encryptedBytes,
-		nil,
 	)
 	if err != nil {
 		return "", err

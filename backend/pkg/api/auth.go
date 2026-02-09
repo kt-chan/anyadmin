@@ -7,6 +7,8 @@ import (
 	"anyadmin-backend/pkg/middleware"
 	"anyadmin-backend/pkg/service"
 	"anyadmin-backend/pkg/utils"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -34,22 +36,22 @@ func Login(c *gin.Context) {
 	var user *global.User
 	utils.ExecuteRead(func() {
 		for i := range utils.Users {
-			// Access by index to avoid loop variable address issues
 			u := &utils.Users[i]
 			if u.Username == req.Username {
 				// Decrypt stored password
 				storedPass, err := utils.DecryptPassword(u.Password)
 				if err != nil {
-					// If stored password is not encrypted (legacy), use as is
 					storedPass = u.Password
 				}
 
 				// Decrypt incoming password
 				incomingPass, err := utils.DecryptPassword(req.Password)
 				if err != nil {
-					// If incoming password is not encrypted (e.g. from tests or legacy client), use as is
 					incomingPass = req.Password
 				}
+
+				storedPass = strings.TrimSpace(storedPass)
+				incomingPass = strings.TrimSpace(incomingPass)
 
 				if storedPass == incomingPass {
 					user = u

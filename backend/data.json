@@ -6,7 +6,7 @@
       "updatedAt": "0001-01-01T00:00:00Z",
       "deletedAt": null,
       "username": "admin",
-      "password": "Qx1bBKKGIj0+9UX29roL6SVuUA/VfAURaFRsRv5w6o5IrVAa48I8M/i8keeSZrL/Rh2OM51a4nGJcc0q3CZiITU2mU946cb0waDioOS2nFbxKHOFzm/EuTYm8kODNPRB843Y3vKvMT3DFEpd3Qii5CElqX6VZQfhl/tj3iD2Pk2X1sVQ8+HfxW/0J46Zne00MtK0eCTCc2QZ2ojv0gy0xNcmCBb5tvWGLMwadATW9tsqZbkWHBT1wM54KYhSBsURemLdeOi8+KGdhCC6ZH6De17zLzc2zGiIl8zzlY9lOxho8R7nN0XQNnX+mobgBJeZ+9ZA0H3TXj1MZ50szdYFszEXGgYqVKaSBYTKTTXihpxgjs3FuvbLwf8UjxIYnEWBPJ/qX7JFeNYzqldIR56bWpL0eYec/+8y0UfZXwEx5HOrA+BRSXtlea3cnYFgRugQzsbYOMQkoBHVY2unV1+VN2YpMUUsnlZBWB2UJ/WuI+sBg4aIqEEpLmMtbnwMl7DWNDpNVIDj94vmp4Zi5fFnD71KUF0mG8cqBUjDal4vS4iP88266yInqrhrPBhDx8bUhODFVfsGOGm+KBfH2QGcwhb1f0lLYKZGel3vr4cjnJGl6h71Od45i6MX0khDeXdRO2ABQTDTuHPJfgH+dyEmlTeiFbuOhMWjTsn5AnCXwuw=",
+      "password": "NpkvRIYe1s3Afredn/22EIwZobsSJ/4lV3WZUxh4KcrrHz+Ma5T991tqTZO0hGsV3HHQ2eYwlODy1pr0FQHrgZKF1WQWG3TMLrp3phQG5JOmL4bNPJMZ+eUl+tz9P/JPyz+TnWvocPOAKhmjGRrmol0BREEEy12YahM0SPtfJYt5oLySez3WISDZioPW2ZoukjmE47MIphdtr7s5FOr3BMzSJiczpq8crLPAHtF7o4affEejfl+sxVJUABzcWCrsbR/KhxPyKaTbNLEIw06BsqxxFS4VKwRsTWEXz9xMMOkFmhKQ2E4WYRokM4V0VSLntZ23OLeYKSMA/vCoUrXyJxN+dd5f4taKBbu1Aik6lsxxw1/AELeC2q6Vk8RjMR/4rKkWcjsTwJZhE/SjytBkFyebX2qeg4ZFJkjicwpL0OMFvBvgCsDKR+YRSbze5NPZ1OZ/y/alS6/F8tWA/r61gk6J9okuIi47+Xs381cUxqfWMAhWNpEX3d6ePFNnL8cSICblRwZvvWxxnFgoo6M8/9qcmwQwF8cUUln3B+IyIx7rDiI0UJGtblchDjNN4OjqYbFQKYB3HHBRE+gq0wFwvjhx1FdsUD+Tn8D4HF2+1SDeIsbZln5+Rq4wDP6yOwFN3/Y4qAYeCoSy74H1P1YXrqTQbS8wHtKm91tDaGZ5uzs=",
       "role": "admin"
     },
     {
@@ -15,66 +15,13 @@
       "updatedAt": "0001-01-01T00:00:00Z",
       "deletedAt": null,
       "username": "operator_01",
-      "password": "oP/ptkH7HJAbYsb+iY0GGkac7tBgTOB2jpCEMNo9bAj13VXaxdbil/bkta3TNoj9IZzElM3skXjAAKruBxgO7m1iYyr1fRlF/kOI4zfJpJsK/h2nwB/3SamsO6JsyyWWmNUUaY+xl4025DkFABwllFvuKghn7qcn/dYou0BVqm2K+dle7cT71v/kV8oar3OiJsSvZerWS8x8nvaDECogoRF+SvwQizsmCalIaDEXJauS35XL7ItMWqmVydLPKIZ6OFZf/9CENoTAOI/aeZ525HcTt5yZU/9GCBijrYD/49CPNAwVYzLFoxFW7PWB3nUTeLCVRqbTMklFhjSECIRgMW6x2FymXeY3BPlCvS4rGiPH7OctSoSKO8lQv15Wjd6fij3s4tO1Wc0v5tWHt2JZTbB6rTd8hrvGRueL1k0+SF7MNjg7Cup2wmoL+2VwMUMq5xQv1+IzTU0GV27kw5dMfEIPvq3080HMmwzN0zWFKAatvKd/xxbpe3FCAJUg3wFUG6nsHh0izBT9nQVUCJSvOmpoYu8ntEgvDSX1U7VbeNpkyVglUSnQlCk3El69y1KhjPe/R6nJCYyB/HZpM0hlhL2KRSEPTAosV1A9kqLgbFWLsUPrNbe25PJEsZQ7/Yl9bxzkW01uXnomSyTJwFxwhGci09jzNYUWnkzuO9HcEls=",
+      "password": "PDGbsdPvNVyUTHSjpT2pEpCliVsRdOtN66OesOmdDe3ca8nCsCLK3TTUiv4V81mlyh6JBUOSvAEHerncvrdITdqhcEDnzRDLUT3Pux56jw47uWwBldllMK2zPve2AyYsjBJkvgQCeW9cTBkRXEh/X1j3wSoEex/G+ium0eoXnzrMXTvp6rxz8pVN0ua/REV5d4SgXTr3NHm0RgnNvkQNMOnUH4sHOOPb2Dfpe8P3OWlKUHilapj+WBngxTPq7HWFYfoy3ER8FJlrE3QJyvF5mfv8HS5VrELKktrL9j3agaE+HSfbZmT9d8+Fr/wJNnbILo9whUXDqi/P7bkpoPvhMXibL1vfQC6yawDmIFB/cCRAJg42qX53p255TTCUhWcSFdne0ITo+mlZlieiODXtfO5kq9OCzKS11k7tBj9Xn0og4EUmz4IqOesX9LEXjGmcgTdaeMJY5jhlsgVLoWYwaLJQAFKm+P+z3z4XHRrBaRKNSMd4CKqbqT2kyX8KpN547uT2wX3u25dBbxUpAgORzROSaAxS5guiAuI+R7DeQvyHa6xlKlQULWQ806w8Np6v76R+9Mtg4nPlCwnt3Apqc7XoqPHQq4sFbtksfhDJEe5Vh3tj0c4NSUlgAj2INjFupt+jIXqGWRHDflLyJDPKmB/E62xhpuVst9c6PebODwU=",
       "role": "operator"
     }
   ],
   "import_tasks": null,
   "backup_records": null,
-  "deployment_nodes": [
-    {
-      "node_ip": "172.20.0.10",
-      "hostname": "TestNode",
-      "agent_config": {
-        "deployment_time": "2026-02-09T18:02:59+08:00",
-        "log_file": "/home/anyadmin/logs/agent.log",
-        "mgmt_host": "172.20.0.1",
-        "mgmt_port": "8080",
-        "node_ip": "172.20.0.10",
-        "node_port": "8082"
-      },
-      "inference_cfgs": [
-        {
-          "id": 0,
-          "createdAt": "0001-01-01T00:00:00Z",
-          "updatedAt": "0001-01-01T00:00:00Z",
-          "deletedAt": null,
-          "name": "vllm",
-          "engine": "vLLM",
-          "model_name": "Qwen3-Test",
-          "model_path": "",
-          "ip": "",
-          "port": "",
-          "mode": "",
-          "gpu_memory_size": 0,
-          "gpu_utilization": 0,
-          "max_model_len": 0,
-          "max_num_seqs": 0,
-          "max_num_batched_tokens": 0,
-          "gpu_memory_utilization": 0
-        }
-      ],
-      "rag_app_cfgs": [
-        {
-          "id": 0,
-          "createdAt": "0001-01-01T00:00:00Z",
-          "updatedAt": "0001-01-01T00:00:00Z",
-          "deletedAt": null,
-          "name": "anythingllm",
-          "host": "172.20.0.10",
-          "port": "",
-          "storage_dir": "",
-          "llm_provider": "",
-          "generic_openai_base_path": "",
-          "generic_openai_model_pref": "",
-          "generic_openai_model_token_limit": 0,
-          "generic_openai_max_tokens": 0,
-          "generic_openai_api_key": "",
-          "vector_db": ""
-        }
-      ]
-    }
-  ],
+  "deployment_nodes": null,
   "mgmt_host": "172.20.0.1",
   "mgmt_port": "8080"
 }

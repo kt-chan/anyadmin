@@ -352,58 +352,6 @@ function checkAuthStatus() {
 }
 
 /**
- * 处理登录
- */
-async function handleLogin() {
-    const form = document.getElementById('login-form');
-    if (!form) return;
-    
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
-    
-    // 显示加载状态
-    const submitBtn = form.querySelector('button[type="button"]');
-    const originalText = submitBtn.textContent;
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>登录中...';
-    
-    try {
-        // 模拟登录请求
-        const response = await fetch('/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            // 保存登录状态到本地存储
-            localStorage.setItem('kb_user_logged_in', 'true');
-            
-            // 显示成功消息
-            showNotification('登录成功', 'success');
-            
-            // 跳转到仪表板
-            setTimeout(() => {
-                window.location.href = result.redirect || '/dashboard';
-            }, 1000);
-        } else {
-            showNotification(result.message || '登录失败', 'error');
-        }
-    } catch (error) {
-        console.error('登录错误:', error);
-        showNotification('网络错误，请重试', 'error');
-    } finally {
-        // 恢复按钮状态
-        submitBtn.disabled = false;
-        submitBtn.textContent = originalText;
-    }
-}
-
-/**
  * 处理注销
  */
 function handleLogout() {
@@ -471,7 +419,7 @@ function checkServiceStatus() {
 // 暴露全局函数供内联脚本调用
 window.showModal = showModal;
 window.hideModal = hideModal;
-window.handleLogin = handleLogin;
+// window.handleLogin = handleLogin; // Removed to avoid conflict with login.js
 window.handleLogout = handleLogout;
 window.navTo = navTo;
 window.showNotification = showNotification;

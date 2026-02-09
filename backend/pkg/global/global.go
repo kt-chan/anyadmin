@@ -158,6 +158,11 @@ func InitConfig() {
 	viper.AutomaticEnv()
 	viper.BindEnv("server.port", "SERVER_PORT")
 	viper.SetDefault("server.port", "8080")
+	
+	viper.BindEnv("admin.username", "ADMIN_USERNAME")
+	viper.BindEnv("admin.password", "ADMIN_PASSWORD")
+	viper.SetDefault("admin.username", "admin")
+	viper.SetDefault("admin.password", "password")
 
 	if err := viper.ReadInConfig(); err != nil {
 		log.Println("No config file found, using defaults")

@@ -6,7 +6,7 @@
       "updatedAt": "0001-01-01T00:00:00Z",
       "deletedAt": null,
       "username": "admin",
-      "password": "password",
+      "password": "gHhhKmx7qWgX5wHzexRd8QqVljAVV/9uCuK2t9Ar+BciF0JdAHuKW5lS6bODWvFqufWoilEsVbAldd0g1tcpM7YotVu+jdxWzRIVja9s8ISEc4+9/W5Nx+BpnYr5nEYioDMip71QgfZDaXtJGuiNXq2yhrzTpMukYhIvzw1fdpXWz9xgQI59BvLrRzyNvbR7mPgjgJRSmhV84wgoBcX3DZbM8OtmAYHBMsA/dvoZJ0rpVKiMSxt0uk4DMrm3N6K3uAtm1bE1ZnHN9aVvrOxPxM85dISomkO/z2jqSkJu5V+eRZVbqbXazAfk1+Y+apWP1lK4r/3L0WgiE8v2GmB+E/JAbQw6c+f7K5E+sbI4pXgVQkmdHyTnwKJkdRy+E6DVNyi3uSQjIvHN1NJ1RGzYpaeeQKUwd2qaK2F3TERh538+MZCJHnuT4uco/Np/31CV4fJkW47ow5qLUNQBYOoH2/8fvOXzVqYmu+OtqfOEUehU3Q0mjKq7l0AaEVResWk/CEmIuw7LHdhAv4PHQVKzBTYAe7xJlUGcHnFNQOsPT0k5wcDeOsGvP/tMKoPkIcNXLFpRzM3BSxSU0hZDklu9yJIDLAyZ/LuPCtaB669sDs3WkeBlgY3FJvnIntHCiovxDSlmH2mWv+lTq08Pv9FJgCzEkcc2KCwTwxOlHQyJUaE=",
       "role": "admin"
     },
     {
@@ -15,66 +15,13 @@
       "updatedAt": "0001-01-01T00:00:00Z",
       "deletedAt": null,
       "username": "operator_01",
-      "password": "password",
+      "password": "F5QElUxIQj3sm1VbqaeQmoIgQEI03LIaqx/LPRmUR3mXSLjka41oLsnrw0o064eKGT2ZT3ooMz/r+snuZj9CRnRug6ACM3sjpgogkhMCsN6Ep3zQwi7is6jY91vtIWR8BlK5X61w0gMzWO9ZTlQdu/tIyGuGHD2rXf4PwCn/oQWHZgtXZKbNQkf+uw64AbcByTGZlV8aTSQytdfSFMunz3bORAfit4lW3O9FQWq7c0Q0Y97FOAGN5JEwBiUYROxS0kn0gjdEVYNU9RwkT/XuxzEFT1ypOToUeajlYkg5vHBT5lTTu+f7d8dr54tVg6syDDj6fFYkTG4Kng9x2xUW4+PlqwmBfvnrTcpCgVhFPnRVrsYRvjTFjTXc1qlV/ONg1OhmESeahWmUPgU2pL2sYwhO2SMmYby7TUsgPGr/73RMzPDgkj9zpceSV4mb9xQVuvgfg2mxiyngBJkxbauG2FW14kL7hw6yV02mDEtf6B/B8QNlnKmfBIC7FCJsQ8HaHJkzzQVi9r22+WM3f3sv6wHDG4FeoZ5l8za8ELaYcR3Wl6kU19O4PmXA0eM0TJGKmPtTnZYHAa1jflXUWo0aLd6uQCNSNGbvqBgJ/cJt+ZRSyQ/GDJZwz0r3opes1KAYqjpQzT/xfpEdSCKOpB3Mlp575Uwn+GxQi6aytFPAP3s=",
       "role": "operator"
     }
   ],
   "import_tasks": null,
   "backup_records": null,
-  "deployment_nodes": [
-    {
-      "node_ip": "172.20.0.10",
-      "hostname": "DESKTOP-OSLI7Q7",
-      "agent_config": {
-        "deployment_time": "2026-02-06T18:40:20+08:00",
-        "log_file": "/home/anyadmin/logs/agent.log",
-        "mgmt_host": "172.20.0.1",
-        "mgmt_port": "8080",
-        "node_ip": "172.20.0.10",
-        "node_port": "8082"
-      },
-      "inference_cfgs": [
-        {
-          "id": 0,
-          "createdAt": "0001-01-01T00:00:00Z",
-          "updatedAt": "0001-01-01T00:00:00Z",
-          "deletedAt": null,
-          "name": "vllm",
-          "engine": "vLLM",
-          "model_name": "Qwen3-1.7B",
-          "model_path": "",
-          "ip": "172.20.0.10",
-          "port": "8000",
-          "mode": "balanced",
-          "gpu_memory_size": 8,
-          "gpu_utilization": 0.85,
-          "max_model_len": 4096,
-          "max_num_seqs": 3,
-          "max_num_batched_tokens": 8192,
-          "gpu_memory_utilization": 0.85
-        }
-      ],
-      "rag_app_cfgs": [
-        {
-          "id": 0,
-          "createdAt": "0001-01-01T00:00:00Z",
-          "updatedAt": "0001-01-01T00:00:00Z",
-          "deletedAt": null,
-          "name": "anythingllm",
-          "host": "172.20.0.10",
-          "port": "3001",
-          "storage_dir": "/app/server/storage",
-          "llm_provider": "generic-openai",
-          "generic_openai_base_path": "http://host.docker.internal:8000/v1",
-          "generic_openai_model_pref": "Qwen3-1.7B",
-          "generic_openai_model_token_limit": 4098,
-          "generic_openai_max_tokens": 2048,
-          "generic_openai_api_key": "REPLACE_THIS_WITH_YOUR_ACTUAL_KEY",
-          "vector_db": "lancedb"
-        }
-      ]
-    }
-  ],
+  "deployment_nodes": null,
   "mgmt_host": "172.20.0.1",
   "mgmt_port": "8080"
 }

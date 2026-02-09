@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"anyadmin-backend/pkg/global"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -77,6 +78,11 @@ func ExecuteWrite(fn func(), persist bool) error {
 }
 
 func InitData() {
+	// Ensure RSA keys exist
+	if err := EnsureKeysExist(); err != nil {
+		// Log error but continue, crypto functions will fail later if keys missing
+	}
+
 	// Try to load from file first
 	if err := LoadFromFile(); err != nil {
 		// If load fails, initialize defaults
@@ -85,18 +91,21 @@ func InitData() {
 	ExecuteWrite(func() {
 		// Initialize Users if empty
 		if len(Users) == 0 {
-			adminPass, _ := EncryptPassword("password")
-			operatorPass, _ := EncryptPassword("password")
+			adminUser := viper.GetString("admin.username")
+			adminPass := viper.GetString("admin.password")
+			
+			encAdminPass, _ := EncryptPassword(adminPass)
+			encOpPass, _ := EncryptPassword("password")
 			
 			Users = []global.User{
 				{
-					Username: "admin",
-					Password: adminPass,
+					Username: adminUser,
+					Password: encAdminPass,
 					Role:     "admin",
 				},
 				{
 					Username: "operator_01",
-					Password: operatorPass,
+					Password: encOpPass,
 					Role:     "operator",
 				},
 			}

@@ -140,6 +140,7 @@ vite.config.ts.timestamp-*
 
 # pycache
 tests/backend/__pycache__
+**/__debug_bin*
 
 # bytes
 backend/deployments/tars

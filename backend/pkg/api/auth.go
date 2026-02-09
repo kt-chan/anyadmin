@@ -23,14 +23,14 @@ func Login(c *gin.Context) {
 	}
 
 	var user *global.User
-	utils.Mu.Lock()
-	for _, u := range utils.Users {
-		if u.Username == req.Username && u.Password == req.Password {
-			user = &u
-			break
+	utils.ExecuteRead(func() {
+		for _, u := range utils.Users {
+			if u.Username == req.Username && u.Password == req.Password {
+				user = &u
+				break
+			}
 		}
-	}
-	utils.Mu.Unlock()
+	})
 
 	if user == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "用户名或密码错误"})

@@ -517,22 +517,21 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 	log.Printf("Agent successfully started on %s (count: %d)", nodeIP, count)
 
 	// Sync agent_config back to utils
-	utils.Mu.Lock()
-	for i, node := range utils.DeploymentNodes {
-		if node.NodeIP == nodeIP {
-			utils.DeploymentNodes[i].AgentConfig = global.AgentConfig{
-				MgmtHost:       mgmtHost,
-				MgmtPort:       mgmtPort,
-				NodeIP:         nodeIP,
-				NodePort:       nodePort,
-				DeploymentTime: time.Now().Format(time.RFC3339),
-				LogFile:        "/home/anyadmin/logs/agent.log",
+	utils.ExecuteWrite(func() {
+		for i, node := range utils.DeploymentNodes {
+			if node.NodeIP == nodeIP {
+				utils.DeploymentNodes[i].AgentConfig = global.AgentConfig{
+					MgmtHost:       mgmtHost,
+					MgmtPort:       mgmtPort,
+					NodeIP:         nodeIP,
+					NodePort:       nodePort,
+					DeploymentTime: time.Now().Format(time.RFC3339),
+					LogFile:        "/home/anyadmin/logs/agent.log",
+				}
+				break
 			}
-			break
 		}
-	}
-	utils.Mu.Unlock()
-	utils.SaveToFile()
+	}, true)
 
 	return nil
 }
@@ -585,17 +584,18 @@ func ControlAgent(nodeIP, action string) error {
 				return
 			}
 
-			utils.Mu.Lock()
-			mgmtHost := utils.MgmtHost
-			mgmtPort := utils.MgmtPort
-			utils.Mu.Unlock()
+			var mgmtHost, mgmtPort string
+			utils.ExecuteRead(func() {
+				mgmtHost = utils.MgmtHost
+				mgmtPort = utils.MgmtPort
+			})
 
 			if mgmtHost == "" {
 				utils.LoadFromFile()
-				utils.Mu.Lock()
-				mgmtHost = utils.MgmtHost
-				mgmtPort = utils.MgmtPort
-				utils.Mu.Unlock()
+				utils.ExecuteRead(func() {
+					mgmtHost = utils.MgmtHost
+					mgmtPort = utils.MgmtPort
+				})
 			}
 			if mgmtHost == "" {
 				mgmtHost = "172.20.0.1"
@@ -632,17 +632,18 @@ func ControlAgent(nodeIP, action string) error {
 			ExecuteCommand(client, "pkill -f anyadmin-agent || true")
 			time.Sleep(1 * time.Second)
 
-			utils.Mu.Lock()
-			mgmtHost := utils.MgmtHost
-			mgmtPort := utils.MgmtPort
-			utils.Mu.Unlock()
+			var mgmtHost, mgmtPort string
+			utils.ExecuteRead(func() {
+				mgmtHost = utils.MgmtHost
+				mgmtPort = utils.MgmtPort
+			})
 
 			if mgmtHost == "" {
 				utils.LoadFromFile()
-				utils.Mu.Lock()
-				mgmtHost = utils.MgmtHost
-				mgmtPort = utils.MgmtPort
-				utils.Mu.Unlock()
+				utils.ExecuteRead(func() {
+					mgmtHost = utils.MgmtHost
+					mgmtPort = utils.MgmtPort
+				})
 			}
 			if mgmtHost == "" {
 				mgmtHost = "172.20.0.1"

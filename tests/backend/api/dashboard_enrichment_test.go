@@ -29,16 +29,16 @@ func setupDashboardRouter() *gin.Engine {
 
 func TestDashboardEnrichment(t *testing.T) {
 	// Setup utils config
-	utils.Mu.Lock()
-	utils.DeploymentNodes = []global.DeploymentNode{
-		{
-			NodeIP: "172.20.0.10",
-			InferenceCfgs: []global.InferenceConfig{
-				{Name: "vllm", IP: "172.20.0.10", Engine: "vLLM"},
+	utils.ExecuteWrite(func() {
+		utils.DeploymentNodes = []global.DeploymentNode{
+			{
+				NodeIP: "172.20.0.10",
+				InferenceCfgs: []global.InferenceConfig{
+					{Name: "vllm", IP: "172.20.0.10", Engine: "vLLM"},
+				},
 			},
-		},
-	}
-	utils.Mu.Unlock()
+		}
+	}, true)
 
 	router := setupDashboardRouter()
 

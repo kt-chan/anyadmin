@@ -1055,3 +1055,23 @@ analyze @frontend/views/services.pug, and @frontend/views/deployment.pug, then y
 - Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, use  powershell scripts under @scripts folder to terminate proccess on port 3000 and 8080 or redeploym agents
 
 
+## Task 35
+
+scan the @backend folder for all logics using Mu sync.Mutex, then you have to rewrite and enrich this script as well as the corresponding frontend, backend, and remote agent services for below funcitonal features enrichment objective. And you have to follow Coding Guide provided in final section of below context.
+
+*** funcitonal features enrichment Objective ***
+1. develop file save sync module in store.go to handle all sync read/write to data.json to assure sequential read/write on multiple threaded operations.
+2. update all codes in @backend folder which use utils.Mu.Lock() or utils.Mu.Unlock() to use file save sync module in store.go developed in previous step (1)
+3. update unit test to cover this, and perform regression test too.
+
+**Coding Guide**  
+- this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO.
+- The remote host is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and you have to run ssh with passwordless id_rsa key at @backend\keys with root user to remote host. 
+- You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
+- Write unit tests to verify any update systematically by accessing the frontend app and backend services code changes. Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
+- All the unit test should be put under /tests folder, and all the loggging should be put under /logs folder
+- All the unit test related to agent should use the remote host on this ip 172.20.0.10 with port 8082 for agent interaction 
+- Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, use  powershell scripts under @scripts folder to terminate proccess on port 3000 and 8080 or redeploym agents
+
+

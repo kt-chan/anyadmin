@@ -35,11 +35,11 @@ func TestNodeOperations(t *testing.T) {
 	router := setupNodeRouter()
 
 	// 1. Initial nodes
-	utils.Mu.Lock()
-	utils.DeploymentNodes = []global.DeploymentNode{
-		{NodeIP: "172.20.0.10", Hostname: "172.20.0.10"},
-	}
-	utils.Mu.Unlock()
+	utils.ExecuteWrite(func() {
+		utils.DeploymentNodes = []global.DeploymentNode{
+			{NodeIP: "172.20.0.10", Hostname: "172.20.0.10"},
+		}
+	}, true)
 
 	// 2. Test GetNodes
 	w := httptest.NewRecorder()
@@ -61,16 +61,16 @@ func TestNodeOperations(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	utils.Mu.Lock()
-	found := false
-	for _, n := range utils.DeploymentNodes {
-		if n.NodeIP == "172.20.0.10" {
-			found = true
-			break
+	utils.ExecuteRead(func() {
+		found := false
+		for _, n := range utils.DeploymentNodes {
+			if n.NodeIP == "172.20.0.10" {
+				found = true
+				break
+			}
 		}
-	}
-	assert.True(t, found)
-	utils.Mu.Unlock()
+		assert.True(t, found)
+	})
 }
 
 func TestAgentControlAPI(t *testing.T) {

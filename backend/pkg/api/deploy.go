@@ -79,62 +79,61 @@ func DeployService(c *gin.Context) {
 		inferenceConfig.GPUUtilization = 0
 	}
 
-	utils.Mu.Lock()
+	utils.ExecuteWrite(func() {
+		// Handle Target Nodes Update/Merge
+		if req.TargetNodes != "" && req.MgmtHost != "" && req.MgmtPort != "" {
+			nodes := strings.Split(req.TargetNodes, "\n")
 
-	// Handle Target Nodes Update/Merge
-	if req.TargetNodes != "" && req.MgmtHost != "" && req.MgmtPort != "" {
-		nodes := strings.Split(req.TargetNodes, "\n")
+			// Create a map of existing nodes for easy lookup
+			existingNodes := make(map[string]global.DeploymentNode)
+			for _, node := range utils.DeploymentNodes {
+				existingNodes[node.NodeIP] = node
+			}
 
-		// Create a map of existing nodes for easy lookup
-		existingNodes := make(map[string]global.DeploymentNode)
-		for _, node := range utils.DeploymentNodes {
-			existingNodes[node.NodeIP] = node
+			var updatedNodes []global.DeploymentNode
+
+			for _, nodeIP := range nodes {
+				nodeIP = strings.TrimSpace(nodeIP)
+				if nodeIP == "" {
+					continue
+				}
+
+				// Standardize IP (strip port)
+				host, _, err := net.SplitHostPort(nodeIP)
+				if err != nil {
+					host = nodeIP
+				}
+
+				// Async deployment of agent
+				go service.DeployAgent(host, req.MgmtHost, req.MgmtPort, req.Mode)
+
+				// Preserve existing config or create new node
+				if existing, ok := existingNodes[host]; ok {
+					updatedNodes = append(updatedNodes, existing)
+					delete(existingNodes, host) // Remove so we know what's left
+				} else {
+					updatedNodes = append(updatedNodes, global.DeploymentNode{
+						NodeIP:        host,
+						Hostname:      host,
+						InferenceCfgs: []global.InferenceConfig{},
+						RagAppCfgs:    []global.RagAppConfig{},
+					})
+				}
+			}
+
+			// Append remaining nodes that weren't in the request?
+			// If the user provided a list of "Target Nodes" for this deployment,
+			// should we remove others?
+			// The wizard seems to define the cluster. Let's keep it sync with the list provided.
+			// But be careful not to lose data if the user just omitted one.
+			// For safety in this "Add/Deploy" context, we might just append new ones and ensure existing ones are updated.
+			// But req.TargetNodes usually comes from the textarea which lists ALL nodes.
+			utils.DeploymentNodes = updatedNodes
+
+			utils.MgmtHost = req.MgmtHost
+			utils.MgmtPort = req.MgmtPort
 		}
-
-		var updatedNodes []global.DeploymentNode
-
-		for _, nodeIP := range nodes {
-			nodeIP = strings.TrimSpace(nodeIP)
-			if nodeIP == "" {
-				continue
-			}
-
-			// Standardize IP (strip port)
-			host, _, err := net.SplitHostPort(nodeIP)
-			if err != nil {
-				host = nodeIP
-			}
-
-			// Async deployment of agent
-			go service.DeployAgent(host, req.MgmtHost, req.MgmtPort, req.Mode)
-
-			// Preserve existing config or create new node
-			if existing, ok := existingNodes[host]; ok {
-				updatedNodes = append(updatedNodes, existing)
-				delete(existingNodes, host) // Remove so we know what's left
-			} else {
-				updatedNodes = append(updatedNodes, global.DeploymentNode{
-					NodeIP:        host,
-					Hostname:      host,
-					InferenceCfgs: []global.InferenceConfig{},
-					RagAppCfgs:    []global.RagAppConfig{},
-				})
-			}
-		}
-
-		// Append remaining nodes that weren't in the request?
-		// If the user provided a list of "Target Nodes" for this deployment,
-		// should we remove others?
-		// The wizard seems to define the cluster. Let's keep it sync with the list provided.
-		// But be careful not to lose data if the user just omitted one.
-		// For safety in this "Add/Deploy" context, we might just append new ones and ensure existing ones are updated.
-		// But req.TargetNodes usually comes from the textarea which lists ALL nodes.
-		utils.DeploymentNodes = updatedNodes
-
-		utils.MgmtHost = req.MgmtHost
-		utils.MgmtPort = req.MgmtPort
-	}
-	utils.Mu.Unlock() // Unlock briefly as DeployAgent is async and we are done with nodes list structure update for now
+	}, true)
 
 	// Mode specific logging or additional actions
 	if req.Mode == "new_deployment" {
@@ -142,9 +141,6 @@ func DeployService(c *gin.Context) {
 	} else {
 		log.Printf("[接入服务] 正在登记现有服务: %s (%s:%s)", req.ModelName, req.InferenceHost, req.InferencePort)
 	}
-
-	utils.Mu.Lock()
-	defer utils.Mu.Unlock()
 
 	// Helper to add/update config in a node
 	addOrUpdateInferenceCfg := func(nodeIP string, newCfg global.InferenceConfig) {
@@ -218,52 +214,45 @@ func DeployService(c *gin.Context) {
 		}
 	}
 
-	// Add Inference Config
-	if req.InferenceHost != "" {
-		addOrUpdateInferenceCfg(req.InferenceHost, inferenceConfig)
-	}
+	utils.ExecuteWrite(func() {
+		// Add Inference Config
+		if req.InferenceHost != "" {
+			addOrUpdateInferenceCfg(req.InferenceHost, inferenceConfig)
+		}
 
-	if req.EnableRAG && req.RAGHost != "" {
-		// addOrUpdateInferenceCfg(req.RAGHost, global.InferenceConfig{
-		// 	Name:   "anythingllm",
-		// 	Engine: "RAG App",
-		// 	IP:     req.RAGHost,
-		// 	Port:   req.RAGPort,
-		// })
-		addOrUpdateRagCfg(req.RAGHost, global.RagAppConfig{
-			Name:     "anythingllm",
-			Host:     req.RAGHost,
-			Port:     req.RAGPort,
-			VectorDB: req.VectorDBType, // Assuming linked
-		})
-	}
+		if req.EnableRAG && req.RAGHost != "" {
+			// addOrUpdateInferenceCfg(req.RAGHost, global.InferenceConfig{
+			// 	Name:   "anythingllm",
+			// 	Engine: "RAG App",
+			// 	IP:     req.RAGHost,
+			// 	Port:   req.RAGPort,
+			// })
+			addOrUpdateRagCfg(req.RAGHost, global.RagAppConfig{
+				Name:     "anythingllm",
+				Host:     req.RAGHost,
+				Port:     req.RAGPort,
+				VectorDB: req.VectorDBType, // Assuming linked
+			})
+		}
 
-	if req.EnableVectorDB && req.VectorDBHost != "" {
-		addOrUpdateInferenceCfg(req.VectorDBHost, global.InferenceConfig{
-			Name:   strings.ToLower(req.VectorDBType),
-			Engine: "Vector DB",
-			IP:     req.VectorDBHost,
-			Port:   req.VectorDBPort,
-		})
-	}
+		if req.EnableVectorDB && req.VectorDBHost != "" {
+			addOrUpdateInferenceCfg(req.VectorDBHost, global.InferenceConfig{
+				Name:   strings.ToLower(req.VectorDBType),
+				Engine: "Vector DB",
+				IP:     req.VectorDBHost,
+				Port:   req.VectorDBPort,
+			})
+		}
 
-	if req.EnableParser && req.ParserHost != "" {
-		addOrUpdateInferenceCfg(req.ParserHost, global.InferenceConfig{
-			Name:   "mineru",
-			Engine: "Parser",
-			IP:     req.ParserHost,
-			Port:   req.ParserPort,
-		})
-	}
-
-	// Persist to file
-	utils.Mu.Unlock() // avoid double lock in SaveToFile
-	utils.SaveToFile()
-	utils.Mu.Lock() // re-lock for defer unlock? Actually defer will unlock. We should just not lock around SaveToFile if it locks internally.
-	// SaveToFile locks internally. So we should UNLOCK before calling it.
-	// I unlocked above. But defer is still scheduled.
-	// To avoid panic on defer Unlock of unlocked mutex, I should remove defer or handle carefully.
-	// Let's restructure.
+		if req.EnableParser && req.ParserHost != "" {
+			addOrUpdateInferenceCfg(req.ParserHost, global.InferenceConfig{
+				Name:   "mineru",
+				Engine: "Parser",
+				IP:     req.ParserHost,
+				Port:   req.ParserPort,
+			})
+		}
+	}, true)
 
 	// 记录审计日志
 	action := "服务部署"
@@ -286,13 +275,12 @@ func DeployService(c *gin.Context) {
 
 // GetNodes returns the list of target nodes (IPs)
 func GetNodes(c *gin.Context) {
-	utils.Mu.Lock()
-	defer utils.Mu.Unlock()
-
 	var nodeIPs []string
-	for _, node := range utils.DeploymentNodes {
-		nodeIPs = append(nodeIPs, node.NodeIP)
-	}
+	utils.ExecuteRead(func() {
+		for _, node := range utils.DeploymentNodes {
+			nodeIPs = append(nodeIPs, node.NodeIP)
+		}
+	})
 
 	c.JSON(http.StatusOK, gin.H{"nodes": nodeIPs})
 }
@@ -309,46 +297,49 @@ func SaveNodes(c *gin.Context) {
 		return
 	}
 
-	utils.Mu.Lock()
-	// Merge logic similar to DeployService
-	existingNodes := make(map[string]global.DeploymentNode)
-	for _, node := range utils.DeploymentNodes {
-		existingNodes[node.NodeIP] = node
+	err := utils.ExecuteWrite(func() {
+		// Merge logic similar to DeployService
+		existingNodes := make(map[string]global.DeploymentNode)
+		for _, node := range utils.DeploymentNodes {
+			existingNodes[node.NodeIP] = node
+		}
+
+		var updatedNodes []global.DeploymentNode
+		for _, ip := range req.Nodes {
+			ip = strings.TrimSpace(ip)
+			if ip == "" {
+				continue
+			}
+
+			// Clean IP (remove port if present in list for some reason, though frontend usually separates)
+			// But here we expect "IP:Port" or "IP" from textarea.
+			// If it has port, we might want to store it?
+			// DeploymentNode struct has NodeIP.
+			// Let's strip port for storage key, but maybe keep original string if needed?
+			// Standardize: Store IP in NodeIP.
+
+			host, _, err := net.SplitHostPort(ip)
+			if err != nil {
+				host = ip // assume just IP
+			}
+
+			if existing, ok := existingNodes[host]; ok {
+				updatedNodes = append(updatedNodes, existing)
+			} else {
+				updatedNodes = append(updatedNodes, global.DeploymentNode{
+					NodeIP:        host,
+					Hostname:      host,
+					InferenceCfgs: []global.InferenceConfig{},
+				})
+			}
+		}
+		utils.DeploymentNodes = updatedNodes
+	}, true)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save nodes"})
+		return
 	}
-
-	var updatedNodes []global.DeploymentNode
-	for _, ip := range req.Nodes {
-		ip = strings.TrimSpace(ip)
-		if ip == "" {
-			continue
-		}
-
-		// Clean IP (remove port if present in list for some reason, though frontend usually separates)
-		// But here we expect "IP:Port" or "IP" from textarea.
-		// If it has port, we might want to store it?
-		// DeploymentNode struct has NodeIP.
-		// Let's strip port for storage key, but maybe keep original string if needed?
-		// Standardize: Store IP in NodeIP.
-
-		host, _, err := net.SplitHostPort(ip)
-		if err != nil {
-			host = ip // assume just IP
-		}
-
-		if existing, ok := existingNodes[host]; ok {
-			updatedNodes = append(updatedNodes, existing)
-		} else {
-			updatedNodes = append(updatedNodes, global.DeploymentNode{
-				NodeIP:        host,
-				Hostname:      host,
-				InferenceCfgs: []global.InferenceConfig{},
-			})
-		}
-	}
-	utils.DeploymentNodes = updatedNodes
-	utils.Mu.Unlock()
-
-	utils.SaveToFile()
 
 	c.JSON(http.StatusOK, gin.H{"message": "Success", "nodes": req.Nodes})
 }

@@ -24,9 +24,10 @@ func SaveInferenceConfig(c *gin.Context) {
 	// If config.IP is empty (which shouldn't happen for existing config), we might need to search by name?
 	// But let's assume IP is provided or we search everything.
 
-	utils.Mu.Lock()
 	found := false
 	var updatedConfig global.InferenceConfig
+	// Capture affected configs for notification
+	var affectedConfigs []global.InferenceConfig
 
 	// Helper to update fields
 	updateFields := func(cfg *global.InferenceConfig, newCfg global.InferenceConfig) {
@@ -69,58 +70,94 @@ func SaveInferenceConfig(c *gin.Context) {
 		cfg.UpdatedAt = time.Now()
 	}
 
-	for i, node := range utils.DeploymentNodes {
-		// If targetIP is provided, skip nodes that don't match.
-		// If targetIP is empty, we update matching services on ALL nodes (Service Level)
-		if targetIP != "" && node.NodeIP != targetIP {
-			continue
-		}
+	saveErr := utils.ExecuteWrite(func() {
+		for i, node := range utils.DeploymentNodes {
+			// If targetIP is provided, skip nodes that don't match.
+			// If targetIP is empty, we update matching services on ALL nodes (Service Level)
+			if targetIP != "" && node.NodeIP != targetIP {
+				continue
+			}
 
-		for j, cfg := range node.InferenceCfgs {
-			// Match by ModelName (if provided) or Name
-			match := (config.ModelName != "" && cfg.ModelName == config.ModelName) || 
-			         (config.Name != "" && cfg.Name == config.Name)
+			for j, cfg := range node.InferenceCfgs {
+				// Match by ModelName (if provided) or Name
+				match := (config.ModelName != "" && cfg.ModelName == config.ModelName) || 
+				         (config.Name != "" && cfg.Name == config.Name)
 
-			if match {
-				updateFields(&utils.DeploymentNodes[i].InferenceCfgs[j], config)
-				updatedConfig = utils.DeploymentNodes[i].InferenceCfgs[j]
-				found = true
-				// If we are updating a specific IP, we can break after finding it.
-				// But if we are updating Service Level (targetIP == ""), we continue to next nodes.
-				if targetIP != "" {
-					break
+				if match {
+					updateFields(&utils.DeploymentNodes[i].InferenceCfgs[j], config)
+					updatedConfig = utils.DeploymentNodes[i].InferenceCfgs[j]
+					found = true
+					// If we are updating a specific IP, we can break after finding it.
+					// But if we are updating Service Level (targetIP == ""), we continue to next nodes.
+					if targetIP != "" {
+						break
+					}
 				}
 			}
 		}
-	}
+
+		if found {
+			if targetIP == "" {
+				// Global update: we need to find all instances of this service name
+				for _, node := range utils.DeploymentNodes {
+					for _, cfg := range node.InferenceCfgs {
+						if cfg.Name == config.Name {
+							affectedConfigs = append(affectedConfigs, cfg)
+						}
+					}
+				}
+			} else {
+				affectedConfigs = append(affectedConfigs, updatedConfig)
+			}
+		} else if targetIP != "" {
+			// If not found but IP is provided, try to add to the specific node or create new node
+			nodeFound := false
+			for i, node := range utils.DeploymentNodes {
+				if node.NodeIP == targetIP {
+					// Create new config
+					newCfg := config
+					newCfg.CreatedAt = time.Now()
+					newCfg.UpdatedAt = time.Now()
+					utils.DeploymentNodes[i].InferenceCfgs = append(utils.DeploymentNodes[i].InferenceCfgs, newCfg)
+					
+					updatedConfig = newCfg
+					affectedConfigs = append(affectedConfigs, newCfg)
+					found = true
+					nodeFound = true
+					break
+				}
+			}
+			
+			if !nodeFound {
+				// Create new node
+				newCfg := config
+				newCfg.CreatedAt = time.Now()
+				newCfg.UpdatedAt = time.Now()
+				
+				newNode := global.DeploymentNode{
+					NodeIP:        targetIP,
+					Hostname:      targetIP, // Default hostname
+					InferenceCfgs: []global.InferenceConfig{newCfg},
+					RagAppCfgs:    []global.RagAppConfig{},
+				}
+				utils.DeploymentNodes = append(utils.DeploymentNodes, newNode)
+				
+				updatedConfig = newCfg
+				affectedConfigs = append(affectedConfigs, newCfg)
+				found = true
+			}
+		}
+	}, true)
 
 	// If not found, add to the node matching config.IP (only if IP was provided and not found)
 	if !found {
-		utils.Mu.Unlock()
 		fmt.Printf("[DEBUG] Target service not found Error at SaveInferenceConfig")
 		c.JSON(http.StatusNotFound, gin.H{"error": "Target service not found"})
 		return
 	}
 
-	// Capture updated configs for notification before unlocking
-	var affectedConfigs []global.InferenceConfig
-	if targetIP == "" {
-		// Global update: we need to find all instances of this service name
-		for _, node := range utils.DeploymentNodes {
-			for _, cfg := range node.InferenceCfgs {
-				if cfg.Name == config.Name {
-					affectedConfigs = append(affectedConfigs, cfg)
-				}
-			}
-		}
-	} else {
-		affectedConfigs = append(affectedConfigs, updatedConfig)
-	}
-
-	utils.Mu.Unlock()
-
-	if err := utils.SaveToFile(); err != nil {
-		fmt.Printf("[DEBUG] SaveToFile Error: %v\n", err)
+	if saveErr != nil {
+		fmt.Printf("[DEBUG] SaveToFile Error: %v\n", saveErr)
 	}
 
 	// Trigger Agent update for ALL affected nodes
@@ -171,14 +208,13 @@ func SaveInferenceConfig(c *gin.Context) {
 }
 
 func GetInferenceConfigs(c *gin.Context) {
-	utils.Mu.Lock()
-	defer utils.Mu.Unlock()
-
-	// Flatten configs for frontend compatibility
 	var allConfigs []global.InferenceConfig
-	for _, node := range utils.DeploymentNodes {
-		allConfigs = append(allConfigs, node.InferenceCfgs...)
-	}
+	utils.ExecuteRead(func() {
+		// Flatten configs for frontend compatibility
+		for _, node := range utils.DeploymentNodes {
+			allConfigs = append(allConfigs, node.InferenceCfgs...)
+		}
+	})
 
 	c.JSON(http.StatusOK, allConfigs)
 }
@@ -208,12 +244,12 @@ func SaveSystemConfig(c *gin.Context) {
 		return
 	}
 
-	utils.Mu.Lock()
-	utils.MgmtHost = req.MgmtHost
-	utils.MgmtPort = req.MgmtPort
-	utils.Mu.Unlock()
+	err := utils.ExecuteWrite(func() {
+		utils.MgmtHost = req.MgmtHost
+		utils.MgmtPort = req.MgmtPort
+	}, true)
 
-	if err := utils.SaveToFile(); err != nil {
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save config"})
 		return
 	}
@@ -221,9 +257,6 @@ func SaveSystemConfig(c *gin.Context) {
 }
 
 func GetServicesConfig(c *gin.Context) {
-	utils.Mu.Lock()
-	defer utils.Mu.Unlock()
-
 	// Create a grouped view of services
 	// Map[ServiceName] -> []ServiceInstance
 	type ServiceInstance struct {
@@ -234,28 +267,30 @@ func GetServicesConfig(c *gin.Context) {
 	}
 	groupedServices := make(map[string][]ServiceInstance)
 
-	for _, node := range utils.DeploymentNodes {
-		// Inference Services
-		for _, cfg := range node.InferenceCfgs {
-			instance := ServiceInstance{
-				NodeIP: node.NodeIP,
-				Type:   "vLLM",
-				Port:   cfg.Port,
-				Config: cfg,
+	utils.ExecuteRead(func() {
+		for _, node := range utils.DeploymentNodes {
+			// Inference Services
+			for _, cfg := range node.InferenceCfgs {
+				instance := ServiceInstance{
+					NodeIP: node.NodeIP,
+					Type:   "vLLM",
+					Port:   cfg.Port,
+					Config: cfg,
+				}
+				groupedServices[cfg.Name] = append(groupedServices[cfg.Name], instance)
 			}
-			groupedServices[cfg.Name] = append(groupedServices[cfg.Name], instance)
-		}
-		// RAG Apps
-		for _, cfg := range node.RagAppCfgs {
-			instance := ServiceInstance{
-				NodeIP: node.NodeIP,
-				Type:   "AnythingLLM",
-				Port:   cfg.Port,
-				Config: cfg,
+			// RAG Apps
+			for _, cfg := range node.RagAppCfgs {
+				instance := ServiceInstance{
+					NodeIP: node.NodeIP,
+					Type:   "AnythingLLM",
+					Port:   cfg.Port,
+					Config: cfg,
+				}
+				groupedServices[cfg.Name] = append(groupedServices[cfg.Name], instance)
 			}
-			groupedServices[cfg.Name] = append(groupedServices[cfg.Name], instance)
 		}
-	}
+	})
 
 	c.JSON(http.StatusOK, gin.H{
 		"mgmt_host":        utils.MgmtHost,
@@ -272,9 +307,9 @@ func SaveRagAppConfig(c *gin.Context) {
 		return
 	}
 
-	utils.Mu.Lock()
 	found := false
 	var updatedConfig global.RagAppConfig
+	var affectedConfigs []global.RagAppConfig
 
 	// Helper to update fields selectively
 	updateRagFields := func(cfg *global.RagAppConfig, newCfg global.RagAppConfig) {
@@ -305,52 +340,51 @@ func SaveRagAppConfig(c *gin.Context) {
 		cfg.UpdatedAt = time.Now()
 	}
 
-	for i, node := range utils.DeploymentNodes {
-		// If Host matches NodeIP, or search all if Host is empty (Service Level)
-		if config.Host != "" && node.NodeIP != config.Host {
-			continue
-		}
+	err := utils.ExecuteWrite(func() {
+		for i, node := range utils.DeploymentNodes {
+			// If Host matches NodeIP, or search all if Host is empty (Service Level)
+			if config.Host != "" && node.NodeIP != config.Host {
+				continue
+			}
 
-		for j, cfg := range node.RagAppCfgs {
-			if cfg.Name == config.Name {
-				// Update fields selectively
-				updateRagFields(&utils.DeploymentNodes[i].RagAppCfgs[j], config)
-				updatedConfig = utils.DeploymentNodes[i].RagAppCfgs[j]
-				found = true
-				// For this node, we found the service. Break inner loop to move to next node (or finish if specific).
+			for j, cfg := range node.RagAppCfgs {
+				if cfg.Name == config.Name {
+					// Update fields selectively
+					updateRagFields(&utils.DeploymentNodes[i].RagAppCfgs[j], config)
+					updatedConfig = utils.DeploymentNodes[i].RagAppCfgs[j]
+					found = true
+					// For this node, we found the service. Break inner loop to move to next node (or finish if specific).
+					break
+				}
+			}
+
+			// If we targeted a specific host and found it, we can stop searching entirely.
+			if config.Host != "" && found {
 				break
 			}
 		}
 
-		// If we targeted a specific host and found it, we can stop searching entirely.
-		if config.Host != "" && found {
-			break
+		if found {
+			if config.Host == "" {
+				for _, node := range utils.DeploymentNodes {
+					for _, cfg := range node.RagAppCfgs {
+						if cfg.Name == config.Name {
+							affectedConfigs = append(affectedConfigs, cfg)
+						}
+					}
+				}
+			} else {
+				affectedConfigs = append(affectedConfigs, updatedConfig)
+			}
 		}
-	}
+	}, true)
 
 	if !found {
-		utils.Mu.Unlock()
 		c.JSON(http.StatusNotFound, gin.H{"error": "Config not found"})
 		return
 	}
 
-	// Capture affected configs
-	var affectedConfigs []global.RagAppConfig
-	if config.Host == "" {
-		for _, node := range utils.DeploymentNodes {
-			for _, cfg := range node.RagAppCfgs {
-				if cfg.Name == config.Name {
-					affectedConfigs = append(affectedConfigs, cfg)
-				}
-			}
-		}
-	} else {
-		affectedConfigs = append(affectedConfigs, updatedConfig)
-	}
-
-	utils.Mu.Unlock()
-
-	if err := utils.SaveToFile(); err != nil {
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
 		return
 	}
@@ -411,23 +445,23 @@ func SaveAgentConfig(c *gin.Context) {
 		return
 	}
 
-	utils.Mu.Lock()
 	found := false
-	for i, node := range utils.DeploymentNodes {
-		if node.NodeIP == req.TargetNodeIP {
-			utils.DeploymentNodes[i].AgentConfig = req.Config
-			found = true
-			break
+	err := utils.ExecuteWrite(func() {
+		for i, node := range utils.DeploymentNodes {
+			if node.NodeIP == req.TargetNodeIP {
+				utils.DeploymentNodes[i].AgentConfig = req.Config
+				found = true
+				break
+			}
 		}
-	}
-	utils.Mu.Unlock()
+	}, true)
 
 	if !found {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Node not found"})
 		return
 	}
 
-	if err := utils.SaveToFile(); err != nil {
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
 		return
 	}

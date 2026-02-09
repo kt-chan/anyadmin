@@ -53,7 +53,6 @@ func GetServicesHealth() []ServiceStatus {
 		agentMap[agent.NodeIP] = agent
 	}
 
-	utils.Mu.Lock()
 	// Copy nodes to avoid holding lock during processing
 	nodes := make([]struct{
 		IP string
@@ -64,24 +63,41 @@ func GetServicesHealth() []ServiceStatus {
 			ModelName string
 			IP string
 		}
-	}, len(utils.DeploymentNodes))
-	
-	for i, n := range utils.DeploymentNodes {
-		nodes[i].IP = n.NodeIP
-		nodes[i].Hostname = n.Hostname
-		// Collect all configs (Inference + RAG) into a generic list for checking
-		for _, cfg := range n.InferenceCfgs {
-			nodes[i].Configs = append(nodes[i].Configs, struct{Name, Engine, ModelName, IP string}{
-				Name: cfg.Name, Engine: cfg.Engine, ModelName: cfg.ModelName, IP: cfg.IP,
-			})
+	}, 0) // Initialize empty, capacity will grow
+
+	utils.ExecuteRead(func() {
+		// Pre-allocate to avoid resize
+		if cap(nodes) < len(utils.DeploymentNodes) {
+			nodes = make([]struct{
+				IP string
+				Hostname string
+				Configs []struct{
+					Name string
+					Engine string
+					ModelName string
+					IP string
+				}
+			}, len(utils.DeploymentNodes))
+		} else {
+			nodes = nodes[:len(utils.DeploymentNodes)]
 		}
-		for _, cfg := range n.RagAppCfgs {
-			nodes[i].Configs = append(nodes[i].Configs, struct{Name, Engine, ModelName, IP string}{
-				Name: cfg.Name, Engine: "RAG App", ModelName: "", IP: cfg.Host,
-			})
+		
+		for i, n := range utils.DeploymentNodes {
+			nodes[i].IP = n.NodeIP
+			nodes[i].Hostname = n.Hostname
+			// Collect all configs (Inference + RAG) into a generic list for checking
+			for _, cfg := range n.InferenceCfgs {
+				nodes[i].Configs = append(nodes[i].Configs, struct{Name, Engine, ModelName, IP string}{
+					Name: cfg.Name, Engine: cfg.Engine, ModelName: cfg.ModelName, IP: cfg.IP,
+				})
+			}
+			for _, cfg := range n.RagAppCfgs {
+				nodes[i].Configs = append(nodes[i].Configs, struct{Name, Engine, ModelName, IP string}{
+					Name: cfg.Name, Engine: "RAG App", ModelName: "", IP: cfg.Host,
+				})
+			}
 		}
-	}
-	utils.Mu.Unlock()
+	})
 
 	for _, node := range nodes {
 		nodeIP := node.IP

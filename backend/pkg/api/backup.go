@@ -23,9 +23,9 @@ func CreateBackup(c *gin.Context) {
 }
 
 func GetBackups(c *gin.Context) {
-	utils.Mu.Lock()
-	defer utils.Mu.Unlock()
-	c.JSON(http.StatusOK, utils.BackupRecords)
+	utils.ExecuteRead(func() {
+		c.JSON(http.StatusOK, utils.BackupRecords)
+	})
 }
 
 func RestoreBackup(c *gin.Context) {

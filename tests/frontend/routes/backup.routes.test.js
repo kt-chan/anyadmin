@@ -46,7 +46,7 @@ describe('Backup Routes Rendering', () => {
     expect(res.statusCode).toBe(200);
     expect(backupService.getBackupData).toHaveBeenCalled();
     // Check for some content in the rendered HTML
-    expect(res.text).toContain('备份与恢复');
+    expect(res.text).toContain('备份恢复');
     expect(res.text).toContain('backup-001');
     expect(res.text).toContain('FULL');
     expect(res.text).toContain('1.2 GB');

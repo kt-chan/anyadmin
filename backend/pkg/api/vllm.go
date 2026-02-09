@@ -57,24 +57,24 @@ func CalculateVLLMConfig(c *gin.Context) {
 		gpuUtilization = req.GPUUtilization
 	}
 
-	// 1.5 Lookup Real Model Path from MockData if available
+	// 1.5 Lookup Real Model Path from utils if available
 	// The frontend might send generic container names like "vllm" or "qwen"
 	// We want the actual model path from our deployment config
 	real_model_path := req.ModelName
 	if req.NodeIP != "" {
-		utils.Mu.Lock()
-		for _, node := range utils.DeploymentNodes {
-			if node.NodeIP == req.NodeIP {
-				for _, cfg := range node.InferenceCfgs {
-					if cfg.ModelPath != "" && (cfg.Engine == "vLLM" || cfg.Name == "vllm" || strings.Contains(strings.ToLower(cfg.Name), "vllm")) {
-						real_model_path = cfg.ModelPath
-						break
+		utils.ExecuteRead(func() {
+			for _, node := range utils.DeploymentNodes {
+				if node.NodeIP == req.NodeIP {
+					for _, cfg := range node.InferenceCfgs {
+						if cfg.ModelPath != "" && (cfg.Engine == "vLLM" || cfg.Name == "vllm" || strings.Contains(strings.ToLower(cfg.Name), "vllm")) {
+							real_model_path = cfg.ModelPath
+							break
+						}
 					}
+					break
 				}
-				break
 			}
-		}
-		utils.Mu.Unlock()
+		})
 	}
 
 	// 2. Calculate Config
@@ -93,38 +93,33 @@ func CalculateVLLMConfig(c *gin.Context) {
 
 	// 3. Enrich utils and Save to File
 	if req.NodeIP != "" {
-		utils.Mu.Lock()
-		updated := false
-		for i, node := range utils.DeploymentNodes {
-			if node.NodeIP == req.NodeIP {
-				for j, cfg := range node.InferenceCfgs {
-					if cfg.Engine == "vLLM" || cfg.Name == "vllm" {
-						if utils.DeploymentNodes[i].InferenceCfgs[j].MaxModelLen == 0 {
-							utils.DeploymentNodes[i].InferenceCfgs[j].MaxModelLen = vllmConfig.MaxModelLen
+		utils.ExecuteWrite(func() {
+			for i, node := range utils.DeploymentNodes {
+				if node.NodeIP == req.NodeIP {
+					for j, cfg := range node.InferenceCfgs {
+						if cfg.Engine == "vLLM" || cfg.Name == "vllm" {
+							if utils.DeploymentNodes[i].InferenceCfgs[j].MaxModelLen == 0 {
+								utils.DeploymentNodes[i].InferenceCfgs[j].MaxModelLen = vllmConfig.MaxModelLen
+							}
+							if utils.DeploymentNodes[i].InferenceCfgs[j].MaxNumSeqs == 0 {
+								utils.DeploymentNodes[i].InferenceCfgs[j].MaxNumSeqs = vllmConfig.MaxNumSeqs
+							}
+							if utils.DeploymentNodes[i].InferenceCfgs[j].MaxNumBatchedTokens == 0 {
+								utils.DeploymentNodes[i].InferenceCfgs[j].MaxNumBatchedTokens = vllmConfig.MaxNumBatchedTokens
+							}
+							if utils.DeploymentNodes[i].InferenceCfgs[j].GpuMemoryUtilization == 0 {
+								utils.DeploymentNodes[i].InferenceCfgs[j].GpuMemoryUtilization = vllmConfig.GPUMemoryUtil
+							}
+							if utils.DeploymentNodes[i].InferenceCfgs[j].ModelName == "" {
+								utils.DeploymentNodes[i].InferenceCfgs[j].ModelName = modelConfig.Name
+							}
+							break
 						}
-						if utils.DeploymentNodes[i].InferenceCfgs[j].MaxNumSeqs == 0 {
-							utils.DeploymentNodes[i].InferenceCfgs[j].MaxNumSeqs = vllmConfig.MaxNumSeqs
-						}
-						if utils.DeploymentNodes[i].InferenceCfgs[j].MaxNumBatchedTokens == 0 {
-							utils.DeploymentNodes[i].InferenceCfgs[j].MaxNumBatchedTokens = vllmConfig.MaxNumBatchedTokens
-						}
-						if utils.DeploymentNodes[i].InferenceCfgs[j].GpuMemoryUtilization == 0 {
-							utils.DeploymentNodes[i].InferenceCfgs[j].GpuMemoryUtilization = vllmConfig.GPUMemoryUtil
-						}
-						if utils.DeploymentNodes[i].InferenceCfgs[j].ModelName == "" {
-							utils.DeploymentNodes[i].InferenceCfgs[j].ModelName = modelConfig.Name
-						}
-						updated = true
-						break
 					}
+					break
 				}
-				break
 			}
-		}
-		utils.Mu.Unlock()
-		if updated {
-			utils.SaveToFile()
-		}
+		}, true)
 	}
 
 	c.JSON(http.StatusOK, gin.H{

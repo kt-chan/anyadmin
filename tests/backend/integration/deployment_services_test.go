@@ -18,23 +18,23 @@ import (
 
 func TestMain(m *testing.M) {
 	// Setup utils data for tests
-	utils.Mu.Lock()
-	utils.DeploymentNodes = []global.DeploymentNode{
-		{
-			NodeIP:   "172.20.0.10",
-			Hostname: "TestNode",
-			InferenceCfgs: []global.InferenceConfig{
-				{Name: "vllm", Engine: "vLLM", ModelName: "Qwen3-Test"},
+	utils.ExecuteWrite(func() {
+		utils.DeploymentNodes = []global.DeploymentNode{
+			{
+				NodeIP:   "172.20.0.10",
+				Hostname: "TestNode",
+				InferenceCfgs: []global.InferenceConfig{
+					{Name: "vllm", Engine: "vLLM", ModelName: "Qwen3-Test"},
+				},
+				RagAppCfgs: []global.RagAppConfig{
+					{Name: "anythingllm", Host: "172.20.0.10"},
+				},
+				AgentConfig: global.AgentConfig{},
 			},
-			RagAppCfgs: []global.RagAppConfig{
-				{Name: "anythingllm", Host: "172.20.0.10"},
-			},
-			AgentConfig: global.AgentConfig{},
-		},
-	}
-	utils.MgmtHost = "172.20.0.1"
-	utils.MgmtPort = "8080"
-	utils.Mu.Unlock()
+		}
+		utils.MgmtHost = "172.20.0.1"
+		utils.MgmtPort = "8080"
+	}, true)
 	
 	os.Exit(m.Run())
 }
@@ -240,9 +240,9 @@ func TestAgentConfigSync(t *testing.T) {
 
 	t.Run("RestartAgentUpdatesConfig", func(t *testing.T) {
 		// Reset config first
-		utils.Mu.Lock()
-		utils.DeploymentNodes[0].AgentConfig = global.AgentConfig{}
-		utils.Mu.Unlock()
+		utils.ExecuteWrite(func() {
+			utils.DeploymentNodes[0].AgentConfig = global.AgentConfig{}
+		}, true)
 
 		controlPayload := map[string]interface{}{
 			"ip":     targetIP,
@@ -265,9 +265,10 @@ func TestAgentConfigSync(t *testing.T) {
 		success := false
 		for i := 0; i < maxRetries; i++ {
 			time.Sleep(1 * time.Second)
-			utils.Mu.Lock()
-			cfg := utils.DeploymentNodes[0].AgentConfig
-			utils.Mu.Unlock()
+			var cfg global.AgentConfig
+			utils.ExecuteRead(func() {
+				cfg = utils.DeploymentNodes[0].AgentConfig
+			})
 			
 			if cfg.MgmtHost != "" {
 				success = true

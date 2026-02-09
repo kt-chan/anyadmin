@@ -9,9 +9,9 @@ import (
 )
 
 func GetUsers(c *gin.Context) {
-	utils.Mu.Lock()
-	defer utils.Mu.Unlock()
-	c.JSON(http.StatusOK, utils.Users)
+	utils.ExecuteRead(func() {
+		c.JSON(http.StatusOK, utils.Users)
+	})
 }
 
 func CreateUser(c *gin.Context) {
@@ -20,9 +20,9 @@ func CreateUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	utils.Mu.Lock()
-	utils.Users = append(utils.Users, user)
-	utils.Mu.Unlock()
+	utils.ExecuteWrite(func() {
+		utils.Users = append(utils.Users, user)
+	}, true)
 	c.JSON(http.StatusOK, user)
 }
 

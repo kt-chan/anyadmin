@@ -50,31 +50,31 @@ func CheckAgentStatus(c *gin.Context) {
 	configuredServices := []global.DockerServiceStatus{}
 	hostname := ip
 	foundInConfig := false
-	utils.Mu.Lock()
-	for _, node := range utils.DeploymentNodes {
-		if node.NodeIP == ip {
-			hostname = node.Hostname
-			foundInConfig = true
-			for _, cfg := range node.InferenceCfgs {
-				configuredServices = append(configuredServices, global.DockerServiceStatus{
-					Name:   cfg.Name,
-					Image:  cfg.Engine,
-					Status: "Configured (Stopped)",
-					State:  "stopped",
-				})
+	utils.ExecuteRead(func() {
+		for _, node := range utils.DeploymentNodes {
+			if node.NodeIP == ip {
+				hostname = node.Hostname
+				foundInConfig = true
+				for _, cfg := range node.InferenceCfgs {
+					configuredServices = append(configuredServices, global.DockerServiceStatus{
+						Name:   cfg.Name,
+						Image:  cfg.Engine,
+						Status: "Configured (Stopped)",
+						State:  "stopped",
+					})
+				}
+				for _, cfg := range node.RagAppCfgs {
+					configuredServices = append(configuredServices, global.DockerServiceStatus{
+						Name:   cfg.Name,
+						Image:  "RAG Application",
+						Status: "Configured (Stopped)",
+						State:  "stopped",
+					})
+				}
+				break
 			}
-			for _, cfg := range node.RagAppCfgs {
-				configuredServices = append(configuredServices, global.DockerServiceStatus{
-					Name:   cfg.Name,
-					Image:  "RAG Application",
-					Status: "Configured (Stopped)",
-					State:  "stopped",
-				})
-			}
-			break
 		}
-	}
-	utils.Mu.Unlock()
+	})
 
 	if !exists && !foundInConfig {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Agent status not found for IP: " + ip})

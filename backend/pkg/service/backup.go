@@ -27,9 +27,9 @@ func CreateBackup() (*global.BackupRecord, error) {
 		Status: "Success",
 	}
 
-	utils.Mu.Lock()
-	utils.BackupRecords = append([]global.BackupRecord{record}, utils.BackupRecords...)
-	utils.Mu.Unlock()
+	utils.ExecuteWrite(func() {
+		utils.BackupRecords = append([]global.BackupRecord{record}, utils.BackupRecords...)
+	}, true)
 	
 	return &record, nil
 }

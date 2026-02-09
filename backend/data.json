@@ -24,9 +24,9 @@
   "deployment_nodes": [
     {
       "node_ip": "172.20.0.10",
-      "hostname": "DESKTOP-OSLI7Q7",
+      "hostname": "TestNode",
       "agent_config": {
-        "deployment_time": "2026-02-09T16:41:45+08:00",
+        "deployment_time": "2026-02-09T17:27:33+08:00",
         "log_file": "/home/anyadmin/logs/agent.log",
         "mgmt_host": "172.20.0.1",
         "mgmt_port": "8080",
@@ -37,20 +37,20 @@
         {
           "id": 0,
           "createdAt": "0001-01-01T00:00:00Z",
-          "updatedAt": "2026-02-09T16:37:19.2876717+08:00",
+          "updatedAt": "2026-02-09T17:30:43.8167002+08:00",
           "deletedAt": null,
           "name": "vllm",
           "engine": "vLLM",
-          "model_name": "Qwen3-1.7B",
+          "model_name": "llama-3.2-1B-Instruct",
           "model_path": "",
           "ip": "172.20.0.10",
           "port": "8000",
           "mode": "max_token",
           "gpu_memory_size": 8,
           "gpu_utilization": 0.85,
-          "max_model_len": 14592,
+          "max_model_len": 8192,
           "max_num_seqs": 1,
-          "max_num_batched_tokens": 14592,
+          "max_num_batched_tokens": 8192,
           "gpu_memory_utilization": 0.85
         }
       ],
@@ -58,7 +58,7 @@
         {
           "id": 0,
           "createdAt": "0001-01-01T00:00:00Z",
-          "updatedAt": "2026-02-09T16:27:39.156237+08:00",
+          "updatedAt": "2026-02-09T17:31:20.4873106+08:00",
           "deletedAt": null,
           "name": "anythingllm",
           "host": "172.20.0.10",

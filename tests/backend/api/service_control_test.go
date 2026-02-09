@@ -16,17 +16,17 @@ import (
 
 func TestRemoteServiceControlAndHealth(t *testing.T) {
 	// Setup utils config
-	utils.Mu.Lock()
-	utils.DeploymentNodes = []global.DeploymentNode{
-		{
-			NodeIP: "172.20.0.10",
-			InferenceCfgs: []global.InferenceConfig{
-				{Name: "vllm", IP: "172.20.0.10", Engine: "vLLM"},
-				{Name: "anythingllm", IP: "172.20.0.10", Engine: "RAG App"},
+	utils.ExecuteWrite(func() {
+		utils.DeploymentNodes = []global.DeploymentNode{
+			{
+				NodeIP: "172.20.0.10",
+				InferenceCfgs: []global.InferenceConfig{
+					{Name: "vllm", IP: "172.20.0.10", Engine: "vLLM"},
+					{Name: "anythingllm", IP: "172.20.0.10", Engine: "RAG App"},
+				},
 			},
-		},
-	}
-	utils.Mu.Unlock()
+		}
+	}, true)
 
 	gin.SetMode(gin.TestMode)
 	router := gin.New()

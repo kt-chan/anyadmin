@@ -21,8 +21,8 @@ var (
 	MgmtHost string
 	MgmtPort string
 
-	// Mutex for thread-safe updates
-	Mu sync.Mutex
+	// Mutex for thread-safe updates (Private)
+	dataMu sync.RWMutex
 
 	// DataFile path
 	DataFile = "data.json"
@@ -56,45 +56,61 @@ type DataStore struct {
 	MgmtPort        string                   `json:"mgmt_port"`
 }
 
+// ExecuteRead performs a thread-safe read operation
+func ExecuteRead(fn func()) {
+	dataMu.RLock()
+	defer dataMu.RUnlock()
+	fn()
+}
+
+// ExecuteWrite performs a thread-safe write operation and optionally persists to file
+func ExecuteWrite(fn func(), persist bool) error {
+	dataMu.Lock()
+	defer dataMu.Unlock()
+	
+	fn()
+	
+	if persist {
+		return saveToFile()
+	}
+	return nil
+}
+
 func InitData() {
 	// Try to load from file first
 	if err := LoadFromFile(); err != nil {
-		// If load fails (e.g. file doesn't match), we initialize defaults
-		// but we should probably try to migrate if possible. 
-		// For now, let's assume we start fresh or file is correct.
+		// If load fails, initialize defaults
 	}
 
-	// Initialize Users if empty
-	if len(Users) == 0 {
-		Users = []global.User{
-			{
-				Username: "admin",
-				Password: "password",
-				Role:     "admin",
-			},
-			{
-				Username: "operator_01",
-				Password: "password",
-				Role:     "operator",
-			},
+	ExecuteWrite(func() {
+		// Initialize Users if empty
+		if len(Users) == 0 {
+			Users = []global.User{
+				{
+					Username: "admin",
+					Password: "password",
+					Role:     "admin",
+				},
+				{
+					Username: "operator_01",
+					Password: "password",
+					Role:     "operator",
+				},
+			}
 		}
-	}
 
-	// Initialize MgmtHost and MgmtPort if empty
-	if MgmtHost == "" {
-		MgmtHost = "172.20.0.1"
-	}
-	if MgmtPort == "" {
-		MgmtPort = "8080"
-	}
-
-	SaveToFile()
+		// Initialize MgmtHost and MgmtPort if empty
+		if MgmtHost == "" {
+			MgmtHost = "172.20.0.1"
+		}
+		if MgmtPort == "" {
+			MgmtPort = "8080"
+		}
+	}, true)
 }
 
-func SaveToFile() error {
-	Mu.Lock()
-	defer Mu.Unlock()
-
+// saveToFile writes data to disk (internal, assumes lock held)
+func saveToFile() error {
 	data := DataStore{
 		Users:           Users,
 		ImportTasks:     ImportTasks,
@@ -115,9 +131,15 @@ func SaveToFile() error {
 	return encoder.Encode(data)
 }
 
+// SaveToFile Public alias for backward compatibility or explicit save if needed, 
+// though ExecuteWrite is preferred.
+func SaveToFile() error {
+	return ExecuteWrite(func() {}, true)
+}
+
 func LoadFromFile() error {
-	Mu.Lock()
-	defer Mu.Unlock()
+	dataMu.Lock()
+	defer dataMu.Unlock()
 
 	file, err := os.Open(DataFile)
 	if err != nil {

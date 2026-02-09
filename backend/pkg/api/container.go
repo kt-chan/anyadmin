@@ -49,53 +49,49 @@ func UpdateVLLMConfig(c *gin.Context) {
 	}
 
 	// Persist to utils (and file)
-	utils.Mu.Lock()
 	updated := false
 	
-	// Iterate DeploymentNodes to find the config
-	for i, node := range utils.DeploymentNodes {
-		if node.NodeIP == req.NodeIP {
-			// Find inference config in this node
-			for j, cfg := range node.InferenceCfgs {
-				// Assuming we are updating the first vLLM config or by name if needed.
-				// Since request doesn't specify config name, we assume standard vLLM.
-				// Or check if Engine is vLLM
-				if cfg.Engine == "vLLM" || cfg.Name == "vllm" {
-					if val, ok := req.Config["VLLM_MAX_MODEL_LEN"]; ok {
-						if v, err := strconv.Atoi(val); err == nil {
-							utils.DeploymentNodes[i].InferenceCfgs[j].MaxModelLen = v
+	err := utils.ExecuteWrite(func() {
+		// Iterate DeploymentNodes to find the config
+		for i, node := range utils.DeploymentNodes {
+			if node.NodeIP == req.NodeIP {
+				// Find inference config in this node
+				for j, cfg := range node.InferenceCfgs {
+					// Assuming we are updating the first vLLM config or by name if needed.
+					// Since request doesn't specify config name, we assume standard vLLM.
+					// Or check if Engine is vLLM
+					if cfg.Engine == "vLLM" || cfg.Name == "vllm" {
+						if val, ok := req.Config["VLLM_MAX_MODEL_LEN"]; ok {
+							if v, err := strconv.Atoi(val); err == nil {
+								utils.DeploymentNodes[i].InferenceCfgs[j].MaxModelLen = v
+							}
 						}
-					}
-					if val, ok := req.Config["VLLM_GPU_MEMORY_UTILIZATION"]; ok {
-						if v, err := strconv.ParseFloat(val, 64); err == nil {
-							utils.DeploymentNodes[i].InferenceCfgs[j].GpuMemoryUtilization = v
+						if val, ok := req.Config["VLLM_GPU_MEMORY_UTILIZATION"]; ok {
+							if v, err := strconv.ParseFloat(val, 64); err == nil {
+								utils.DeploymentNodes[i].InferenceCfgs[j].GpuMemoryUtilization = v
+							}
 						}
-					}
-					if val, ok := req.Config["VLLM_MAX_NUM_SEQS"]; ok {
-						if v, err := strconv.Atoi(val); err == nil {
-							utils.DeploymentNodes[i].InferenceCfgs[j].MaxNumSeqs = v
+						if val, ok := req.Config["VLLM_MAX_NUM_SEQS"]; ok {
+							if v, err := strconv.Atoi(val); err == nil {
+								utils.DeploymentNodes[i].InferenceCfgs[j].MaxNumSeqs = v
+							}
 						}
-					}
-					if val, ok := req.Config["VLLM_MAX_NUM_BATCHED_TOKENS"]; ok {
-						if v, err := strconv.Atoi(val); err == nil {
-							utils.DeploymentNodes[i].InferenceCfgs[j].MaxNumBatchedTokens = v
+						if val, ok := req.Config["VLLM_MAX_NUM_BATCHED_TOKENS"]; ok {
+							if v, err := strconv.Atoi(val); err == nil {
+								utils.DeploymentNodes[i].InferenceCfgs[j].MaxNumBatchedTokens = v
+							}
 						}
+						updated = true
+						break
 					}
-					updated = true
-					break
 				}
+				break
 			}
-			break
 		}
-	}
+	}, true)
 
-	if updated {
-		utils.Mu.Unlock()
-		if err := utils.SaveToFile(); err != nil {
-			log.Printf("[Container] Failed to save config to file: %v", err)
-		}
-	} else {
-		utils.Mu.Unlock()
+	if err != nil && updated {
+		log.Printf("[Container] Failed to save config to file: %v", err)
 	}
 
 	// Always restart for now as per requirement

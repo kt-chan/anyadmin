@@ -71,6 +71,7 @@ function setActivePage() {
     const pageMap = {
         '/dashboard': 'dashboard',
         '/deployment': 'deployment',
+        '/models': 'models',
         '/services': 'services',
         '/backup': 'backup',
         '/system': 'system',

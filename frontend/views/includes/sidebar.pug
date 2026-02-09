@@ -12,15 +12,18 @@ aside(class="w-64 bg-slate-900 text-slate-300 flex flex-col fixed inset-y-0 z-40
     div(class="text-[10px] font-bold uppercase text-slate-500 px-3 py-2 mt-2") 核心监控
     a(href="/dashboard", data-page="dashboard", class=`nav-item flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition ${page === 'dashboard' ? 'nav-active' : ''}`)
       i(class="fas fa-tachometer-alt w-5 text-center")
-      | 状态监管仪表板
+      | 仪表板
 
-    div(class="text-[10px] font-bold uppercase text-slate-500 px-3 py-2 mt-4") 服务管理
+    div(class="text-[10px] font-bold uppercase text-slate-500 px-3 py-2 mt-4") 作业管理
+    a(href="/models", data-page="models", class=`nav-item flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition ${page === 'models' ? 'nav-active' : ''}`)
+      i(class="fas fa-cubes w-5 text-center")
+      | 模型管理
     a(href="/services", data-page="services", class=`nav-item flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition ${page === 'services' ? 'nav-active' : ''}`)
       i(class="fas fa-server w-5 text-center")
-      | 服务与模型管理
+      | 服务管理
     a(href="/import", data-page="import", class=`nav-item flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition ${page === 'import' ? 'nav-active' : ''}`)
       i(class="fas fa-file-import w-5 text-center")
-      | 批量文件导入
+      | 批量导入
 
     div(class="text-[10px] font-bold uppercase text-slate-500 px-3 py-2 mt-4") 运维安全
     a(href="/backup", data-page="backup", class=`nav-item flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition ${page === 'backup' ? 'nav-active' : ''}`)

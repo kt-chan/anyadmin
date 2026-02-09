@@ -52,7 +52,7 @@ describe('Import Routes Rendering', () => {
     
     expect(res.statusCode).toBe(200);
     expect(importService.getTasks).toHaveBeenCalled();
-    expect(res.text).toContain('批量文件导入');
+    expect(res.text).toContain('批量导入');
     expect(res.text).toContain('Import 1');
     expect(res.text).toContain('task-001');
   });

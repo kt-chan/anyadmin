@@ -54,6 +54,14 @@ func NewRouter() *gin.Engine {
 			auth.POST("/deploy/nodes", api.SaveNodes)
 			auth.POST("/deploy/agent/control", api.ControlAgent)
 			
+			// Model Management
+			auth.GET("/models", api.GetModels)
+			// auth.POST("/models/upload", api.UploadModel) // Legacy
+			auth.POST("/models/upload/init", api.InitUpload)
+			auth.POST("/models/upload/chunk", api.UploadChunk)
+			auth.POST("/models/finalize", api.FinalizeUpload)
+			auth.DELETE("/models/:name", api.DeleteModel)
+			
 			auth.GET("/import/tasks", api.GetImportTasks)
 			auth.POST("/import/tasks", api.CreateImportTask)
 			auth.GET("/backups", api.GetBackups)

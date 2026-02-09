@@ -59,6 +59,20 @@ const modelsService = {
     }
   },
 
+  // Abort Upload
+  abortUpload: async (token, uploadId) => {
+    try {
+      const axiosConfig = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+      const response = await apiClient.post('/api/v1/models/upload/abort', { upload_id: uploadId }, axiosConfig);
+      return response.data;
+    } catch (error) {
+      logger.error('Error aborting upload:', error);
+      throw error;
+    }
+  },
+
   // Finalize Upload
   finalizeUpload: async (token, data) => {
     try {

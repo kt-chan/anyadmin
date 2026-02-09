@@ -81,9 +81,10 @@ block content
                     .bg-green-500.h-2.rounded-full.transition-all.duration-300(style="width: 0%")#sumProgressBar
 
         .mt-8.flex.justify-end.gap-3
+          button(type="button", id="abortBtn", class="hidden px-4 py-2 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg") 中止
           button(type="button", id="pauseBtn", class="hidden px-4 py-2 text-sm font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg") 暂停
           button(type="button", id="resumeBtn", class="hidden px-4 py-2 text-sm font-bold text-green-600 bg-green-50 hover:bg-green-100 rounded-lg") 继续
           button(type="button", onclick="hideModal('uploadModelModal')", class="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg") 取消
-          button(type="submit", id="uploadSubmitBtn", class="px-6 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-lg shadow-blue-100") 开始上传
+          button(type="submit", id="uploadSubmitBtn", class="px-6 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-lg shadow-blue-100 disabled:opacity-50 disabled:cursor-not-allowed", disabled) 开始上传
 
   script(src="/js/models.js")

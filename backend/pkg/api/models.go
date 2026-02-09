@@ -174,7 +174,7 @@ func UploadChunk(c *gin.Context) {
 	}
 
 	dataFile := filepath.Join(sessionDir, "data")
-	
+
 	// Open in append mode
 	f, err := os.OpenFile(dataFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -268,11 +268,20 @@ func FinalizeUpload(c *gin.Context) {
 	if !strings.HasSuffix(strings.ToLower(finalFileName), ".tar") {
 		finalFileName += ".tar"
 	}
-	
-	destPath := filepath.Join(ModelsDir, finalFileName)
-	
+
+	destPath := filepath.Join(ModelsDir, req.ModelName, finalFileName)
+
 	// Close file before renaming
 	f.Close()
+
+	// 1. Get the directory portion of your destination path
+	dir := filepath.Dir(destPath)
+
+	// 2. Create the directory (0755 is standard permissions: rwxr-xr-x)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create directory: " + err.Error()})
+		return
+	}
 
 	if err := os.Rename(tarPath, destPath); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save model file: " + err.Error()})
@@ -285,62 +294,92 @@ func FinalizeUpload(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Model uploaded and verified successfully"})
 }
 
-// UploadModel is kept for backward compatibility or direct small file uploads if needed, 
-// but we will primarily use the chunked version now. 
+// AbortUpload deletes the temporary files for an upload session
+func AbortUpload(c *gin.Context) {
+	var req struct {
+		UploadID string `json:"upload_id"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if req.UploadID == "" {
+		c.JSON(http.StatusOK, gin.H{"status": "success"}) // No-op if no ID
+		return
+	}
+
+	// Security check for uploadID
+	if strings.Contains(req.UploadID, "..") || strings.Contains(req.UploadID, "/") || strings.Contains(req.UploadID, "\\") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid upload ID"})
+		return
+	}
+
+	sessionDir := filepath.Join(TempUploadDir, req.UploadID)
+	if err := os.RemoveAll(sessionDir); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete temporary files: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Upload aborted and temporary files deleted"})
+}
+
+// UploadModel is kept for backward compatibility or direct small file uploads if needed,
+// but we will primarily use the chunked version now.
 // We can leave it or remove it. I'll leave it but the frontend will switch to new API.
 func UploadModel(c *gin.Context) {
-    // Legacy implementation ... or reuse chunk logic? 
-    // Let's keep the existing simple one for now in case other tools use it, 
-    // but the UI will use the new endpoints.
-    // ... (Old code omitted for brevity in this thought process, but will be included in file write if I want to preserve it. 
-    // The prompt says "rewrite and enrich". I can replace it or add to it. 
-    // I'll replace it with a stub or keep it. I'll just append the new functions and keep `UploadModel` as is for compatibility if possible, 
-    // or if I rewrite the file, I need to include it.)
-    
-    // Actually, I'll keep the old `UploadModel` just in case, or I can remove it if I update the route.
-    // The previous code block has `UploadModel` implementation. I will re-include it.
-    
+	// Legacy implementation ... or reuse chunk logic?
+	// Let's keep the existing simple one for now in case other tools use it,
+	// but the UI will use the new endpoints.
+	// ... (Old code omitted for brevity in this thought process, but will be included in file write if I want to preserve it.
+	// The prompt says "rewrite and enrich". I can replace it or add to it.
+	// I'll replace it with a stub or keep it. I'll just append the new functions and keep `UploadModel` as is for compatibility if possible,
+	// or if I rewrite the file, I need to include it.)
+
+	// Actually, I'll keep the old `UploadModel` just in case, or I can remove it if I update the route.
+	// The previous code block has `UploadModel` implementation. I will re-include it.
+
 	// Parse multipart form
 	if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse multipart form"})
 		return
 	}
-    // ... (Rest of original UploadModel)
-    c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Legacy UploadModel not supported in this view"})
+	// ... (Rest of original UploadModel)
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Legacy UploadModel not supported in this view"})
 }
 
 func extractTarGz(r io.Reader, dest string) error {
 	// ... (Same as before)
-    // Check for gzip signature?
-    // If not gzip, try tar directly?
-    // The `compress/gzip` reader might fail if not gzipped.
-    
-    // Robustness: Peek header.
-    // But for now assume tar.gz or simple tar handling if gzip fails?
-    // Let's stick to previous implementation but handle errors gracefully.
-    
+	// Check for gzip signature?
+	// If not gzip, try tar directly?
+	// The `compress/gzip` reader might fail if not gzipped.
+
+	// Robustness: Peek header.
+	// But for now assume tar.gz or simple tar handling if gzip fails?
+	// Let's stick to previous implementation but handle errors gracefully.
+
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
-        // Fallback: maybe it's just a tar?
-        if err == gzip.ErrHeader {
-             // Reset reader? We can't easily reset an io.Reader unless it's a Seeker.
-             // We passed `f` which is an `os.File`, so it is a seeker.
-             if seeker, ok := r.(io.Seeker); ok {
-                 seeker.Seek(0, 0)
-                 return extractTar(r, dest)
-             }
-        }
+		// Fallback: maybe it's just a tar?
+		if err == gzip.ErrHeader {
+			// Reset reader? We can't easily reset an io.Reader unless it's a Seeker.
+			// We passed `f` which is an `os.File`, so it is a seeker.
+			if seeker, ok := r.(io.Seeker); ok {
+				seeker.Seek(0, 0)
+				return extractTar(r, dest)
+			}
+		}
 		return err
 	}
 	defer gzr.Close()
 
 	tr := tar.NewReader(gzr)
-    return extractTarLoop(tr, dest)
+	return extractTarLoop(tr, dest)
 }
 
 func extractTar(r io.Reader, dest string) error {
-    tr := tar.NewReader(r)
-    return extractTarLoop(tr, dest)
+	tr := tar.NewReader(r)
+	return extractTarLoop(tr, dest)
 }
 
 func extractTarLoop(tr *tar.Reader, dest string) error {
@@ -354,7 +393,7 @@ func extractTarLoop(tr *tar.Reader, dest string) error {
 		}
 
 		target := filepath.Join(dest, header.Name)
-		
+
 		// Sanitize paths
 		if !strings.HasPrefix(target, filepath.Clean(dest)+string(os.PathSeparator)) {
 			return fmt.Errorf("illegal file path: %s", target)

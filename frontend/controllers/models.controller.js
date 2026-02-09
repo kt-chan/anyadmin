@@ -64,6 +64,17 @@ exports.uploadChunk = async (req, res) => {
   }
 };
 
+// API: Abort Upload
+exports.abortUpload = async (req, res) => {
+  try {
+    const token = req.session.user?.token;
+    const result = await modelsService.abortUpload(token, req.body.upload_id);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // API: Finalize Upload
 exports.finalizeUpload = async (req, res) => {
   try {

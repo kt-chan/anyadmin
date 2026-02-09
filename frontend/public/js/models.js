@@ -14,6 +14,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const submitBtn = document.getElementById('uploadSubmitBtn');
     const pauseBtn = document.getElementById('pauseBtn');
     const resumeBtn = document.getElementById('resumeBtn');
+    const abortBtn = document.getElementById('abortBtn');
+
+    // --- Form Validation ---
+    const checkFormValidity = () => {
+        const name = document.getElementById('modelName').value;
+        const tarFile = document.getElementById('tarFile').files.length > 0;
+        const sumFile = document.getElementById('sumFile').files.length > 0;
+        
+        submitBtn.disabled = !(name && tarFile && sumFile) || isUploading;
+    };
+
+    ['modelName', 'tarFile', 'sumFile'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', checkFormValidity);
+        if (el) el.addEventListener('change', checkFormValidity);
+    });
 
     if (uploadForm) {
         uploadForm.addEventListener('submit', async (e) => {
@@ -43,15 +59,17 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 // 1. Initialize Uploads (Get IDs and Resume Offsets)
                 await initUploadSession('tar', tarFile);
-                await initUploadSession('sum', sumFile);
+                if (isUploading) await initUploadSession('sum', sumFile);
 
                 // 2. Start Upload Loop
-                await processUploads(name);
+                if (isUploading) await processUploads(name);
 
             } catch (err) {
-                console.error(err);
-                showToast("上传失败", err.message, "error");
-                resetUI();
+                if (isUploading) {
+                    console.error(err);
+                    showToast("上传失败", err.message, "error");
+                    resetUI();
+                }
             }
         });
     }
@@ -72,7 +90,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    if (abortBtn) {
+        abortBtn.addEventListener('click', async () => {
+            if (confirm("确定要中止上传吗？已上传的数据将被彻底删除。")) {
+                const tarId = uploadState.tar.id;
+                const sumId = uploadState.sum.id;
+                
+                isUploading = false;
+                isPaused = false;
+                resetUI();
+
+                try {
+                    // Call abort API for both sessions
+                    if (tarId) await fetch('/models/api/upload/abort', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ upload_id: tarId })
+                    });
+                    if (sumId) await fetch('/models/api/upload/abort', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ upload_id: sumId })
+                    });
+                    showNotification("上传已中止，临时文件已清理", "info");
+                } catch (e) {
+                    console.error("Failed to abort on server:", e);
+                    showNotification("上传已中止，但部分临时文件可能清理失败", "warning");
+                }
+            }
+        });
+    }
+
     async function initUploadSession(type, file) {
+        if (!isUploading) return;
         const response = await fetch('/models/api/upload/init', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -93,26 +143,27 @@ document.addEventListener('DOMContentLoaded', () => {
         // Let's do parallel chunks for speed? No, simpler sequential or interleaved.
         // Let's just loop until both are done.
 
-        while ((uploadState.tar.offset < uploadState.tar.total || uploadState.sum.offset < uploadState.sum.total) && !isPaused) {
+        while (isUploading && (uploadState.tar.offset < uploadState.tar.total || uploadState.sum.offset < uploadState.sum.total) && !isPaused) {
             
             // Upload Tar Chunk
-            if (uploadState.tar.offset < uploadState.tar.total) {
+            if (isUploading && uploadState.tar.offset < uploadState.tar.total) {
                 await uploadChunk('tar');
             }
 
             // Upload Sum Chunk
-            if (uploadState.sum.offset < uploadState.sum.total) {
+            if (isUploading && uploadState.sum.offset < uploadState.sum.total) {
                 await uploadChunk('sum');
             }
         }
 
-        if (!isPaused) {
+        if (isUploading && !isPaused) {
             // Both done
             finalizeUpload(modelName);
         }
     }
 
     async function uploadChunk(type) {
+        if (!isUploading) return;
         const state = uploadState[type];
         const start = state.offset;
         const end = Math.min(start + CHUNK_SIZE, state.total);
@@ -131,22 +182,27 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!res.ok) throw new Error(`Chunk upload failed for ${type}`);
             const data = await res.json();
             
-            state.offset = data.offset; // Update offset from server response
-            updateProgress(type, state.offset, state.total);
+            if (isUploading) {
+                state.offset = data.offset; // Update offset from server response
+                updateProgress(type, state.offset, state.total);
+            }
 
         } catch (e) {
-            console.error(`Chunk error ${type}:`, e);
-            // If connection failure, maybe pause and ask user to resume?
-            // Or simple retry logic?
-            // For now, pause.
-            isPaused = true;
-            updateButtons('paused');
-            showToast("连接中断", "上传中断，请检查网络后点击继续", "warning");
-            throw e; // Break loop
+            if (isUploading) {
+                console.error(`Chunk error ${type}:`, e);
+                // If connection failure, maybe pause and ask user to resume?
+                // Or simple retry logic?
+                // For now, pause.
+                isPaused = true;
+                updateButtons('paused');
+                showToast("连接中断", "上传中断，请检查网络后点击继续", "warning");
+                throw e; // Break loop
+            }
         }
     }
 
     async function finalizeUpload(modelName) {
+        if (!isUploading) return;
         updateButtons('finalizing');
         document.getElementById(`tarStatus`).innerText = "正在校验并保存...";
         document.getElementById(`sumStatus`).innerText = "正在校验并保存...";
@@ -164,25 +220,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await res.json();
             
-            if (res.ok) {
-                showToast("成功", "模型上传并验证成功", "success");
-                setTimeout(() => window.location.reload(), 1000);
-            } else {
+            if (res.ok && isUploading) {
+                showNotification("模型上传并验证成功", "success");
+                setTimeout(() => window.location.href = '/models', 1000);
+            } else if (isUploading) {
                 throw new Error(data.error || "Finalization failed");
             }
         } catch (e) {
-            showToast("验证失败", e.message, "error");
-            resetUI();
+            if (isUploading) {
+                showNotification("验证失败: " + e.message, "error");
+                resetUI();
+            }
         }
     }
 
     // --- UI Helpers ---
 
-    function toggleInputs(disabled) {
-        document.getElementById('modelName').disabled = disabled;
-        document.getElementById('tarFile').disabled = disabled;
-        document.getElementById('sumFile').disabled = disabled;
-        document.querySelector('button[onclick*="hideModal"]').disabled = disabled;
+    function toggleInputs(enabled) {
+        document.getElementById('modelName').disabled = !enabled;
+        document.getElementById('tarFile').disabled = !enabled;
+        document.getElementById('sumFile').disabled = !enabled;
+        document.querySelector('button[onclick*="hideModal"]').disabled = !enabled;
     }
 
     function showProgressUI(show) {
@@ -206,27 +264,31 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.classList.add('hidden');
         pauseBtn.classList.add('hidden');
         resumeBtn.classList.add('hidden');
+        abortBtn.classList.add('hidden');
 
         if (state === 'uploading') {
             pauseBtn.classList.remove('hidden');
+            abortBtn.classList.remove('hidden');
         } else if (state === 'paused') {
             resumeBtn.classList.remove('hidden');
+            abortBtn.classList.remove('hidden');
         } else if (state === 'finalizing') {
             // Show loading spinner on submit btn maybe?
             submitBtn.classList.remove('hidden');
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-cog fa-spin mr-2"></i>验证解压中...';
+            submitBtn.innerHTML = '<i class="fas fa-cog fa-spin mr-2"></i>验证保存中...';
         } else {
             submitBtn.classList.remove('hidden');
             submitBtn.disabled = false;
             submitBtn.innerHTML = '开始上传';
+            checkFormValidity();
         }
     }
 
     function resetUI() {
         isUploading = false;
         isPaused = false;
-        toggleInputs(false);
+        toggleInputs(true);
         showProgressUI(false);
         updateButtons('idle');
     }
@@ -244,13 +306,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const result = await response.json();
             if (result.success) {
-                showToast('成功', '模型已删除', 'success');
-                setTimeout(() => window.location.reload(), 1000);
+                showNotification('模型已删除', 'success');
+                setTimeout(() => window.location.href = '/models', 1000);
             } else {
                 throw new Error(result.message || '删除失败');
             }
         } catch (error) {
-            showToast('错误', error.message, 'error');
+            showNotification('删除失败: ' + error.message, 'error');
         }
     };
 });
+
+function showToast(title, message, type) {
+    if (window.showNotification) {
+        window.showNotification(message, type);
+    } else {
+        alert(`${title}: ${message}`);
+    }
+}

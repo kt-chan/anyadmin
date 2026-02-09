@@ -33,6 +33,7 @@ router.get('/', modelsController.getModelsPage);
 router.get('/api', modelsController.getModels);
 router.post('/api/upload/init', modelsController.initUpload);
 router.post('/api/upload/chunk', upload.single('chunk'), modelsController.uploadChunk);
+router.post('/api/upload/abort', modelsController.abortUpload);
 router.post('/api/finalize', modelsController.finalizeUpload);
 router.delete('/api/:name', modelsController.deleteModel);
 

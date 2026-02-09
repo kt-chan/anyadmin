@@ -16,6 +16,11 @@ import (
 	"anyadmin-backend/pkg/utils"
 )
 
+var (
+	// DockerDir is the directory where docker compose files and .env files are located
+	DockerDir = "/home/anyadmin/docker/"
+)
+
 // --- Client / Heartbeat Logic ---
 
 // DockerServiceStatus represents the status of a specific docker container
@@ -341,7 +346,7 @@ func StartServer(port string) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", handleHealth)
 	mux.HandleFunc("/container/control", handleContainerControl)
-	mux.HandleFunc("/config/update", handleUpdateConfig)
+	mux.HandleFunc("/config/update", HandleUpdateConfig)
 	mux.HandleFunc("/models/discover", handleDiscoverModels)
 
 	addr := ":" + port
@@ -409,18 +414,18 @@ func handleContainerControl(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	workDir := "/home/anyadmin/docker/"
+	workDir := DockerDir
 
 	// Validate working directory existence (optional, but good for debugging)
 	// We assume the directory exists as per the environment setup description.
 
 	var args []string
-	containerEnv := "/home/anyadmin/docker/.env-" + req.ContainerName
+	containerEnv := DockerDir + ".env-" + req.ContainerName
 
 	args = append(args, "compose")
 
 	// 1. Always load the base .env
-	args = append(args, "--env-file", "/home/anyadmin/docker/.env")
+	args = append(args, "--env-file", DockerDir+".env")
 
 	// 2. Load service-specific env files
 	args = append(args, "--env-file", containerEnv)
@@ -468,7 +473,8 @@ func handleContainerControl(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
+// HandleUpdateConfig handles configuration updates for containers
+func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -492,7 +498,7 @@ func handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 		// Just warning, proceed if file exists
 	}
 
-	envPath := "/home/anyadmin/docker/.env-" + req.ContainerName
+	envPath := DockerDir + ".env-" + req.ContainerName
 
 	// Read existing file
 	content, err := os.ReadFile(envPath)
@@ -510,20 +516,36 @@ func handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	strContent := string(content)
+
+	// Key mapping for vLLM
+	keyMap := map[string]string{
+		"model_name":             "VLLM_MODEL_NAME",
+		"max_model_len":          "VLLM_MAX_MODEL_LEN",
+		"max_num_seqs":           "VLLM_MAX_NUM_SEQS",
+		"max_num_batched_tokens": "VLLM_MAX_NUM_BATCHED_TOKENS",
+		"gpu_memory_utilization": "VLLM_GPU_MEMORY_UTILIZATION",
+		"mode":                   "VLLM_MODE",
+		"gpu_memory_size":        "VLLM_GPU_MEMORY_SIZE",
+	}
 	
 	// Update keys
 	for key, value := range req.Config {
+		targetKey := key
+		if mapped, ok := keyMap[key]; ok {
+			targetKey = mapped
+		}
+
 		// Simple regex replacement
 		// If key exists, replace it
-		re := regexp.MustCompile(fmt.Sprintf(`(?m)^%s=.*$`, key))
+		re := regexp.MustCompile(fmt.Sprintf(`(?m)^%s=.*$`, targetKey))
 		if re.MatchString(strContent) {
-			strContent = re.ReplaceAllString(strContent, fmt.Sprintf("%s=%s", key, value))
+			strContent = re.ReplaceAllString(strContent, fmt.Sprintf("%s=%s", targetKey, value))
 		} else {
 			// Append if not exists
 			if len(strContent) > 0 && !strings.HasSuffix(strContent, "\n") {
 				strContent += "\n"
 			}
-			strContent += fmt.Sprintf("%s=%s\n", key, value)
+			strContent += fmt.Sprintf("%s=%s\n", targetKey, value)
 		}
 	}
 
@@ -538,8 +560,8 @@ func handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	
 	// Restart if requested
 	if req.Restart {
-		workDir := "/home/anyadmin/docker/"
-		args := []string{"compose", "--env-file", "/home/anyadmin/docker/.env", "--env-file", envPath, "up", "-d", "--force-recreate", req.ContainerName}
+		workDir := DockerDir
+		args := []string{"compose", "--env-file", DockerDir + ".env", "--env-file", envPath, "up", "-d", "--force-recreate", req.ContainerName}
 		cmdStr := "docker " + strings.Join(args, " ")
 		log.Printf("Restarting service with command: %s", cmdStr)
 		

@@ -130,20 +130,26 @@ func SaveInferenceConfig(c *gin.Context) {
 			nodeIP := cfg.IP
 			if nodeIP != "" {
 				agentConfig := make(map[string]string)
+				if cfg.ModelName != "" {
+					agentConfig["model_name"] = cfg.ModelName
+				}
 				if cfg.MaxModelLen > 0 {
-					agentConfig["VLLM_MAX_MODEL_LEN"] = fmt.Sprintf("%d", cfg.MaxModelLen)
+					agentConfig["max_model_len"] = fmt.Sprintf("%d", cfg.MaxModelLen)
 				}
 				if cfg.MaxNumSeqs > 0 {
-					agentConfig["VLLM_MAX_NUM_SEQS"] = fmt.Sprintf("%d", cfg.MaxNumSeqs)
+					agentConfig["max_num_seqs"] = fmt.Sprintf("%d", cfg.MaxNumSeqs)
 				}
 				if cfg.MaxNumBatchedTokens > 0 {
-					agentConfig["VLLM_MAX_NUM_BATCHED_TOKENS"] = fmt.Sprintf("%d", cfg.MaxNumBatchedTokens)
+					agentConfig["max_num_batched_tokens"] = fmt.Sprintf("%d", cfg.MaxNumBatchedTokens)
 				}
 				if cfg.GpuMemoryUtilization > 0 {
-					agentConfig["VLLM_GPU_MEMORY_UTILIZATION"] = fmt.Sprintf("%.2f", cfg.GpuMemoryUtilization)
+					agentConfig["gpu_memory_utilization"] = fmt.Sprintf("%.2f", cfg.GpuMemoryUtilization)
 				}
 				if cfg.GPUMemoryGB > 0 {
-					agentConfig["VLLM_GPU_MEMORY_SIZE"] = fmt.Sprintf("%.1f", cfg.GPUMemoryGB)
+					agentConfig["gpu_memory_size"] = fmt.Sprintf("%.1f", cfg.GPUMemoryGB)
+				}
+				if cfg.Mode != "" {
+					agentConfig["mode"] = cfg.Mode
 				}
 
 				if len(agentConfig) > 0 {

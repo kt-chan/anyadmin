@@ -39,7 +39,7 @@ const deploymentService = {
       const axiosConfig = {
         headers: { Authorization: `Bearer ${token}` }
       };
-      
+
       const response = await apiClient.post('/api/v1/deploy/test-connection', serviceDetails, axiosConfig);
       return response.data;
     } catch (error) {
@@ -57,9 +57,9 @@ const deploymentService = {
         try {
           const files = await fs.readdir(modelsDir, { withFileTypes: true });
           const models = files
-            .filter(dirent => dirent.isDirectory())
+            .filter(dirent => dirent.isDirectory() && dirent.name !== '.tmp')
             .map(dirent => ({ id: dirent.name }));
-          
+
           return { data: models };
         } catch (err) {
           logger.error('Error scanning local models:', err);
@@ -130,7 +130,7 @@ const deploymentService = {
     } catch (error) {
       // Don't log full error for 404 (not found yet) to avoid noise
       if (error.response && error.response.status === 404) {
-          return { success: false, message: "Agent not yet online" };
+        return { success: false, message: "Agent not yet online" };
       }
       logger.error('Error checking agent status:', error);
       throw error;
@@ -167,4 +167,3 @@ const deploymentService = {
 };
 
 module.exports = deploymentService;
-    

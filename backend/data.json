@@ -26,7 +26,7 @@
       "node_ip": "172.20.0.10",
       "hostname": "DESKTOP-OSLI7Q7",
       "agent_config": {
-        "deployment_time": "2026-02-09T09:45:19+08:00",
+        "deployment_time": "2026-02-09T14:44:05+08:00",
         "log_file": "/home/anyadmin/logs/agent.log",
         "mgmt_host": "172.20.0.1",
         "mgmt_port": "8080",

@@ -7,8 +7,10 @@
       "command": "powershell",
       "args": [
         "-NoProfile",
-        "-Command",
-        "write-host 'Waiting for Backend (port 8080)...'; $retries = 30; while ($retries -gt 0) { try { $client = New-Object System.Net.Sockets.TcpClient('127.0.0.1', 8080); $client.Close(); write-host 'Backend is ready!'; exit 0 } catch { start-sleep -seconds 1; $retries-- } } write-host 'Backend failed to start.'; exit 1"
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/scripts/wait-for-backend.ps1"
       ],
       "isBackground": false,
       "presentation": {

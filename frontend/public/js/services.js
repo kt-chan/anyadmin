@@ -209,6 +209,55 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    window.refreshRagModels = async function(selectedModel) {
+        const form = document.getElementById('ragConfigForm');
+        const modelSelect = document.getElementById('rag-model-select');
+        const host = form.querySelector('[name="host"]').value;
+        const syncIcon = document.querySelector('button[onclick="refreshRagModels()"] i');
+
+        if (!modelSelect) return;
+
+        modelSelect.disabled = true;
+        if (syncIcon) syncIcon.classList.add('fa-spin');
+        modelSelect.innerHTML = '<option value="" disabled selected>Loading models...</option>';
+
+        try {
+            // Use current host or default if host is missing (global config)
+            const targetHost = host || '127.0.0.1'; 
+            const payload = { host: targetHost, port: '8000', mode: 'new_deployment' }; 
+            
+            const response = await fetch('/deployment/api/discover-models', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const result = await response.json();
+            modelSelect.innerHTML = '<option value="" disabled>Select a Model</option>';
+            
+            if (result.success && result.data && result.data.data) {
+                result.data.data.forEach(model => {
+                    const opt = document.createElement('option');
+                    opt.value = model.id;
+                    opt.textContent = model.id;
+                    if (model.id === selectedModel) opt.selected = true;
+                    modelSelect.appendChild(opt);
+                });
+            } else {
+                const opt = document.createElement('option');
+                opt.value = "";
+                opt.textContent = "No models found";
+                modelSelect.appendChild(opt);
+            }
+        } catch (error) {
+            console.error('Error refreshing models:', error);
+            modelSelect.innerHTML = '<option value="">Error loading models</option>';
+        } finally {
+            modelSelect.disabled = false;
+            if (syncIcon) syncIcon.classList.remove('fa-spin');
+        }
+    };
+
     // Model selection change handler
     const vllmModelSelect = document.getElementById('vllm-model-select');
     if (vllmModelSelect) {
@@ -223,6 +272,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const gpuMemorySize = parseFloat(form.querySelector('[name="gpu_memory_size"]').value);
             const gpuUtilization = parseFloat(form.querySelector('[name="gpu_memory_utilization"]').value);
             calculateVllmSuggestionsForServices(mode, this.value, nodeIP, gpuMemorySize, gpuUtilization);
+        });
+    }
+
+    const ragModelSelect = document.getElementById('rag-model-select');
+    if (ragModelSelect) {
+        ragModelSelect.addEventListener('change', function() {
+            const form = document.getElementById('ragConfigForm');
+            const modelNameInput = form.querySelector('[name="generic_openai_model_pref"]');
+            if (modelNameInput) modelNameInput.value = this.value;
         });
     }
 
@@ -313,6 +371,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const input = form.querySelector(`[name="${key}"]`);
             if (input) input.value = config[val] || '';
         }
+
+        // Initialize model selection
+        refreshRagModels(config.generic_openai_model_pref);
 
         showModal('ragConfigModal');
     }

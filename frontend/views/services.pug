@@ -72,6 +72,9 @@ block content
                           .flex.justify-between.text-sm
                             span(class="text-slate-500") LLM 驱动:
                             span(class="font-mono font-bold text-slate-700") #{first.config.llm_provider || 'N/A'}
+                          .flex.justify-between.text-sm
+                            span(class="text-slate-500") 模型名称:
+                            span(class="font-mono font-bold text-slate-700") #{first.config.generic_openai_model_pref || 'N/A'}
 
                     //- Registered Nodes Details
                     div(class="lg:col-span-2")
@@ -261,7 +264,12 @@ block content
           .grid.grid-cols-2.gap-4
             div
               label(class="block text-xs font-bold text-slate-700 mb-1") 默认模型
-              input(type="text", name="generic_openai_model_pref", class="w-full border rounded p-2 text-sm")
+              .flex.gap-2
+                select#rag-model-select(name="generic_openai_model_pref_select", class="w-full border rounded p-2 text-sm bg-white")
+                  option(value="", disabled) Loading models...
+                input(type="hidden", name="generic_openai_model_pref")
+                button(type="button", onclick="refreshRagModels()", class="px-3 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 text-slate-600 shadow-sm", title="刷新模型列表")
+                  i.fas.fa-sync-alt
             div
               label(class="block text-xs font-bold text-slate-700 mb-1") API Key
               input(type="password", name="generic_openai_api_key", class="w-full border rounded p-2 text-sm")

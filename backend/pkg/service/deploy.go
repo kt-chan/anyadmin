@@ -48,7 +48,7 @@ func DeployModels(client *ssh.Client) error {
 	}
 
 	log.Println("[Deploy] Copying and extracting model archives...")
-	localModelDir := filepath.Join(backendDir, "deployments/models")
+	localModelDir := filepath.Join(backendDir, "deployments/tars/models")
 	modelFiles, err := os.ReadDir(localModelDir)
 	if err != nil {
 		return fmt.Errorf("failed to read local model directory: %w", err)
@@ -424,7 +424,7 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	// Copy Docker Compose file
 	log.Println("[Deploy] Copying docker-compose...")
-	localComposePath := filepath.Join(backendDir, "deployments/dockers/yaml/docker-compose.yml")
+	localComposePath := filepath.Join(backendDir, "deployments/dockers/yaml/docker-compose.yaml")
 	remoteComposePath := "/home/anyadmin/docker/docker-compose.yaml"
 	// Ensure directory exists
 	if _, err := ExecuteCommand(client, "mkdir -p /home/anyadmin/docker && chown -R anyadmin:anyadmin /home/anyadmin/docker"); err != nil {
@@ -432,7 +432,7 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 	}
 
 	if err := CopyFile(client, localComposePath, remoteComposePath); err != nil {
-		log.Printf("Warning: failed to copy docker-compose.yml: %v", err)
+		log.Printf("Warning: failed to copy docker-compose.yaml: %v", err)
 	} else {
 		ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remoteComposePath))
 	}

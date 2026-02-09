@@ -53,7 +53,7 @@ const deploymentService = {
     try {
       if (mode === 'local' || mode === 'new_deployment') {
         // Local scan
-        const modelsDir = path.join(__dirname, '../../backend/deployments/models');
+        const modelsDir = path.join(__dirname, '../../backend/deployments/tars/models');
         try {
           const files = await fs.readdir(modelsDir, { withFileTypes: true });
           const models = files

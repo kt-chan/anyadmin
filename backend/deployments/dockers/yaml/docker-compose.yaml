@@ -1,0 +1,63 @@
+services:
+  vllm:
+    image: ${VLLM_IMAGE:-vllm/vllm-openai:latest}
+    container_name: vllm
+    shm_size: '4gb'
+    ports:
+      - "${VLLM_PORT:-8000}:8000"
+    volumes:
+      - ${VLLM_MODEL_PATH:-/home/anyadmin/data/model}:/model
+    entrypoint: python3 -m vllm.entrypoints.openai.api_server
+    command: >
+      --model /model/${VLLM_MODEL_NAME:-Qwen3-1.7B}
+      --served-model-name ${VLLM_MODEL_NAME:-Qwen3-1.7B}
+      --max-model-len ${VLLM_MAX_MODEL_LEN:-4096}
+      --max-num-seqs ${VLLM_MAX_NUM_SEQS:-8}
+      --max-num-batched-tokens ${VLLM_MAX_NUM_BATCHED_TOKENS:-8192}
+      --gpu-memory-utilization ${VLLM_GPU_MEMORY_UTILIZATION:-0.85}
+      --host 0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    env_file:
+      - /home/anyadmin/docker/.env-vllm
+
+  anythingllm:
+    image: ${ANYTHINGLLM_IMAGE:-mintplexlabs/anythingllm:1.8.5}
+    container_name: anythingllm
+    cap_add:
+      - SYS_ADMIN
+    restart: unless-stopped
+    environment:
+      - SERVER_PORT=${ANYTHINGLLM_PORT:-3001}
+      - STORAGE_DIR=${ANYTHINGLLM_STORAGE_DIR:-/app/server/storage}
+      - LLM_PROVIDER=${LLM_PROVIDER:-generic-openai}
+      - GENERIC_OPEN_AI_BASE_PATH=${GENERIC_OPEN_AI_BASE_PATH:-http://host.docker.internal:8000/v1}
+      - GENERIC_OPEN_AI_MODEL_PREF=${GENERIC_OPEN_AI_MODEL_PREF:-Qwen3-1.7B}
+      - GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT=${GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT:-4098}
+      - GENERIC_OPEN_AI_MAX_TOKENS=${GENERIC_OPEN_AI_MAX_TOKENS:-2048}
+      - GENERIC_OPEN_AI_API_KEY=${GENERIC_OPEN_AI_API_KEY:-AnyThing0f02d8295easdfadsaQBr0uz3sHAAb}
+      - VECTOR_DB=${VECTOR_DB:-lancedb}
+      - AUTH_TOKEN=${AUTH_TOKEN:-@hwKT1986}
+      - JWT_SECRET=${JWT_SECRET:-677c14ce-49cc-4471-a489-6446f5f6aedb}
+      - DISABLE_TELEMETRY=${DISABLE_TELEMETRY:-true}
+    volumes:
+      - ${ANYTHINGLLM_DATA_PATH:-/home/anyadmin/data/anythingllm}/storage:/app/server/storage
+      - ${ANYTHINGLLM_DATA_PATH:-/home/anyadmin/data/anythingllm}/collector/hotdir/:/app/collector/hotdir
+      - ${ANYTHINGLLM_DATA_PATH:-/home/anyadmin/data/anythingllm}/collector/outputs/:/app/collector/outputs
+    ports:
+      - "${ANYTHINGLLM_PORT:-3001}:${ANYTHINGLLM_PORT:-3001}"
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    env_file:
+      - /home/anyadmin/docker/.env-anythingllm

@@ -462,7 +462,7 @@ analyze this view pug  @frontend\views\dashboard.pug, then you have to rewrite a
 1. scan @backend\pkg\utils\vllmconfig.go and frontend\views\dashboard.pug and @backend\pkg\service\agent.go, analyze the logic for model configuration for vllm
 2. update 模型推理配置 in dashboard, such that it support quick setup for  "优化模式：max_token（最大长度）、max_concurrency（最大并发）、balanced（平衡）specified in vllmconfig.go
 3. with the dropdown option selection in "Optimization Mode 优化模式" changed, it should trigger vllm configuration calculate again in vllmconfig.go with input paremters (GPU memory, Model Type) provided in the agent heartbeat, then populate the suggested value back to dashboard
-4. backend\deployments\models containing the model download, which is in the .gitignore, so you need to list the directory to get the "backend\deployments\models\Qwen3-1.7B\config.json"
+4. backend\deployments\tars\models containing the model download, which is in the .gitignore, so you need to list the directory to get the "backend\deployments\tars\models\Qwen3-1.7B\config.json"
 5. write unit test for this new feature, and regression test all unit test.
 
 **Coding Guide**  
@@ -503,7 +503,7 @@ analyze this view pug @frontend/views/dashboard.pug, and related backend agent o
 analyze this GO script @backend/pkg/service/agent.go, @backend/pkg/agent/client.go, @backend/pkg/agent/server.go, then you have to rewrite and enrich this script as well as the corresponding frontend, backend, and remote agent services for below funcitonal features enrichment objective. And you have to follow Coding Guide provided in final section of below context.
 
 1. merge backend/pkg/agent/client.go and backend/pkg/agent/server.go, make it simple for remote agent operations
-2. rewrite ControlContainer at @backend/pkg/service/agent.go, and you should use @backend/deployments/dockers/yaml/docker-compose.yml file (which has been deployed to target agent on path /home/anyadmin/docker) instead of docker command to interact with remote host. 
+2. rewrite ControlContainer at @backend/pkg/service/agent.go, and you should use @backend/deployments/dockers/yaml/docker-compose.yaml file (which has been deployed to target agent on path /home/anyadmin/docker) instead of docker command to interact with remote host. 
 3. refactor the agent code and agent deployment task, and you should take reference to below target host information using anyadmin user (/home/anyadmin/), host info provide in # reference remote host info section
 4. compile @backend/cmd/agent/main.go to @backend/dist/anyadmin-agent, then send to target host at /home/anyadmin/. You should list  target host at /home/anyadmin/ directory and follow the same deployment path.
 5. you have stop the remote agent first if it is running, then verfiy the operation of start/stop container service (vllm / anythingllm) works.
@@ -564,11 +564,11 @@ analyze view @frontend\views\dashboard.pug, and GO script @backend\pkg\service\d
 
 ## Task 17
 
-analyze view pug @frontend/views/deployment.pug  and the container docker-compose.yaml file at  @backend\deployments\dockers\yaml\docker-compose.yml. Analyze related GO script @backend\pkg\service\deploy.go, @backend\pkg\api\deploy.go, then you have to rewrite and enrich this script as well as the corresponding frontend, backend, and remote agent services for below funcitonal features enrichment objective. And you have to follow Coding Guide provided in final section of below context.
+analyze view pug @frontend/views/deployment.pug  and the container docker-compose.yaml file at  @backend\deployments\dockers\yaml\docker-compose.yaml. Analyze related GO script @backend\pkg\service\deploy.go, @backend\pkg\api\deploy.go, then you have to rewrite and enrich this script as well as the corresponding frontend, backend, and remote agent services for below funcitonal features enrichment objective. And you have to follow Coding Guide provided in final section of below context.
 
 *** funcitonal features enrichment Objective ***
 
-1. refactor docker-compose.yml to use environment parameters, and using multiple environment file (e.g. .env .env-vllm .env-anythingllm) to setup environment variables for  path setup, volumne mount path setup and command setup 
+1. refactor docker-compose.yaml to use environment parameters, and using multiple environment file (e.g. .env .env-vllm .env-anythingllm) to setup environment variables for  path setup, volumne mount path setup and command setup 
 2. refactor the agent code and agent deployment task, and you should take reference to below target host information using anyadmin user (/home/anyadmin/), host info provide in # reference remote host info section
 3. compile @backend/cmd/agent/main.go to @backend/dist/anyadmin-agent, then send to target host at /home/anyadmin/. You should list  target host at /home/anyadmin/ directory and follow the same deployment path.
 4. you have stop the remote agent first if it is running, then verfiy the operation of deploy/start/stop container service (vllm / anythingllm) works.
@@ -638,7 +638,7 @@ analyze view pug  @frontend/views/deployment.pug, then you have to rewrite and e
 *** funcitonal features enrichment Objective ***
 
 1. for step 2 setup inference engine in g  @frontend/views/deployment.pug, there are two option (A: new deployment, B: connect to existing service). 
-	1a: for new deployment, you should scan @backend\deployments\models folder and list all available models for model selection. and you do NOT need to setup connnectivity test for this option 1a;
+	1a: for new deployment, you should scan @backend\deployments\tars\models folder and list all available models for model selection. and you do NOT need to setup connnectivity test for this option 1a;
 	1b: for connect to existing service, keep existing logic which fetch model list from remote service. and you have to setup connectivity test only for this option 1b
 2. just fix the frontend code, keep the backend and agent unchanged.
 3. add unit test for frontend only to cover this changes.
@@ -656,11 +656,11 @@ analyze view pug  @frontend/views/deployment.pug, then you have to rewrite and e
 
 ## Task 19
 
-analyze backend/pkg/agent/agent.go and @backend/deployments/dockers/yaml/docker-compose.yml , the handle handleContainerControl section is wrong. you have to cd into /home/anyadmin/docker/ first, and then set --env-file for corresponding section given that env_file section in docker-compose.yaml is not being, then you have to rewrite and enrich this script as well as the corresponding frontend, backend, and remote agent services for below funcitonal features enrichment objective. And you have to follow Coding Guide provided in final section of below context.
+analyze backend/pkg/agent/agent.go and @backend/deployments/dockers/yaml/docker-compose.yaml , the handle handleContainerControl section is wrong. you have to cd into /home/anyadmin/docker/ first, and then set --env-file for corresponding section given that env_file section in docker-compose.yaml is not being, then you have to rewrite and enrich this script as well as the corresponding frontend, backend, and remote agent services for below funcitonal features enrichment objective. And you have to follow Coding Guide provided in final section of below context.
 
 *** funcitonal features enrichment Objective ***
 
- 1. analyze @backend/pkg/agent/agent.go and @backend/deployments/dockers/yaml/docker-compose.yml , the handle handleContainerControl section is wrong. you have to cd into /home/anyadmin/docker/ first, and then set --env-file for corresponding section given that env_file section in docker-compose.yaml is not being loaded. you should set the exec.command in this format to load env_file "docker compose --env-file /home/anyadmin/docker/.env --env-file /home/anyadmin/docker/.env-vllm up -d" for vllm and "docker compose --env-file /home/anyadmin/docker/.env --env-file /home/anyadmin/docker/.env-anythingllm up -d" for anythingllm. 
+ 1. analyze @backend/pkg/agent/agent.go and @backend/deployments/dockers/yaml/docker-compose.yaml , the handle handleContainerControl section is wrong. you have to cd into /home/anyadmin/docker/ first, and then set --env-file for corresponding section given that env_file section in docker-compose.yaml is not being loaded. you should set the exec.command in this format to load env_file "docker compose --env-file /home/anyadmin/docker/.env --env-file /home/anyadmin/docker/.env-vllm up -d" for vllm and "docker compose --env-file /home/anyadmin/docker/.env --env-file /home/anyadmin/docker/.env-anythingllm up -d" for anythingllm. 
  2. compile @backend/cmd/agent/main.go to @backend/dist/anyadmin-agent, then send to target host at /home/anyadmin/. You should list  target host at /home/anyadmin/ directory and follow the same deployment path.
  3. you have stop the remote agent first if it is running, then verfiy the operation of deploy/start/stop container service (vllm / anythingllm) works. and you have to run ssh with passwordless with root user. 
 
@@ -978,7 +978,7 @@ analyze @frontend\views\includes\sidebar.pug and @frontend\views\services.pug th
 
 *** funcitonal features enrichment Objective ***
 1. develop @frontend\views\models.pug and integrate with @frontend\views\includes\sidebar.pug on a(href="/models", data-page="models", class=`nav-item flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition ${page === 'models' ? 'nav-active' : ''}`)
-2. take reference to @frontend\views\services.pug , and you should make models.pug to allow user to upload and manage pretrain models, and save the model into @backend\deployments\models folder, just like @backend\deployments\models\Qwen3-1.7B for Qwen3-1.7B
+2. take reference to @frontend\views\services.pug , and you should make models.pug to allow user to upload and manage pretrain models, and save the model into @backend\deployments\tars\models folder, just like @backend\deployments\tars\models\Qwen3-1.7B for Qwen3-1.7B
 3. follow the same pattern as @frontend\views\services.pug, and create corresponding frontend, backend code for  @frontend\views\models.pug. Try to reuse existing backend logic as much as possible such that you avoid repeating backend codes.
 4. add new unit test and perform regression test.
 

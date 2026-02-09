@@ -17,8 +17,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var ModelsDir = "deployments/models"
-var TempUploadDir = "deployments/models/.tmp"
+var ModelsDir = "deployments/tars/models"
+var TempUploadDir = "deployments/tars/models/.tmp"
 
 type ModelInfo struct {
 	Name      string    `json:"name"`
@@ -49,7 +49,7 @@ func init() {
 	os.MkdirAll(TempUploadDir, 0755)
 }
 
-// GetModels lists all available models in deployments/models
+// GetModels lists all available models in deployments/tars/models
 func GetModels(c *gin.Context) {
 	if _, err := os.Stat(ModelsDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(ModelsDir, 0755); err != nil {
@@ -64,7 +64,7 @@ func GetModels(c *gin.Context) {
 		return
 	}
 
-	var models []ModelInfo
+	models := []ModelInfo{}
 	for _, entry := range entries {
 		// Skip hidden files
 		if strings.HasPrefix(entry.Name(), ".") {

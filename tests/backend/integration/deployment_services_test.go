@@ -3,7 +3,7 @@ package integration_test
 import (
 	"anyadmin-backend/pkg/api"
 	"anyadmin-backend/pkg/global"
-	"anyadmin-backend/pkg/mockdata"
+	"anyadmin-backend/pkg/utils"
 	"bytes"
 	"encoding/json"
 	"net/http"
@@ -17,9 +17,9 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	// Setup mock data for tests
-	mockdata.Mu.Lock()
-	mockdata.DeploymentNodes = []global.DeploymentNode{
+	// Setup utils data for tests
+	utils.Mu.Lock()
+	utils.DeploymentNodes = []global.DeploymentNode{
 		{
 			NodeIP:   "172.20.0.10",
 			Hostname: "TestNode",
@@ -32,9 +32,9 @@ func TestMain(m *testing.M) {
 			AgentConfig: global.AgentConfig{},
 		},
 	}
-	mockdata.MgmtHost = "172.20.0.1"
-	mockdata.MgmtPort = "8080"
-	mockdata.Mu.Unlock()
+	utils.MgmtHost = "172.20.0.1"
+	utils.MgmtPort = "8080"
+	utils.Mu.Unlock()
 	
 	os.Exit(m.Run())
 }
@@ -240,9 +240,9 @@ func TestAgentConfigSync(t *testing.T) {
 
 	t.Run("RestartAgentUpdatesConfig", func(t *testing.T) {
 		// Reset config first
-		mockdata.Mu.Lock()
-		mockdata.DeploymentNodes[0].AgentConfig = global.AgentConfig{}
-		mockdata.Mu.Unlock()
+		utils.Mu.Lock()
+		utils.DeploymentNodes[0].AgentConfig = global.AgentConfig{}
+		utils.Mu.Unlock()
 
 		controlPayload := map[string]interface{}{
 			"ip":     targetIP,
@@ -265,9 +265,9 @@ func TestAgentConfigSync(t *testing.T) {
 		success := false
 		for i := 0; i < maxRetries; i++ {
 			time.Sleep(1 * time.Second)
-			mockdata.Mu.Lock()
-			cfg := mockdata.DeploymentNodes[0].AgentConfig
-			mockdata.Mu.Unlock()
+			utils.Mu.Lock()
+			cfg := utils.DeploymentNodes[0].AgentConfig
+			utils.Mu.Unlock()
 			
 			if cfg.MgmtHost != "" {
 				success = true

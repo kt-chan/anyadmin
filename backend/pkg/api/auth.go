@@ -5,8 +5,8 @@ import (
 
 	"anyadmin-backend/pkg/global"
 	"anyadmin-backend/pkg/middleware"
-	"anyadmin-backend/pkg/mockdata"
 	"anyadmin-backend/pkg/service"
+	"anyadmin-backend/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,14 +23,14 @@ func Login(c *gin.Context) {
 	}
 
 	var user *global.User
-	mockdata.Mu.Lock()
-	for _, u := range mockdata.Users {
+	utils.Mu.Lock()
+	for _, u := range utils.Users {
 		if u.Username == req.Username && u.Password == req.Password {
 			user = &u
 			break
 		}
 	}
-	mockdata.Mu.Unlock()
+	utils.Mu.Unlock()
 
 	if user == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "用户名或密码错误"})

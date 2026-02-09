@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"anyadmin-backend/pkg/mockdata"
+	"anyadmin-backend/pkg/utils"
 	"anyadmin-backend/pkg/service"
 	"github.com/gin-gonic/gin"
 )
@@ -23,9 +23,9 @@ func CreateBackup(c *gin.Context) {
 }
 
 func GetBackups(c *gin.Context) {
-	mockdata.Mu.Lock()
-	defer mockdata.Mu.Unlock()
-	c.JSON(http.StatusOK, mockdata.BackupRecords)
+	utils.Mu.Lock()
+	defer utils.Mu.Unlock()
+	c.JSON(http.StatusOK, utils.BackupRecords)
 }
 
 func RestoreBackup(c *gin.Context) {

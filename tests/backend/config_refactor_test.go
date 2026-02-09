@@ -3,7 +3,7 @@ package tests
 import (
 	"anyadmin-backend/pkg/api"
 	"anyadmin-backend/pkg/global"
-	"anyadmin-backend/pkg/mockdata"
+	"anyadmin-backend/pkg/utils"
 	"bytes"
 	"encoding/json"
 	"net/http"
@@ -15,8 +15,8 @@ import (
 )
 
 func TestSaveInferenceConfig_Refactor(t *testing.T) {
-	// Setup Mock Data
-	mockdata.DeploymentNodes = []global.DeploymentNode{
+	// Setup utils Data
+	utils.DeploymentNodes = []global.DeploymentNode{
 		{
 			NodeIP: "172.20.0.10",
 			InferenceCfgs: []global.InferenceConfig{
@@ -54,8 +54,8 @@ func TestSaveInferenceConfig_Refactor(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	
 	// Verify update in nested structure
-	assert.Equal(t, "NewModel-v1", mockdata.DeploymentNodes[0].InferenceCfgs[0].ModelName)
-	assert.Equal(t, "vLLM", mockdata.DeploymentNodes[0].InferenceCfgs[0].Engine)
+	assert.Equal(t, "NewModel-v1", utils.DeploymentNodes[0].InferenceCfgs[0].ModelName)
+	assert.Equal(t, "vLLM", utils.DeploymentNodes[0].InferenceCfgs[0].Engine)
 
 	// Test Case 2: Add new config to existing node
 	addConfig := global.InferenceConfig{
@@ -70,8 +70,8 @@ func TestSaveInferenceConfig_Refactor(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Len(t, mockdata.DeploymentNodes[0].InferenceCfgs, 2)
-	assert.Equal(t, "new_service", mockdata.DeploymentNodes[0].InferenceCfgs[1].Name)
+	assert.Len(t, utils.DeploymentNodes[0].InferenceCfgs, 2)
+	assert.Equal(t, "new_service", utils.DeploymentNodes[0].InferenceCfgs[1].Name)
 
 	// Test Case 3: Add new config to NEW node
 	newNodeConfig := global.InferenceConfig{
@@ -87,8 +87,8 @@ func TestSaveInferenceConfig_Refactor(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	// Should have added a new node
-	assert.Len(t, mockdata.DeploymentNodes, 2)
-	assert.Equal(t, "192.168.1.100", mockdata.DeploymentNodes[1].NodeIP)
-	assert.Len(t, mockdata.DeploymentNodes[1].InferenceCfgs, 1)
-	assert.Equal(t, "remote_service", mockdata.DeploymentNodes[1].InferenceCfgs[0].Name)
+	assert.Len(t, utils.DeploymentNodes, 2)
+	assert.Equal(t, "192.168.1.100", utils.DeploymentNodes[1].NodeIP)
+	assert.Len(t, utils.DeploymentNodes[1].InferenceCfgs, 1)
+	assert.Equal(t, "remote_service", utils.DeploymentNodes[1].InferenceCfgs[0].Name)
 }

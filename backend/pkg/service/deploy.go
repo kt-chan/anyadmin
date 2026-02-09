@@ -2,7 +2,7 @@ package service
 
 import (
 	"anyadmin-backend/pkg/global"
-	"anyadmin-backend/pkg/mockdata"
+	"anyadmin-backend/pkg/utils"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -516,11 +516,11 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 	}
 	log.Printf("Agent successfully started on %s (count: %d)", nodeIP, count)
 
-	// Sync agent_config back to mockdata
-	mockdata.Mu.Lock()
-	for i, node := range mockdata.DeploymentNodes {
+	// Sync agent_config back to utils
+	utils.Mu.Lock()
+	for i, node := range utils.DeploymentNodes {
 		if node.NodeIP == nodeIP {
-			mockdata.DeploymentNodes[i].AgentConfig = global.AgentConfig{
+			utils.DeploymentNodes[i].AgentConfig = global.AgentConfig{
 				MgmtHost:       mgmtHost,
 				MgmtPort:       mgmtPort,
 				NodeIP:         nodeIP,
@@ -531,8 +531,8 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 			break
 		}
 	}
-	mockdata.Mu.Unlock()
-	mockdata.SaveToFile()
+	utils.Mu.Unlock()
+	utils.SaveToFile()
 
 	return nil
 }
@@ -585,17 +585,17 @@ func ControlAgent(nodeIP, action string) error {
 				return
 			}
 
-			mockdata.Mu.Lock()
-			mgmtHost := mockdata.MgmtHost
-			mgmtPort := mockdata.MgmtPort
-			mockdata.Mu.Unlock()
+			utils.Mu.Lock()
+			mgmtHost := utils.MgmtHost
+			mgmtPort := utils.MgmtPort
+			utils.Mu.Unlock()
 
 			if mgmtHost == "" {
-				mockdata.LoadFromFile()
-				mockdata.Mu.Lock()
-				mgmtHost = mockdata.MgmtHost
-				mgmtPort = mockdata.MgmtPort
-				mockdata.Mu.Unlock()
+				utils.LoadFromFile()
+				utils.Mu.Lock()
+				mgmtHost = utils.MgmtHost
+				mgmtPort = utils.MgmtPort
+				utils.Mu.Unlock()
 			}
 			if mgmtHost == "" {
 				mgmtHost = "172.20.0.1"
@@ -632,17 +632,17 @@ func ControlAgent(nodeIP, action string) error {
 			ExecuteCommand(client, "pkill -f anyadmin-agent || true")
 			time.Sleep(1 * time.Second)
 
-			mockdata.Mu.Lock()
-			mgmtHost := mockdata.MgmtHost
-			mgmtPort := mockdata.MgmtPort
-			mockdata.Mu.Unlock()
+			utils.Mu.Lock()
+			mgmtHost := utils.MgmtHost
+			mgmtPort := utils.MgmtPort
+			utils.Mu.Unlock()
 
 			if mgmtHost == "" {
-				mockdata.LoadFromFile()
-				mockdata.Mu.Lock()
-				mgmtHost = mockdata.MgmtHost
-				mgmtPort = mockdata.MgmtPort
-				mockdata.Mu.Unlock()
+				utils.LoadFromFile()
+				utils.Mu.Lock()
+				mgmtHost = utils.MgmtHost
+				mgmtPort = utils.MgmtPort
+				utils.Mu.Unlock()
 			}
 			if mgmtHost == "" {
 				mgmtHost = "172.20.0.1"

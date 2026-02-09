@@ -2,17 +2,17 @@ package service_test
 
 import (
 	"anyadmin-backend/pkg/service"
-	"anyadmin-backend/pkg/mockdata"
+	"anyadmin-backend/pkg/utils"
 	"testing"
 	"os"
 )
 
 func TestAgentEnrichment(t *testing.T) {
-	// Initialize mockdata
-	mockdata.InitData()
-	mockdata.MgmtHost = "172.20.0.1"
-	mockdata.MgmtPort = "8080"
-	mockdata.SaveToFile()
+	// Initialize utils
+	utils.InitData()
+	utils.MgmtHost = "172.20.0.1"
+	utils.MgmtPort = "8080"
+	utils.SaveToFile()
 
 	targetIP := "172.20.0.10"
 	

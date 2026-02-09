@@ -2,8 +2,8 @@ package api
 
 import (
 	"anyadmin-backend/pkg/global"
-	"anyadmin-backend/pkg/mockdata"
 	"anyadmin-backend/pkg/service"
+	"anyadmin-backend/pkg/utils"
 	"fmt"
 	"net/http"
 	"time"
@@ -24,7 +24,7 @@ func SaveInferenceConfig(c *gin.Context) {
 	// If config.IP is empty (which shouldn't happen for existing config), we might need to search by name?
 	// But let's assume IP is provided or we search everything.
 
-	mockdata.Mu.Lock()
+	utils.Mu.Lock()
 	found := false
 	var updatedConfig global.InferenceConfig
 
@@ -69,7 +69,7 @@ func SaveInferenceConfig(c *gin.Context) {
 		cfg.UpdatedAt = time.Now()
 	}
 
-	for i, node := range mockdata.DeploymentNodes {
+	for i, node := range utils.DeploymentNodes {
 		// If targetIP is provided, skip nodes that don't match.
 		// If targetIP is empty, we update matching services on ALL nodes (Service Level)
 		if targetIP != "" && node.NodeIP != targetIP {
@@ -82,8 +82,8 @@ func SaveInferenceConfig(c *gin.Context) {
 			         (config.Name != "" && cfg.Name == config.Name)
 
 			if match {
-				updateFields(&mockdata.DeploymentNodes[i].InferenceCfgs[j], config)
-				updatedConfig = mockdata.DeploymentNodes[i].InferenceCfgs[j]
+				updateFields(&utils.DeploymentNodes[i].InferenceCfgs[j], config)
+				updatedConfig = utils.DeploymentNodes[i].InferenceCfgs[j]
 				found = true
 				// If we are updating a specific IP, we can break after finding it.
 				// But if we are updating Service Level (targetIP == ""), we continue to next nodes.
@@ -96,7 +96,7 @@ func SaveInferenceConfig(c *gin.Context) {
 
 	// If not found, add to the node matching config.IP (only if IP was provided and not found)
 	if !found {
-		mockdata.Mu.Unlock()
+		utils.Mu.Unlock()
 		fmt.Printf("[DEBUG] Target service not found Error at SaveInferenceConfig")
 		c.JSON(http.StatusNotFound, gin.H{"error": "Target service not found"})
 		return
@@ -106,7 +106,7 @@ func SaveInferenceConfig(c *gin.Context) {
 	var affectedConfigs []global.InferenceConfig
 	if targetIP == "" {
 		// Global update: we need to find all instances of this service name
-		for _, node := range mockdata.DeploymentNodes {
+		for _, node := range utils.DeploymentNodes {
 			for _, cfg := range node.InferenceCfgs {
 				if cfg.Name == config.Name {
 					affectedConfigs = append(affectedConfigs, cfg)
@@ -117,9 +117,9 @@ func SaveInferenceConfig(c *gin.Context) {
 		affectedConfigs = append(affectedConfigs, updatedConfig)
 	}
 
-	mockdata.Mu.Unlock()
+	utils.Mu.Unlock()
 
-	if err := mockdata.SaveToFile(); err != nil {
+	if err := utils.SaveToFile(); err != nil {
 		fmt.Printf("[DEBUG] SaveToFile Error: %v\n", err)
 	}
 
@@ -171,12 +171,12 @@ func SaveInferenceConfig(c *gin.Context) {
 }
 
 func GetInferenceConfigs(c *gin.Context) {
-	mockdata.Mu.Lock()
-	defer mockdata.Mu.Unlock()
+	utils.Mu.Lock()
+	defer utils.Mu.Unlock()
 
 	// Flatten configs for frontend compatibility
 	var allConfigs []global.InferenceConfig
-	for _, node := range mockdata.DeploymentNodes {
+	for _, node := range utils.DeploymentNodes {
 		allConfigs = append(allConfigs, node.InferenceCfgs...)
 	}
 
@@ -208,12 +208,12 @@ func SaveSystemConfig(c *gin.Context) {
 		return
 	}
 
-	mockdata.Mu.Lock()
-	mockdata.MgmtHost = req.MgmtHost
-	mockdata.MgmtPort = req.MgmtPort
-	mockdata.Mu.Unlock()
+	utils.Mu.Lock()
+	utils.MgmtHost = req.MgmtHost
+	utils.MgmtPort = req.MgmtPort
+	utils.Mu.Unlock()
 
-	if err := mockdata.SaveToFile(); err != nil {
+	if err := utils.SaveToFile(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save config"})
 		return
 	}
@@ -221,8 +221,8 @@ func SaveSystemConfig(c *gin.Context) {
 }
 
 func GetServicesConfig(c *gin.Context) {
-	mockdata.Mu.Lock()
-	defer mockdata.Mu.Unlock()
+	utils.Mu.Lock()
+	defer utils.Mu.Unlock()
 
 	// Create a grouped view of services
 	// Map[ServiceName] -> []ServiceInstance
@@ -234,7 +234,7 @@ func GetServicesConfig(c *gin.Context) {
 	}
 	groupedServices := make(map[string][]ServiceInstance)
 
-	for _, node := range mockdata.DeploymentNodes {
+	for _, node := range utils.DeploymentNodes {
 		// Inference Services
 		for _, cfg := range node.InferenceCfgs {
 			instance := ServiceInstance{
@@ -258,9 +258,9 @@ func GetServicesConfig(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"mgmt_host":        mockdata.MgmtHost,
-		"mgmt_port":        mockdata.MgmtPort,
-		"nodes":            mockdata.DeploymentNodes,
+		"mgmt_host":        utils.MgmtHost,
+		"mgmt_port":        utils.MgmtPort,
+		"nodes":            utils.DeploymentNodes,
 		"grouped_services": groupedServices,
 	})
 }
@@ -272,7 +272,7 @@ func SaveRagAppConfig(c *gin.Context) {
 		return
 	}
 
-	mockdata.Mu.Lock()
+	utils.Mu.Lock()
 	found := false
 	var updatedConfig global.RagAppConfig
 
@@ -305,7 +305,7 @@ func SaveRagAppConfig(c *gin.Context) {
 		cfg.UpdatedAt = time.Now()
 	}
 
-	for i, node := range mockdata.DeploymentNodes {
+	for i, node := range utils.DeploymentNodes {
 		// If Host matches NodeIP, or search all if Host is empty (Service Level)
 		if config.Host != "" && node.NodeIP != config.Host {
 			continue
@@ -314,8 +314,8 @@ func SaveRagAppConfig(c *gin.Context) {
 		for j, cfg := range node.RagAppCfgs {
 			if cfg.Name == config.Name {
 				// Update fields selectively
-				updateRagFields(&mockdata.DeploymentNodes[i].RagAppCfgs[j], config)
-				updatedConfig = mockdata.DeploymentNodes[i].RagAppCfgs[j]
+				updateRagFields(&utils.DeploymentNodes[i].RagAppCfgs[j], config)
+				updatedConfig = utils.DeploymentNodes[i].RagAppCfgs[j]
 				found = true
 				// For this node, we found the service. Break inner loop to move to next node (or finish if specific).
 				break
@@ -329,7 +329,7 @@ func SaveRagAppConfig(c *gin.Context) {
 	}
 
 	if !found {
-		mockdata.Mu.Unlock()
+		utils.Mu.Unlock()
 		c.JSON(http.StatusNotFound, gin.H{"error": "Config not found"})
 		return
 	}
@@ -337,7 +337,7 @@ func SaveRagAppConfig(c *gin.Context) {
 	// Capture affected configs
 	var affectedConfigs []global.RagAppConfig
 	if config.Host == "" {
-		for _, node := range mockdata.DeploymentNodes {
+		for _, node := range utils.DeploymentNodes {
 			for _, cfg := range node.RagAppCfgs {
 				if cfg.Name == config.Name {
 					affectedConfigs = append(affectedConfigs, cfg)
@@ -348,9 +348,9 @@ func SaveRagAppConfig(c *gin.Context) {
 		affectedConfigs = append(affectedConfigs, updatedConfig)
 	}
 
-	mockdata.Mu.Unlock()
+	utils.Mu.Unlock()
 
-	if err := mockdata.SaveToFile(); err != nil {
+	if err := utils.SaveToFile(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
 		return
 	}
@@ -411,23 +411,23 @@ func SaveAgentConfig(c *gin.Context) {
 		return
 	}
 
-	mockdata.Mu.Lock()
+	utils.Mu.Lock()
 	found := false
-	for i, node := range mockdata.DeploymentNodes {
+	for i, node := range utils.DeploymentNodes {
 		if node.NodeIP == req.TargetNodeIP {
-			mockdata.DeploymentNodes[i].AgentConfig = req.Config
+			utils.DeploymentNodes[i].AgentConfig = req.Config
 			found = true
 			break
 		}
 	}
-	mockdata.Mu.Unlock()
+	utils.Mu.Unlock()
 
 	if !found {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Node not found"})
 		return
 	}
 
-	if err := mockdata.SaveToFile(); err != nil {
+	if err := utils.SaveToFile(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
 		return
 	}

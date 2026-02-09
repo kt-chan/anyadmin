@@ -10,7 +10,7 @@ import (
 
 	"anyadmin-backend/pkg/api"
 	"anyadmin-backend/pkg/global"
-	"anyadmin-backend/pkg/mockdata"
+	"anyadmin-backend/pkg/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -19,11 +19,11 @@ import (
 func TestDeployServicePersistence(t *testing.T) {
 	// Setup temporary data file
 	testFile := "test_data.json"
-	mockdata.DataFile = testFile
+	utils.DataFile = testFile
 	defer os.Remove(testFile)
 
 	// Initialize data (creates file)
-	mockdata.InitData()
+	utils.InitData()
 	
 	// Create Gin router
 	gin.SetMode(gin.TestMode)
@@ -51,7 +51,7 @@ func TestDeployServicePersistence(t *testing.T) {
 
 	// Verify InMemory Update
 	found := false
-	for _, node := range mockdata.DeploymentNodes {
+	for _, node := range utils.DeploymentNodes {
 		for _, cfg := range node.InferenceCfgs {
 			if cfg.Name == "vllm" {
 				found = true
@@ -66,7 +66,7 @@ func TestDeployServicePersistence(t *testing.T) {
 	fileContent, err := os.ReadFile(testFile)
 	assert.NoError(t, err)
 
-	var data mockdata.DataStore
+	var data utils.DataStore
 	err = json.Unmarshal(fileContent, &data)
 	assert.NoError(t, err)
 

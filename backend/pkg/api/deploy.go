@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"anyadmin-backend/pkg/global"
-	"anyadmin-backend/pkg/mockdata"
 	"anyadmin-backend/pkg/service"
 	"anyadmin-backend/pkg/utils"
 
@@ -80,7 +79,7 @@ func DeployService(c *gin.Context) {
 		inferenceConfig.GPUUtilization = 0
 	}
 
-	mockdata.Mu.Lock()
+	utils.Mu.Lock()
 
 	// Handle Target Nodes Update/Merge
 	if req.TargetNodes != "" && req.MgmtHost != "" && req.MgmtPort != "" {
@@ -88,7 +87,7 @@ func DeployService(c *gin.Context) {
 
 		// Create a map of existing nodes for easy lookup
 		existingNodes := make(map[string]global.DeploymentNode)
-		for _, node := range mockdata.DeploymentNodes {
+		for _, node := range utils.DeploymentNodes {
 			existingNodes[node.NodeIP] = node
 		}
 
@@ -130,12 +129,12 @@ func DeployService(c *gin.Context) {
 		// But be careful not to lose data if the user just omitted one.
 		// For safety in this "Add/Deploy" context, we might just append new ones and ensure existing ones are updated.
 		// But req.TargetNodes usually comes from the textarea which lists ALL nodes.
-		mockdata.DeploymentNodes = updatedNodes
+		utils.DeploymentNodes = updatedNodes
 
-		mockdata.MgmtHost = req.MgmtHost
-		mockdata.MgmtPort = req.MgmtPort
+		utils.MgmtHost = req.MgmtHost
+		utils.MgmtPort = req.MgmtPort
 	}
-	mockdata.Mu.Unlock() // Unlock briefly as DeployAgent is async and we are done with nodes list structure update for now
+	utils.Mu.Unlock() // Unlock briefly as DeployAgent is async and we are done with nodes list structure update for now
 
 	// Mode specific logging or additional actions
 	if req.Mode == "new_deployment" {
@@ -144,18 +143,18 @@ func DeployService(c *gin.Context) {
 		log.Printf("[接入服务] 正在登记现有服务: %s (%s:%s)", req.ModelName, req.InferenceHost, req.InferencePort)
 	}
 
-	mockdata.Mu.Lock()
-	defer mockdata.Mu.Unlock()
+	utils.Mu.Lock()
+	defer utils.Mu.Unlock()
 
 	// Helper to add/update config in a node
 	addOrUpdateInferenceCfg := func(nodeIP string, newCfg global.InferenceConfig) {
-		for i, node := range mockdata.DeploymentNodes {
+		for i, node := range utils.DeploymentNodes {
 			if node.NodeIP == nodeIP {
 				// Check if exists
 				found := false
 				for j, cfg := range node.InferenceCfgs {
 					if cfg.Name == newCfg.Name {
-						mockdata.DeploymentNodes[i].InferenceCfgs[j] = newCfg
+						utils.DeploymentNodes[i].InferenceCfgs[j] = newCfg
 						found = true
 						break
 					}
@@ -163,7 +162,7 @@ func DeployService(c *gin.Context) {
 				if !found {
 					newCfg.CreatedAt = time.Now()
 					newCfg.UpdatedAt = time.Now()
-					mockdata.DeploymentNodes[i].InferenceCfgs = append(mockdata.DeploymentNodes[i].InferenceCfgs, newCfg)
+					utils.DeploymentNodes[i].InferenceCfgs = append(utils.DeploymentNodes[i].InferenceCfgs, newCfg)
 				}
 				return
 			}
@@ -198,13 +197,13 @@ func DeployService(c *gin.Context) {
 			newCfg.VectorDB = "lancedb"
 		}
 
-		for i, node := range mockdata.DeploymentNodes {
+		for i, node := range utils.DeploymentNodes {
 			if node.NodeIP == nodeIP {
 				// Check if exists
 				found := false
 				for j, cfg := range node.RagAppCfgs {
 					if cfg.Name == newCfg.Name {
-						mockdata.DeploymentNodes[i].RagAppCfgs[j] = newCfg
+						utils.DeploymentNodes[i].RagAppCfgs[j] = newCfg
 						found = true
 						break
 					}
@@ -212,7 +211,7 @@ func DeployService(c *gin.Context) {
 				if !found {
 					newCfg.CreatedAt = time.Now()
 					newCfg.UpdatedAt = time.Now()
-					mockdata.DeploymentNodes[i].RagAppCfgs = append(mockdata.DeploymentNodes[i].RagAppCfgs, newCfg)
+					utils.DeploymentNodes[i].RagAppCfgs = append(utils.DeploymentNodes[i].RagAppCfgs, newCfg)
 				}
 				return
 			}
@@ -258,9 +257,9 @@ func DeployService(c *gin.Context) {
 	}
 
 	// Persist to file
-	mockdata.Mu.Unlock() // avoid double lock in SaveToFile
-	mockdata.SaveToFile()
-	mockdata.Mu.Lock() // re-lock for defer unlock? Actually defer will unlock. We should just not lock around SaveToFile if it locks internally.
+	utils.Mu.Unlock() // avoid double lock in SaveToFile
+	utils.SaveToFile()
+	utils.Mu.Lock() // re-lock for defer unlock? Actually defer will unlock. We should just not lock around SaveToFile if it locks internally.
 	// SaveToFile locks internally. So we should UNLOCK before calling it.
 	// I unlocked above. But defer is still scheduled.
 	// To avoid panic on defer Unlock of unlocked mutex, I should remove defer or handle carefully.
@@ -287,11 +286,11 @@ func DeployService(c *gin.Context) {
 
 // GetNodes returns the list of target nodes (IPs)
 func GetNodes(c *gin.Context) {
-	mockdata.Mu.Lock()
-	defer mockdata.Mu.Unlock()
+	utils.Mu.Lock()
+	defer utils.Mu.Unlock()
 
 	var nodeIPs []string
-	for _, node := range mockdata.DeploymentNodes {
+	for _, node := range utils.DeploymentNodes {
 		nodeIPs = append(nodeIPs, node.NodeIP)
 	}
 
@@ -310,10 +309,10 @@ func SaveNodes(c *gin.Context) {
 		return
 	}
 
-	mockdata.Mu.Lock()
+	utils.Mu.Lock()
 	// Merge logic similar to DeployService
 	existingNodes := make(map[string]global.DeploymentNode)
-	for _, node := range mockdata.DeploymentNodes {
+	for _, node := range utils.DeploymentNodes {
 		existingNodes[node.NodeIP] = node
 	}
 
@@ -346,10 +345,10 @@ func SaveNodes(c *gin.Context) {
 			})
 		}
 	}
-	mockdata.DeploymentNodes = updatedNodes
-	mockdata.Mu.Unlock()
+	utils.DeploymentNodes = updatedNodes
+	utils.Mu.Unlock()
 
-	mockdata.SaveToFile()
+	utils.SaveToFile()
 
 	c.JSON(http.StatusOK, gin.H{"message": "Success", "nodes": req.Nodes})
 }

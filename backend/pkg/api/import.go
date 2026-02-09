@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"anyadmin-backend/pkg/global"
-	"anyadmin-backend/pkg/mockdata"
+	"anyadmin-backend/pkg/utils"
 	"anyadmin-backend/pkg/service"
 	"github.com/gin-gonic/gin"
 )
@@ -18,10 +18,10 @@ func CreateImportTask(c *gin.Context) {
 
 	task.Status = "Running"
 	
-	mockdata.Mu.Lock()
+	utils.Mu.Lock()
 	// Assign a mock ID if needed, or just append
-	mockdata.ImportTasks = append(mockdata.ImportTasks, task)
-	mockdata.Mu.Unlock()
+	utils.ImportTasks = append(utils.ImportTasks, task)
+	utils.Mu.Unlock()
 
 	username, _ := c.Get("username")
 	service.RecordLog(username.(string), "数据导入", "启动了新的批量导入任务: "+task.Name, "Info")
@@ -33,7 +33,7 @@ func CreateImportTask(c *gin.Context) {
 }
 
 func GetImportTasks(c *gin.Context) {
-	mockdata.Mu.Lock()
-	defer mockdata.Mu.Unlock()
-	c.JSON(http.StatusOK, mockdata.ImportTasks)
+	utils.Mu.Lock()
+	defer utils.Mu.Unlock()
+	c.JSON(http.StatusOK, utils.ImportTasks)
 }

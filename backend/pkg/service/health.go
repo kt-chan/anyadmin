@@ -1,7 +1,7 @@
 package service
 
 import (
-	"anyadmin-backend/pkg/mockdata"
+	"anyadmin-backend/pkg/utils"
 	"fmt"
 	"os"
 	"runtime"
@@ -53,7 +53,7 @@ func GetServicesHealth() []ServiceStatus {
 		agentMap[agent.NodeIP] = agent
 	}
 
-	mockdata.Mu.Lock()
+	utils.Mu.Lock()
 	// Copy nodes to avoid holding lock during processing
 	nodes := make([]struct{
 		IP string
@@ -64,9 +64,9 @@ func GetServicesHealth() []ServiceStatus {
 			ModelName string
 			IP string
 		}
-	}, len(mockdata.DeploymentNodes))
+	}, len(utils.DeploymentNodes))
 	
-	for i, n := range mockdata.DeploymentNodes {
+	for i, n := range utils.DeploymentNodes {
 		nodes[i].IP = n.NodeIP
 		nodes[i].Hostname = n.Hostname
 		// Collect all configs (Inference + RAG) into a generic list for checking
@@ -81,7 +81,7 @@ func GetServicesHealth() []ServiceStatus {
 			})
 		}
 	}
-	mockdata.Mu.Unlock()
+	utils.Mu.Unlock()
 
 	for _, node := range nodes {
 		nodeIP := node.IP

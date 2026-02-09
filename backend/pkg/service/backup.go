@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"anyadmin-backend/pkg/global"
-	"anyadmin-backend/pkg/mockdata"
+	"anyadmin-backend/pkg/utils"
 )
 
 func CreateBackup() (*global.BackupRecord, error) {
@@ -27,9 +27,9 @@ func CreateBackup() (*global.BackupRecord, error) {
 		Status: "Success",
 	}
 
-	mockdata.Mu.Lock()
-	mockdata.BackupRecords = append([]global.BackupRecord{record}, mockdata.BackupRecords...)
-	mockdata.Mu.Unlock()
+	utils.Mu.Lock()
+	utils.BackupRecords = append([]global.BackupRecord{record}, utils.BackupRecords...)
+	utils.Mu.Unlock()
 	
 	return &record, nil
 }

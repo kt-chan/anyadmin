@@ -3,7 +3,7 @@ package api_test
 import (
 	"anyadmin-backend/pkg/api"
 	"anyadmin-backend/pkg/global"
-	"anyadmin-backend/pkg/mockdata"
+	"anyadmin-backend/pkg/utils"
 	"bytes"
 	"encoding/json"
 	"net/http"
@@ -29,17 +29,17 @@ func TestNodeOperations(t *testing.T) {
 	// Setup Temp Persistence to avoid affecting real data
 
 	tmpFile := "test_node_data.json"
-	mockdata.DataFile = tmpFile
+	utils.DataFile = tmpFile
 	defer os.Remove(tmpFile)
-	mockdata.InitData()
+	utils.InitData()
 	router := setupNodeRouter()
 
 	// 1. Initial nodes
-	mockdata.Mu.Lock()
-	mockdata.DeploymentNodes = []global.DeploymentNode{
+	utils.Mu.Lock()
+	utils.DeploymentNodes = []global.DeploymentNode{
 		{NodeIP: "172.20.0.10", Hostname: "172.20.0.10"},
 	}
-	mockdata.Mu.Unlock()
+	utils.Mu.Unlock()
 
 	// 2. Test GetNodes
 	w := httptest.NewRecorder()
@@ -61,16 +61,16 @@ func TestNodeOperations(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	mockdata.Mu.Lock()
+	utils.Mu.Lock()
 	found := false
-	for _, n := range mockdata.DeploymentNodes {
+	for _, n := range utils.DeploymentNodes {
 		if n.NodeIP == "172.20.0.10" {
 			found = true
 			break
 		}
 	}
 	assert.True(t, found)
-	mockdata.Mu.Unlock()
+	utils.Mu.Unlock()
 }
 
 func TestAgentControlAPI(t *testing.T) {

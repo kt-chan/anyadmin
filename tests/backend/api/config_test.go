@@ -3,7 +3,7 @@ package api_test
 import (
 	"anyadmin-backend/pkg/api"
 	"anyadmin-backend/pkg/global"
-	"anyadmin-backend/pkg/mockdata"
+	"anyadmin-backend/pkg/utils"
 	"bytes"
 	"encoding/json"
 	"net/http"
@@ -24,8 +24,8 @@ func TestInferenceConfig(t *testing.T) {
 	})
 	router.GET("/api/v1/configs/inference", api.GetInferenceConfigs)
 
-	// Initialize Mock Data
-	mockdata.DeploymentNodes = []global.DeploymentNode{
+	// Initialize utils Data
+	utils.DeploymentNodes = []global.DeploymentNode{
 		{
 			NodeIP: "192.168.1.1",
 			InferenceCfgs: []global.InferenceConfig{
@@ -57,18 +57,18 @@ func TestInferenceConfig(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		// Verify changes in Mock Data
-		mockdata.Mu.Lock()
-		defer mockdata.Mu.Unlock()
+		// Verify changes in utils Data
+		utils.Mu.Lock()
+		defer utils.Mu.Unlock()
 
 		// Check Node 1
-		assert.Equal(t, 2048, mockdata.DeploymentNodes[0].InferenceCfgs[0].MaxModelLen)
+		assert.Equal(t, 2048, utils.DeploymentNodes[0].InferenceCfgs[0].MaxModelLen)
 		
 		// Check Node 2
-		assert.Equal(t, 2048, mockdata.DeploymentNodes[1].InferenceCfgs[0].MaxModelLen)
+		assert.Equal(t, 2048, utils.DeploymentNodes[1].InferenceCfgs[0].MaxModelLen)
 
 		// Check Unaffected Service
-		assert.Equal(t, 1024, mockdata.DeploymentNodes[1].InferenceCfgs[1].MaxModelLen)
+		assert.Equal(t, 1024, utils.DeploymentNodes[1].InferenceCfgs[1].MaxModelLen)
 	})
 
 	// Test 2: Specific Node Update
@@ -88,14 +88,14 @@ func TestInferenceConfig(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		// Verify changes
-		mockdata.Mu.Lock()
-		defer mockdata.Mu.Unlock()
+		utils.Mu.Lock()
+		defer utils.Mu.Unlock()
 
 		// Node 1 should be updated
-		assert.Equal(t, 4096, mockdata.DeploymentNodes[0].InferenceCfgs[0].MaxModelLen)
+		assert.Equal(t, 4096, utils.DeploymentNodes[0].InferenceCfgs[0].MaxModelLen)
 		
 		// Node 2 should NOT be updated (should remain 2048 from previous test)
-		assert.Equal(t, 2048, mockdata.DeploymentNodes[1].InferenceCfgs[0].MaxModelLen)
+		assert.Equal(t, 2048, utils.DeploymentNodes[1].InferenceCfgs[0].MaxModelLen)
 	})
 }
 
@@ -108,8 +108,8 @@ func TestRagConfig(t *testing.T) {
 		api.SaveRagAppConfig(c)
 	})
 
-	// Initialize Mock Data
-	mockdata.DeploymentNodes = []global.DeploymentNode{
+	// Initialize utils Data
+	utils.DeploymentNodes = []global.DeploymentNode{
 		{
 			NodeIP: "192.168.1.1",
 			RagAppCfgs: []global.RagAppConfig{
@@ -139,16 +139,16 @@ func TestRagConfig(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		mockdata.Mu.Lock()
-		defer mockdata.Mu.Unlock()
+		utils.Mu.Lock()
+		defer utils.Mu.Unlock()
 
 		// Verify Node 1
-		cfg1 := mockdata.DeploymentNodes[0].RagAppCfgs[0]
+		cfg1 := utils.DeploymentNodes[0].RagAppCfgs[0]
 		assert.Equal(t, "/new/shared/dir", cfg1.StorageDir)
 		assert.Equal(t, "192.168.1.1", cfg1.Host) // Should be preserved
 
 		// Verify Node 2
-		cfg2 := mockdata.DeploymentNodes[1].RagAppCfgs[0]
+		cfg2 := utils.DeploymentNodes[1].RagAppCfgs[0]
 		assert.Equal(t, "/new/shared/dir", cfg2.StorageDir)
 		assert.Equal(t, "192.168.1.2", cfg2.Host) // Should be preserved
 	})

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"anyadmin-backend/pkg/mockdata"
 	"anyadmin-backend/pkg/service"
 	"anyadmin-backend/pkg/utils"
 	"net/http"
@@ -63,8 +62,8 @@ func CalculateVLLMConfig(c *gin.Context) {
 	// We want the actual model path from our deployment config
 	real_model_path := req.ModelName
 	if req.NodeIP != "" {
-		mockdata.Mu.Lock()
-		for _, node := range mockdata.DeploymentNodes {
+		utils.Mu.Lock()
+		for _, node := range utils.DeploymentNodes {
 			if node.NodeIP == req.NodeIP {
 				for _, cfg := range node.InferenceCfgs {
 					if cfg.ModelPath != "" && (cfg.Engine == "vLLM" || cfg.Name == "vllm" || strings.Contains(strings.ToLower(cfg.Name), "vllm")) {
@@ -75,7 +74,7 @@ func CalculateVLLMConfig(c *gin.Context) {
 				break
 			}
 		}
-		mockdata.Mu.Unlock()
+		utils.Mu.Unlock()
 	}
 
 	// 2. Calculate Config
@@ -92,28 +91,28 @@ func CalculateVLLMConfig(c *gin.Context) {
 		return
 	}
 
-	// 3. Enrich MockData and Save to File
+	// 3. Enrich utils and Save to File
 	if req.NodeIP != "" {
-		mockdata.Mu.Lock()
+		utils.Mu.Lock()
 		updated := false
-		for i, node := range mockdata.DeploymentNodes {
+		for i, node := range utils.DeploymentNodes {
 			if node.NodeIP == req.NodeIP {
 				for j, cfg := range node.InferenceCfgs {
 					if cfg.Engine == "vLLM" || cfg.Name == "vllm" {
-						if mockdata.DeploymentNodes[i].InferenceCfgs[j].MaxModelLen == 0 {
-							mockdata.DeploymentNodes[i].InferenceCfgs[j].MaxModelLen = vllmConfig.MaxModelLen
+						if utils.DeploymentNodes[i].InferenceCfgs[j].MaxModelLen == 0 {
+							utils.DeploymentNodes[i].InferenceCfgs[j].MaxModelLen = vllmConfig.MaxModelLen
 						}
-						if mockdata.DeploymentNodes[i].InferenceCfgs[j].MaxNumSeqs == 0 {
-							mockdata.DeploymentNodes[i].InferenceCfgs[j].MaxNumSeqs = vllmConfig.MaxNumSeqs
+						if utils.DeploymentNodes[i].InferenceCfgs[j].MaxNumSeqs == 0 {
+							utils.DeploymentNodes[i].InferenceCfgs[j].MaxNumSeqs = vllmConfig.MaxNumSeqs
 						}
-						if mockdata.DeploymentNodes[i].InferenceCfgs[j].MaxNumBatchedTokens == 0 {
-							mockdata.DeploymentNodes[i].InferenceCfgs[j].MaxNumBatchedTokens = vllmConfig.MaxNumBatchedTokens
+						if utils.DeploymentNodes[i].InferenceCfgs[j].MaxNumBatchedTokens == 0 {
+							utils.DeploymentNodes[i].InferenceCfgs[j].MaxNumBatchedTokens = vllmConfig.MaxNumBatchedTokens
 						}
-						if mockdata.DeploymentNodes[i].InferenceCfgs[j].GpuMemoryUtilization == 0 {
-							mockdata.DeploymentNodes[i].InferenceCfgs[j].GpuMemoryUtilization = vllmConfig.GPUMemoryUtil
+						if utils.DeploymentNodes[i].InferenceCfgs[j].GpuMemoryUtilization == 0 {
+							utils.DeploymentNodes[i].InferenceCfgs[j].GpuMemoryUtilization = vllmConfig.GPUMemoryUtil
 						}
-						if mockdata.DeploymentNodes[i].InferenceCfgs[j].ModelName == "" {
-							mockdata.DeploymentNodes[i].InferenceCfgs[j].ModelName = modelConfig.Name
+						if utils.DeploymentNodes[i].InferenceCfgs[j].ModelName == "" {
+							utils.DeploymentNodes[i].InferenceCfgs[j].ModelName = modelConfig.Name
 						}
 						updated = true
 						break
@@ -122,9 +121,9 @@ func CalculateVLLMConfig(c *gin.Context) {
 				break
 			}
 		}
-		mockdata.Mu.Unlock()
+		utils.Mu.Unlock()
 		if updated {
-			mockdata.SaveToFile()
+			utils.SaveToFile()
 		}
 	}
 

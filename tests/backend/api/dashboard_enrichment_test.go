@@ -3,7 +3,7 @@ package api_test
 import (
 	"anyadmin-backend/pkg/api"
 	"anyadmin-backend/pkg/global"
-	"anyadmin-backend/pkg/mockdata"
+	"anyadmin-backend/pkg/utils"
 	"bytes"
 	"encoding/json"
 	"net/http"
@@ -28,9 +28,9 @@ func setupDashboardRouter() *gin.Engine {
 }
 
 func TestDashboardEnrichment(t *testing.T) {
-	// Setup mock config
-	mockdata.Mu.Lock()
-	mockdata.DeploymentNodes = []global.DeploymentNode{
+	// Setup utils config
+	utils.Mu.Lock()
+	utils.DeploymentNodes = []global.DeploymentNode{
 		{
 			NodeIP: "172.20.0.10",
 			InferenceCfgs: []global.InferenceConfig{
@@ -38,7 +38,7 @@ func TestDashboardEnrichment(t *testing.T) {
 			},
 		},
 	}
-	mockdata.Mu.Unlock()
+	utils.Mu.Unlock()
 
 	router := setupDashboardRouter()
 

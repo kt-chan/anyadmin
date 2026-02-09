@@ -10,7 +10,7 @@ import (
 
 	"anyadmin-backend/pkg/api"
 	"anyadmin-backend/pkg/global"
-	"anyadmin-backend/pkg/mockdata"
+	"anyadmin-backend/pkg/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -32,9 +32,9 @@ func setupDeploymentRouter() *gin.Engine {
 func TestDeploymentFlow(t *testing.T) {
 	// Setup Temp Persistence
 	tmpFile := "test_flow_data.json"
-	mockdata.DataFile = tmpFile
+	utils.DataFile = tmpFile
 	defer os.Remove(tmpFile)
-	mockdata.InitData()
+	utils.InitData()
 
 	r := setupDeploymentRouter()
 
@@ -61,7 +61,7 @@ func TestDeploymentFlow(t *testing.T) {
 		
 		// Verify persistence
 		var savedNodes []string
-		for _, n := range mockdata.DeploymentNodes {
+		for _, n := range utils.DeploymentNodes {
 			savedNodes = append(savedNodes, n.NodeIP)
 		}
 		// Note: SaveNodes strips port for NodeIP
@@ -133,7 +133,7 @@ func TestDeploymentFlow(t *testing.T) {
 		assert.Contains(t, artifacts, "deploy_script.sh")
 		
 		found := false
-		for _, node := range mockdata.DeploymentNodes {
+		for _, node := range utils.DeploymentNodes {
 			for _, cfg := range node.InferenceCfgs {
 				if cfg.Name == "vllm" {
 					found = true

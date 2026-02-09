@@ -395,6 +395,10 @@ async function stopService(serviceName, nodeIP, serviceType) {
 }
 
 window.handleAgentAction = async function(ip, action) {
+  if (action === 'stop' && !confirm(`确定要停止节点 ${ip} 上的 Agent 服务吗？停止后将无法实时监控该节点资源及 Docker 状态。`)) {
+    return;
+  }
+
   // Find the button to show loading state
   const btn = event.currentTarget;
   const originalHtml = btn.innerHTML;

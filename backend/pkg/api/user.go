@@ -4,14 +4,14 @@ import (
 	"net/http"
 
 	"anyadmin-backend/pkg/global"
-	"anyadmin-backend/pkg/mockdata"
+	"anyadmin-backend/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
 
 func GetUsers(c *gin.Context) {
-	mockdata.Mu.Lock()
-	defer mockdata.Mu.Unlock()
-	c.JSON(http.StatusOK, mockdata.Users)
+	utils.Mu.Lock()
+	defer utils.Mu.Unlock()
+	c.JSON(http.StatusOK, utils.Users)
 }
 
 func CreateUser(c *gin.Context) {
@@ -20,9 +20,9 @@ func CreateUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	mockdata.Mu.Lock()
-	mockdata.Users = append(mockdata.Users, user)
-	mockdata.Mu.Unlock()
+	utils.Mu.Lock()
+	utils.Users = append(utils.Users, user)
+	utils.Mu.Unlock()
 	c.JSON(http.StatusOK, user)
 }
 

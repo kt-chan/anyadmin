@@ -10,7 +10,7 @@ import (
 
 	"anyadmin-backend/pkg/api"
 	"anyadmin-backend/pkg/global"
-	"anyadmin-backend/pkg/mockdata"
+	"anyadmin-backend/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
@@ -32,9 +32,9 @@ func TestUpdateVLLMConfigPersistence(t *testing.T) {
 	assert.NoError(t, err)
 	defer os.Remove(tmpFile.Name())
 
-	// Initialize mockdata with known state
-	mockdata.DataFile = tmpFile.Name()
-	mockdata.DeploymentNodes = []global.DeploymentNode{
+	// Initialize utils with known state
+	utils.DataFile = tmpFile.Name()
+	utils.DeploymentNodes = []global.DeploymentNode{
 		{
 			NodeIP: "172.20.0.10",
 			InferenceCfgs: []global.InferenceConfig{
@@ -50,7 +50,7 @@ func TestUpdateVLLMConfigPersistence(t *testing.T) {
 		},
 	}
 	// Save initial state
-	err = mockdata.SaveToFile()
+	err = utils.SaveToFile()
 	assert.NoError(t, err)
 
 	router := setupConfigRouter()
@@ -73,17 +73,17 @@ func TestUpdateVLLMConfigPersistence(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	router.ServeHTTP(w, req)
 
-	// Verify Mockdata Update
-	assert.Equal(t, 4096, mockdata.DeploymentNodes[0].InferenceCfgs[0].MaxModelLen)
-	assert.Equal(t, 0.95, mockdata.DeploymentNodes[0].InferenceCfgs[0].GpuMemoryUtilization)
-	assert.Equal(t, 256, mockdata.DeploymentNodes[0].InferenceCfgs[0].MaxNumSeqs)
-	assert.Equal(t, 2048, mockdata.DeploymentNodes[0].InferenceCfgs[0].MaxNumBatchedTokens)
+	// Verify utils Update
+	assert.Equal(t, 4096, utils.DeploymentNodes[0].InferenceCfgs[0].MaxModelLen)
+	assert.Equal(t, 0.95, utils.DeploymentNodes[0].InferenceCfgs[0].GpuMemoryUtilization)
+	assert.Equal(t, 256, utils.DeploymentNodes[0].InferenceCfgs[0].MaxNumSeqs)
+	assert.Equal(t, 2048, utils.DeploymentNodes[0].InferenceCfgs[0].MaxNumBatchedTokens)
 
 	// Verify File Persistence
 	content, err := os.ReadFile(tmpFile.Name())
 	assert.NoError(t, err)
 	
-	var data mockdata.DataStore
+	var data utils.DataStore
 	err = json.Unmarshal(content, &data)
 	assert.NoError(t, err)
 	

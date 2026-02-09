@@ -2,8 +2,8 @@ package api
 
 import (
 	"anyadmin-backend/pkg/global"
-	"anyadmin-backend/pkg/mockdata"
 	"anyadmin-backend/pkg/service"
+	"anyadmin-backend/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -50,8 +50,8 @@ func CheckAgentStatus(c *gin.Context) {
 	configuredServices := []global.DockerServiceStatus{}
 	hostname := ip
 	foundInConfig := false
-	mockdata.Mu.Lock()
-	for _, node := range mockdata.DeploymentNodes {
+	utils.Mu.Lock()
+	for _, node := range utils.DeploymentNodes {
 		if node.NodeIP == ip {
 			hostname = node.Hostname
 			foundInConfig = true
@@ -74,7 +74,7 @@ func CheckAgentStatus(c *gin.Context) {
 			break
 		}
 	}
-	mockdata.Mu.Unlock()
+	utils.Mu.Unlock()
 
 	if !exists && !foundInConfig {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Agent status not found for IP: " + ip})

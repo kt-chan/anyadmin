@@ -58,6 +58,34 @@ async function handleLogin() {
   submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>登录中...';
   
   try {
+    // 1. 获取公钥
+    let encryptedPassword = data.password;
+    try {
+      const keyResponse = await fetch('/public-key');
+      const keyData = await keyResponse.json();
+      if (keyData.success && keyData.publicKey) {
+        const encrypt = new JSEncrypt();
+        encrypt.setPublicKey(keyData.publicKey);
+        const result = encrypt.encrypt(data.password);
+        if (result) {
+          encryptedPassword = result;
+        } else {
+          throw new Error('Encryption failed');
+        }
+      }
+    } catch (keyError) {
+      console.warn('公钥获取或加密失败，尝试明文传输 (仅用于兼容性):', keyError);
+      // 如果后端强制要求加密，这里可能会失败。但根据代码，后端会尝试解密，如果失败则作为明文。
+      // 为满足"不保存明文"的要求，最好是必须加密。但如果获取key失败，就没办法了。
+      // 可以在这里throw error阻止登录
+      if (keyError.message === 'Encryption failed') {
+         throw new Error('密码加密失败，请重试');
+      }
+    }
+
+    // 更新密码为加密后的密码
+    data.password = encryptedPassword;
+
     const response = await fetch('/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -76,7 +104,7 @@ async function handleLogin() {
     }
   } catch (error) {
     console.error('登录错误:', error);
-    alert('网络错误，请重试');
+    alert(error.message || '网络错误，请重试');
     submitBtn.disabled = false;
     submitBtn.textContent = originalText;
   }

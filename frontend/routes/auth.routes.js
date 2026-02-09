@@ -8,6 +8,9 @@ router.get('/login', authController.showLogin);
 // 登录处理
 router.post('/login', authController.handleLogin);
 
+// 获取公钥
+router.get('/public-key', authController.getPublicKey);
+
 // 注销
 router.get('/logout', authController.handleLogout);
 

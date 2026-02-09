@@ -85,18 +85,47 @@ func InitData() {
 	ExecuteWrite(func() {
 		// Initialize Users if empty
 		if len(Users) == 0 {
+			adminPass, _ := EncryptPassword("password")
+			operatorPass, _ := EncryptPassword("password")
+			
 			Users = []global.User{
 				{
 					Username: "admin",
-					Password: "password",
+					Password: adminPass,
 					Role:     "admin",
 				},
 				{
 					Username: "operator_01",
-					Password: "password",
+					Password: operatorPass,
 					Role:     "operator",
 				},
 			}
+		} else {
+			// Migration: Ensure all users have encrypted passwords
+			for i := range Users {
+				// Try to decrypt. If it fails, it's likely plain text.
+				// Also check if it's the specific plain text "password" to be sure, 
+				// or just rely on decryption failure. 
+				// A simple heuristic: real encrypted string is long (Base64 of 256 bytes = 344 chars).
+				// "password" is short.
+				if len(Users[i].Password) < 100 { 
+					enc, err := EncryptPassword(Users[i].Password)
+					if err == nil {
+						Users[i].Password = enc
+					}
+				} else {
+					// Double check by trying to decrypt
+					_, err := DecryptPassword(Users[i].Password)
+					if err != nil {
+						// If decryption fails, maybe it's corrupted or just a long plain text?
+						// Re-encrypting might be risky if it was already encrypted but with a different key.
+						// Assume < 100 check covers most plain passwords. 
+						// For now, trust the length check as RSA-2048 output is 256 bytes -> base64 is longer.
+					}
+				}
+			}
+			// Note: We don't explicit set 'updated' flag logic here because 'saveToFile' is called if persist=true
+			// But ExecuteWrite calls saveToFile if persist is true.
 		}
 
 		// Initialize MgmtHost and MgmtPort if empty

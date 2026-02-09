@@ -21,6 +21,7 @@ func NewRouter() *gin.Engine {
 	v1 := r.Group("/api/v1")
 	{
 		v1.POST("/login", api.Login)
+		v1.GET("/public-key", api.GetPublicKey)
 		v1.POST("/agent/heartbeat", api.ReceiveHeartbeat) // Public endpoint for agent
 
 		// 受 JWT 保护的路由

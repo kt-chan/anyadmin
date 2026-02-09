@@ -48,6 +48,20 @@ const authController = {
       }
       res.redirect('/login');
     });
+  },
+
+  getPublicKey: async (req, res) => {
+    try {
+      const publicKey = await authService.getPublicKey();
+      if (publicKey) {
+        res.json({ success: true, publicKey });
+      } else {
+        res.status(500).json({ success: false, message: 'Failed to retrieve public key' });
+      }
+    } catch (error) {
+      console.error('Get public key error:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+    }
   }
 };
 

@@ -16,6 +16,18 @@ const authService = {
        logger.warn(`Login failed for user: ${username} - ${error.response?.status} ${error.response?.statusText}`);
     }
     return null;
+  },
+
+  getPublicKey: async () => {
+    try {
+      const response = await apiClient.get('/api/v1/public-key');
+      if (response.data && response.data.publicKey) {
+        return response.data.publicKey;
+      }
+    } catch (error) {
+      logger.warn(`Failed to fetch public key: ${error.message}`);
+    }
+    return null;
   }
 };
 

@@ -6,7 +6,7 @@
       "updatedAt": "0001-01-01T00:00:00Z",
       "deletedAt": null,
       "username": "admin",
-      "password": "password",
+      "password": "Qx1bBKKGIj0+9UX29roL6SVuUA/VfAURaFRsRv5w6o5IrVAa48I8M/i8keeSZrL/Rh2OM51a4nGJcc0q3CZiITU2mU946cb0waDioOS2nFbxKHOFzm/EuTYm8kODNPRB843Y3vKvMT3DFEpd3Qii5CElqX6VZQfhl/tj3iD2Pk2X1sVQ8+HfxW/0J46Zne00MtK0eCTCc2QZ2ojv0gy0xNcmCBb5tvWGLMwadATW9tsqZbkWHBT1wM54KYhSBsURemLdeOi8+KGdhCC6ZH6De17zLzc2zGiIl8zzlY9lOxho8R7nN0XQNnX+mobgBJeZ+9ZA0H3TXj1MZ50szdYFszEXGgYqVKaSBYTKTTXihpxgjs3FuvbLwf8UjxIYnEWBPJ/qX7JFeNYzqldIR56bWpL0eYec/+8y0UfZXwEx5HOrA+BRSXtlea3cnYFgRugQzsbYOMQkoBHVY2unV1+VN2YpMUUsnlZBWB2UJ/WuI+sBg4aIqEEpLmMtbnwMl7DWNDpNVIDj94vmp4Zi5fFnD71KUF0mG8cqBUjDal4vS4iP88266yInqrhrPBhDx8bUhODFVfsGOGm+KBfH2QGcwhb1f0lLYKZGel3vr4cjnJGl6h71Od45i6MX0khDeXdRO2ABQTDTuHPJfgH+dyEmlTeiFbuOhMWjTsn5AnCXwuw=",
       "role": "admin"
     },
     {
@@ -15,7 +15,7 @@
       "updatedAt": "0001-01-01T00:00:00Z",
       "deletedAt": null,
       "username": "operator_01",
-      "password": "password",
+      "password": "oP/ptkH7HJAbYsb+iY0GGkac7tBgTOB2jpCEMNo9bAj13VXaxdbil/bkta3TNoj9IZzElM3skXjAAKruBxgO7m1iYyr1fRlF/kOI4zfJpJsK/h2nwB/3SamsO6JsyyWWmNUUaY+xl4025DkFABwllFvuKghn7qcn/dYou0BVqm2K+dle7cT71v/kV8oar3OiJsSvZerWS8x8nvaDECogoRF+SvwQizsmCalIaDEXJauS35XL7ItMWqmVydLPKIZ6OFZf/9CENoTAOI/aeZ525HcTt5yZU/9GCBijrYD/49CPNAwVYzLFoxFW7PWB3nUTeLCVRqbTMklFhjSECIRgMW6x2FymXeY3BPlCvS4rGiPH7OctSoSKO8lQv15Wjd6fij3s4tO1Wc0v5tWHt2JZTbB6rTd8hrvGRueL1k0+SF7MNjg7Cup2wmoL+2VwMUMq5xQv1+IzTU0GV27kw5dMfEIPvq3080HMmwzN0zWFKAatvKd/xxbpe3FCAJUg3wFUG6nsHh0izBT9nQVUCJSvOmpoYu8ntEgvDSX1U7VbeNpkyVglUSnQlCk3El69y1KhjPe/R6nJCYyB/HZpM0hlhL2KRSEPTAosV1A9kqLgbFWLsUPrNbe25PJEsZQ7/Yl9bxzkW01uXnomSyTJwFxwhGci09jzNYUWnkzuO9HcEls=",
       "role": "operator"
     }
   ],
@@ -26,7 +26,7 @@
       "node_ip": "172.20.0.10",
       "hostname": "TestNode",
       "agent_config": {
-        "deployment_time": "2026-02-09T17:27:33+08:00",
+        "deployment_time": "2026-02-09T18:02:59+08:00",
         "log_file": "/home/anyadmin/logs/agent.log",
         "mgmt_host": "172.20.0.1",
         "mgmt_port": "8080",
@@ -37,40 +37,40 @@
         {
           "id": 0,
           "createdAt": "0001-01-01T00:00:00Z",
-          "updatedAt": "2026-02-09T17:42:42.1490489+08:00",
+          "updatedAt": "0001-01-01T00:00:00Z",
           "deletedAt": null,
           "name": "vllm",
           "engine": "vLLM",
-          "model_name": "llama-3.2-1B-Instruct",
+          "model_name": "Qwen3-Test",
           "model_path": "",
-          "ip": "172.20.0.10",
-          "port": "8000",
-          "mode": "balanced",
-          "gpu_memory_size": 8,
-          "gpu_utilization": 0.85,
-          "max_model_len": 4096,
-          "max_num_seqs": 8,
-          "max_num_batched_tokens": 8192,
-          "gpu_memory_utilization": 0.85
+          "ip": "",
+          "port": "",
+          "mode": "",
+          "gpu_memory_size": 0,
+          "gpu_utilization": 0,
+          "max_model_len": 0,
+          "max_num_seqs": 0,
+          "max_num_batched_tokens": 0,
+          "gpu_memory_utilization": 0
         }
       ],
       "rag_app_cfgs": [
         {
           "id": 0,
           "createdAt": "0001-01-01T00:00:00Z",
-          "updatedAt": "2026-02-09T17:31:20.4873106+08:00",
+          "updatedAt": "0001-01-01T00:00:00Z",
           "deletedAt": null,
           "name": "anythingllm",
           "host": "172.20.0.10",
-          "port": "3001",
-          "storage_dir": "/app/server/storage",
-          "llm_provider": "generic-openai",
-          "generic_openai_base_path": "http://host.docker.internal:8000/v1",
-          "generic_openai_model_pref": "llama-3.2-1B-Instruct",
-          "generic_openai_model_token_limit": 8192,
-          "generic_openai_max_tokens": 2048,
-          "generic_openai_api_key": "REPLACE_THIS_WITH_YOUR_ACTUAL_KEY",
-          "vector_db": "lancedb"
+          "port": "",
+          "storage_dir": "",
+          "llm_provider": "",
+          "generic_openai_base_path": "",
+          "generic_openai_model_pref": "",
+          "generic_openai_model_token_limit": 0,
+          "generic_openai_max_tokens": 0,
+          "generic_openai_api_key": "",
+          "vector_db": ""
         }
       ]
     }

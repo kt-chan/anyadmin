@@ -21,7 +21,60 @@
   ],
   "import_tasks": null,
   "backup_records": null,
-  "deployment_nodes": null,
+  "deployment_nodes": [
+    {
+      "node_ip": "172.20.0.10",
+      "hostname": "172.20.0.10",
+      "agent_config": {
+        "deployment_time": "2026-02-13T10:35:57+08:00",
+        "log_file": "/home/anyadmin/logs/agent.log",
+        "mgmt_host": "172.20.0.1",
+        "mgmt_port": "8080",
+        "node_ip": "172.20.0.10",
+        "node_port": "8082"
+      },
+      "inference_cfgs": [
+        {
+          "id": 0,
+          "createdAt": "2026-02-13T10:35:50.6591325+08:00",
+          "updatedAt": "2026-02-13T10:35:50.6591325+08:00",
+          "deletedAt": null,
+          "name": "vllm",
+          "engine": "vLLM",
+          "model_name": "Qwen3-1.7B",
+          "model_path": "",
+          "ip": "172.20.0.10",
+          "port": "8000",
+          "mode": "balanced",
+          "gpu_memory_size": 8,
+          "gpu_utilization": 0.85,
+          "max_model_len": 4096,
+          "max_num_seqs": 3,
+          "max_num_batched_tokens": 8192,
+          "gpu_memory_utilization": 0.85
+        }
+      ],
+      "rag_app_cfgs": [
+        {
+          "id": 0,
+          "createdAt": "2026-02-13T10:35:50.6591325+08:00",
+          "updatedAt": "2026-02-13T10:35:50.6591325+08:00",
+          "deletedAt": null,
+          "name": "anythingllm",
+          "host": "172.20.0.10",
+          "port": "3001",
+          "storage_dir": "/app/server/storage",
+          "llm_provider": "generic-openai",
+          "generic_openai_base_path": "http://host.docker.internal:8000/v1",
+          "generic_openai_model_pref": "Qwen3-1.7B",
+          "generic_openai_model_token_limit": 4098,
+          "generic_openai_max_tokens": 2048,
+          "generic_openai_api_key": "REPLACE_THIS_WITH_YOUR_ACTUAL_KEY",
+          "vector_db": "lancedb"
+        }
+      ]
+    }
+  ],
   "mgmt_host": "172.20.0.1",
   "mgmt_port": "8080"
 }

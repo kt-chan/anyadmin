@@ -1082,7 +1082,7 @@ scan the @frontend/views/login.pug, @backend\pkg\utils\store.go and User struct 
 *** funcitonal features enrichment Objective ***
 1. check @backend\keys folder exist, verify there is id_rsa and id_rsa.pub keys created, otherwise create them at backend service startup.
 2. create a backend .env file, and make variable ADMIN_USERNAME and ADMIN_PASSWORD to support logics to create default admin user with corresponding username and password when backend service startup too.
-3. verify the username and password handling logics in @frontend/views/login.pug  to encrypt user password using @backend\keys\id_rsa, such that you would not save plaint password in data.json
+3. verify the username and password handling logics in @frontend/views/login.pug to encrypt user password using @backend\keys\id_rsa, such that you would not save plaint password in data.json
 4. update unit test to cover this, and perform regression test too.
 
 **Coding Guide**  
@@ -1096,3 +1096,19 @@ scan the @frontend/views/login.pug, @backend\pkg\utils\store.go and User struct 
 - Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, use  powershell scripts under @scripts folder to terminate proccess on port 3000 and 8080 or redeploym agents
 
 
+## Task 37
+you have to rewrite and enrich this script as well as the corresponding frontend, backend, and remote agent services for below funcitonal features enrichment objective. And you have to follow Coding Guide provided in final section of below context.
+
+*** funcitonal features enrichment Objective ***
+1. scan @backend/tools/pdf_covert.go , make a test script to run it. pdfPath = @docs\知识库管理界面需求.pdf, and outputdir = @docs/,  serverURL =  172.20.0.10:8010
+2. just write a unit test and update  @backend/tools/pdf_covert.go  if required , do not perform change on anything else.
+ 
+ **Coding Guide**  
+- this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO.
+- The remote host is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and you have to run ssh with passwordless id_rsa key at @backend\keys with root user to remote host. 
+- You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
+- Write unit tests to verify any update systematically by accessing the frontend app and backend services code changes. Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
+- All the unit test should be put under /tests folder, and all the loggging should be put under /logs folder
+- All the unit test related to agent should use the remote host on this ip 172.20.0.10 with port 8082 for agent interaction 
+- Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, use  powershell scripts under @scripts folder to terminate proccess on port 3000 and 8080 or redeploym agents

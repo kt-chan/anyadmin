@@ -7,10 +7,10 @@ import (
 	"os"
 )
 
-func main() {
+func maketar() {
 	// Target path
 	path := "../deployments/tars/os/ubuntu/amd64/jammy/go1.21.linux-amd64.tar.gz"
-	
+
 	file, err := os.Create(path)
 	if err != nil {
 		panic(err)

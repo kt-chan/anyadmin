@@ -1,21 +1,21 @@
 services:
-  vllm:
+  vllm-llm:
     image: ${VLLM_IMAGE:-vllm/vllm-openai:latest}
-    container_name: vllm
-    profiles: ["vllm", "mineru"]
+    container_name: vllm-llm
+    profiles: ["llm"]
     shm_size: '4gb'
     ports:
-      - "${VLLM_PORT:-8000}:8000"
+      - "${VLLM_LLM_PORT:-8000}:8000"
     volumes:
       - ${VLLM_MODEL_PATH:-/home/anyadmin/data/model}:/model
     entrypoint: python3 -m vllm.entrypoints.openai.api_server
     command: >
-      --model /model/${VLLM_MODEL_NAME:-Qwen3-1.7B}
-      --served-model-name ${VLLM_MODEL_NAME:-Qwen3-1.7B}
-      --max-model-len ${VLLM_MAX_MODEL_LEN:-4096}
-      --max-num-seqs ${VLLM_MAX_NUM_SEQS:-8}
-      --max-num-batched-tokens ${VLLM_MAX_NUM_BATCHED_TOKENS:-8192}
-      --gpu-memory-utilization ${VLLM_GPU_MEMORY_UTILIZATION:-0.85}
+      --model /model/${VLLM_LLM_MODEL_NAME:-Qwen3-1.7B}
+      --served-model-name ${VLLM_LLM_MODEL_NAME:-Qwen3-1.7B}
+      --max-model-len ${VLLM_LLM_MAX_MODEL_LEN:-4096}
+      --max-num-seqs ${VLLM_LLM_MAX_NUM_SEQS:-8}
+      --max-num-batched-tokens ${VLLM_LLM_MAX_NUM_BATCHED_TOKENS:-8192}
+      --gpu-memory-utilization ${VLLM_LLM_GPU_MEMORY_UTILIZATION:-0.85}
       --host 0.0.0.0
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -28,14 +28,93 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              count: all
+              device_ids: ['0']
               capabilities: [gpu]
     env_file:
-      - /home/anyadmin/docker/.env-vllm
+      - /home/anyadmin/docker/.env-vllm-llm
+
+  vllm-mineru:
+    image: ${VLLM_IMAGE:-vllm/vllm-openai:latest}
+    container_name: vllm-mineru
+    profiles: ["mineru"]
+    shm_size: '4gb'
+    ports:
+      - "${VLLM_MINERU_PORT:-8000}:8000"
+    volumes:
+      - ${VLLM_MODEL_PATH:-/home/anyadmin/data/model}:/model
+    entrypoint: python3 -m vllm.entrypoints.openai.api_server
+    command: >
+      --model /model/${VLLM_MINERU_MODEL_NAME:-MinerU-2.5}
+      --served-model-name {VLLM_MINERU_MODEL_NAME:-MinerU-2.5}
+      --max-model-len ${VLLM_MINERU_MAX_MODEL_LEN:-4096}
+      --max-num-seqs ${VLLM_MINERU_MAX_NUM_SEQS:-8}
+      --max-num-batched-tokens ${VLLM_MINERU_MAX_NUM_BATCHED_TOKENS:-8192}
+      --gpu-memory-utilization ${VLLM_MINERU_GPU_MEMORY_UTILIZATION:-0.85}
+      --host 0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0']
+              capabilities: [gpu]
+    env_file:
+      - /home/anyadmin/docker/.env-vllm-llm
+
+
+  vllm-embedding:
+    image: ${VLLM_IMAGE:-vllm/vllm-openai:latest}
+    container_name: vllm-embedding
+    profiles: ["embedding"]
+    shm_size: '4gb'
+    ports:
+      - "${VLLM_EMBEDDING_PORT:-8000}:8000"
+    volumes:
+      - ${VLLM_MODEL_PATH:-/home/anyadmin/data/model}:/model
+    entrypoint: python3 -m vllm.entrypoints.openai.api_server
+    command:
+      - "--model"
+      - "/model/${VLLM_EMBEDDING_MODEL_NAME:-bge-large-zh}"
+      - "--served-model-name"
+      - "${VLLM_EMBEDDING_MODEL_NAME:-bge-large-zh}"
+      - "--task"
+      - "embed"
+      - "--max-model-len"
+      - "${VLLM_EMBEDDING_MAX_MODEL_LEN:-4096}"
+      - "--max-num-seqs"
+      - "${VLLM_EMBEDDING_MAX_NUM_SEQS:-8}"
+      - "--max-num-batched-tokens"
+      - "${VLLM_EMBEDDING_MAX_NUM_BATCHED_TOKENS:-8192}"
+      - "--gpu-memory-utilization"
+      - "${VLLM_EMBEDDING_GPU_MEMORY_UTILIZATION:-0.85}"
+      - "--host"
+      - "0.0.0.0"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0']
+              capabilities: [gpu]
+    env_file:
+      - /home/anyadmin/docker/.env-vllm-embed
 
   anythingllm:
     image: ${ANYTHINGLLM_IMAGE:-mintplexlabs/anythingllm:1.8.5}
     container_name: anythingllm
+    profiles: ["rag"]
     cap_add:
       - SYS_ADMIN
     restart: unless-stopped
@@ -76,7 +155,7 @@ services:
     environment:
       MINERU_MODEL_SOURCE: local
     env_file: 
-      - /home/anyadmin/docker/.env-mineru
+      - /home/anyadmin/docker/.env-vllm-mineru
     entrypoint: mineru-api
     command:
       --host 0.0.0.0
@@ -94,5 +173,5 @@ services:
     extra_hosts:
       - host.docker.internal:host-gateway
     depends_on:
-      vllm:
+      vllm-mineru:
         condition: service_healthy

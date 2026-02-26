@@ -25,7 +25,7 @@ func DeployService(c *gin.Context) {
 
 	// Map DeploymentConfig to InferenceConfig for compatibility
 	inferenceConfig := global.InferenceConfig{
-		Name:      "vllm", // Standardize name to match container reported by agent
+		Name:      "llm", // Standardize name to match container reported by agent
 		IP:        req.InferenceHost,
 		Port:      req.InferencePort,
 		ModelName: req.ModelName,
@@ -36,9 +36,10 @@ func DeployService(c *gin.Context) {
 	switch req.Platform {
 	case "nvidia":
 		inferenceConfig.Engine = "vLLM"
+		inferenceConfig.Name = strings.ToLower(inferenceConfig.Engine + "-" + inferenceConfig.Name)
 	case "ascend":
 		inferenceConfig.Engine = "MindIE"
-		inferenceConfig.Name = "mindie" // Standard name for MindIE container
+		inferenceConfig.Name = strings.ToLower(inferenceConfig.Engine + "-" + inferenceConfig.Name)
 	default:
 		inferenceConfig.Engine = "Unknown"
 	}

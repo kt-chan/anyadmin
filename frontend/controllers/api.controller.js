@@ -42,8 +42,25 @@ const apiController = {
     // 重启服务
     restartService: async (req, res) => {
         try {
-            const { name, node_ip, type } = req.body;
+            let { name, node_ip, type } = req.body;
             const token = req.session.user?.token;
+
+            if (!node_ip) {
+                const services = await servicesService.getServicesStatus(token);
+                const targets = services.filter(s => s.name.toLowerCase() === name.toLowerCase());
+                
+                if (targets.length > 0) {
+                    for (const target of targets) {
+                        await servicesService.restartService(name, target.node_ip, token, target.type || type);
+                    }
+                    return response.success(res, { 
+                        restartTime: new Date().toLocaleTimeString(),
+                        nodes: targets.map(t => t.node_ip) 
+                    }, `服务 ${name} 已在 ${targets.length} 个节点上触发重启`);
+                }
+                return response.error(res, `未找到服务 ${name} 的部署信息`, 404);
+            }
+
             await servicesService.restartService(name, node_ip, token, type);
             return response.success(res, { restartTime: new Date().toLocaleTimeString() }, `服务 ${name} 重启已触发`);
         } catch (err) {
@@ -54,8 +71,25 @@ const apiController = {
     // 停止服务
     stopService: async (req, res) => {
         try {
-            const { name, node_ip, type } = req.body;
+            let { name, node_ip, type } = req.body;
             const token = req.session.user?.token;
+
+            if (!node_ip) {
+                const services = await servicesService.getServicesStatus(token);
+                const targets = services.filter(s => s.name.toLowerCase() === name.toLowerCase());
+                
+                if (targets.length > 0) {
+                    for (const target of targets) {
+                        await servicesService.stopService(name, target.node_ip, token, target.type || type);
+                    }
+                    return response.success(res, { 
+                        stopTime: new Date().toLocaleTimeString(),
+                        nodes: targets.map(t => t.node_ip) 
+                    }, `服务 ${name} 已在 ${targets.length} 个节点上停止`);
+                }
+                return response.error(res, `未找到服务 ${name} 的部署信息`, 404);
+            }
+
             await servicesService.stopService(name, node_ip, token, type);
             return response.success(res, { stopTime: new Date().toLocaleTimeString() }, `服务 ${name} 已停止`);
         } catch (err) {
@@ -81,8 +115,10 @@ const apiController = {
             const token = req.session.user?.token;
             const services = await servicesService.getServicesStatus(token);
             const formattedServices = services.map(service => ({
-                id: service.id,
+                id: service.id || `${service.name}-${service.node_ip}`,
                 name: service.name,
+                type: service.type,
+                node_ip: service.node_ip,
                 status: service.status,
                 lastCheck: new Date().toLocaleTimeString()
             }));

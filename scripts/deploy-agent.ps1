@@ -54,7 +54,8 @@ try {
     ssh -o StrictHostKeyChecking=no -i $KeyFile "$RemoteUser@$RemoteHost" "mkdir -p $RemoteDockerDir && chown anyadmin:anyadmin $RemoteDockerDir"
     
     # Upload files
-    scp -o StrictHostKeyChecking=no -i $KeyFile "$LocalDockerDir\*" "$RemoteUser@$RemoteHost`:$RemoteDockerDir/"
+    # scp -o StrictHostKeyChecking=no -i $KeyFile "$LocalDockerDir\*" "$RemoteUser@$RemoteHost`:$RemoteDockerDir/"
+    scp -o StrictHostKeyChecking=no -i $KeyFile "$LocalDockerDir\*" "$LocalDockerDir\.[!.]*" "$RemoteUser@$RemoteHost`:$RemoteDockerDir/" 
     
     # Set ownership for uploaded files
     ssh -o StrictHostKeyChecking=no -i $KeyFile "$RemoteUser@$RemoteHost" "chown -R anyadmin:anyadmin $RemoteDockerDir"

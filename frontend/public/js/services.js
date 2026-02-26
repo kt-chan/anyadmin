@@ -53,19 +53,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const form = document.getElementById('agentConfigForm');
-        // Populate form
-        // Using a generic approach or specific fields?
-        // Let's use specific fields based on the example JSON
         document.getElementById('agent_node_ip_hidden').value = nodeIP;
         
-        // Populate specific fields
-        const fields = ['mgmt_host', 'mgmt_port', 'log_file']; // Add others as needed
+        const fields = ['mgmt_host', 'mgmt_port', 'log_file']; 
         fields.forEach(f => {
             const input = form.querySelector(`[name="${f}"]`);
             if (input) input.value = node.agent_config[f] || '';
         });
 
-        // Show Modal
         showModal('agentConfigModal');
     };
 
@@ -78,9 +73,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const nodeIP = data.node_ip_hidden;
             delete data.node_ip_hidden;
 
-            // Merge with existing to keep other fields?
-            // For now just send what we have
-            
             try {
                 const res = await fetch('/api/v1/configs/agent', {
                     method: 'POST',
@@ -90,7 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (res.ok) {
                     showToast('Success', 'Agent configuration saved', 'success');
                     hideModal('agentConfigModal');
-                    // Reload to reflect?
                     setTimeout(() => window.location.reload(), 1000);
                 } else {
                     throw new Error('Failed to save');
@@ -114,7 +105,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 config = node.rag_app_cfgs.find(c => c.name === serviceName);
             }
         } else {
-            // Global Config: Find first instance to populate defaults
             if (configData.grouped_services && configData.grouped_services[serviceName]) {
                 const instances = configData.grouped_services[serviceName];
                 if (instances && instances.length > 0) {
@@ -131,16 +121,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function openVllmModal(config, nodeIP) {
-        const modal = document.getElementById('vllmConfigModal');
         const form = document.getElementById('vllmConfigForm');
         if (!config) return;
 
-        // Populate basic fields
         form.querySelector('[name="name"]').value = config.name;
-        form.querySelector('[name="node_ip"]').value = nodeIP; // Hidden
+        form.querySelector('[name="node_ip"]').value = nodeIP; 
         form.querySelector('[name="model_name"]').value = config.model_name;
 
-        // Set default values from data.json if available
         const modeSelect = document.getElementById('vllm-optimization-mode');
         if (modeSelect) {
             modeSelect.value = config.mode || 'balanced';
@@ -149,14 +136,11 @@ document.addEventListener('DOMContentLoaded', () => {
         form.querySelector('[name="gpu_memory_size"]').value = config.gpu_memory_size || 24;
         form.querySelector('[name="gpu_memory_utilization"]').value = config.gpu_memory_utilization || 0.85;
 
-        // Set other parameters from config (which might be 0 if not set yet, recalculation will fill them)
         form.querySelector('[name="max_model_len"]').value = config.max_model_len || '';
         form.querySelector('[name="max_num_seqs"]').value = config.max_num_seqs || '';
         form.querySelector('[name="max_num_batched_tokens"]').value = config.max_num_batched_tokens || '';
 
-        // Initialize model selection
         refreshVllmModels(config.model_name);
-
         showModal('vllmConfigModal');
     }
 
@@ -173,9 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
         modelSelect.innerHTML = '<option value="" disabled selected>Loading models...</option>';
 
         try {
-            // Use current config or default if nodeIP is missing (global config)
             const host = nodeIP || '127.0.0.1'; 
-            const payload = { host, port: '8000', mode: 'new_deployment' }; // Default to new_deployment for local discovery
+            const payload = { host, port: '8000', mode: 'new_deployment' }; 
             
             const response = await fetch('/deployment/api/discover-models', {
                 method: 'POST',
@@ -195,10 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     modelSelect.appendChild(opt);
                 });
             } else {
-                const opt = document.createElement('option');
-                opt.value = "";
-                opt.textContent = "No models found";
-                modelSelect.appendChild(opt);
+                modelSelect.innerHTML = '<option value="">No models found</option>';
             }
         } catch (error) {
             console.error('Error refreshing models:', error);
@@ -222,7 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
         modelSelect.innerHTML = '<option value="" disabled selected>Loading models...</option>';
 
         try {
-            // Use current host or default if host is missing (global config)
             const targetHost = host || '127.0.0.1'; 
             const payload = { host: targetHost, port: '8000', mode: 'new_deployment' }; 
             
@@ -244,10 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     modelSelect.appendChild(opt);
                 });
             } else {
-                const opt = document.createElement('option');
-                opt.value = "";
-                opt.textContent = "No models found";
-                modelSelect.appendChild(opt);
+                modelSelect.innerHTML = '<option value="">No models found</option>';
             }
         } catch (error) {
             console.error('Error refreshing models:', error);
@@ -258,7 +234,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Model selection change handler
     const vllmModelSelect = document.getElementById('vllm-model-select');
     if (vllmModelSelect) {
         vllmModelSelect.addEventListener('change', function() {
@@ -266,7 +241,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const modelNameInput = form.querySelector('[name="model_name"]');
             modelNameInput.value = this.value;
             
-            // Trigger recalculation
             const mode = document.getElementById('vllm-optimization-mode').value;
             const nodeIP = form.querySelector('[name="node_ip"]').value;
             const gpuMemorySize = parseFloat(form.querySelector('[name="gpu_memory_size"]').value);
@@ -304,11 +278,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error(`API Error: ${response.status}`);
             const data = await response.json();
             
-            // Update the calculated parameters
             form.querySelector('[name="max_model_len"]').value = data.vllm_config.max_model_len;
             form.querySelector('[name="max_num_seqs"]').value = data.vllm_config.max_num_seqs;
             form.querySelector('[name="max_num_batched_tokens"]').value = data.vllm_config.max_num_batched_tokens;
-            // Note: We don't overwrite gpu_memory_utilization or size here if they were inputs
 
         } catch (error) {
             console.error('Calculation failed:', error);
@@ -316,7 +288,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Attach listener for the mode dropdown in modal
     const vllmModeSelect = document.getElementById('vllm-optimization-mode');
     if (vllmModeSelect) {
         vllmModeSelect.addEventListener('change', function() {
@@ -329,7 +300,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Also add listeners for memory size and utilization changes to recalculate
     const vllmCalcInputs = ['gpu_memory_size', 'gpu_memory_utilization'];
     vllmCalcInputs.forEach(name => {
         const input = document.querySelector(`#vllmConfigForm [name="${name}"]`);
@@ -347,15 +317,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function openRagModal(config, nodeIP) {
-        const modal = document.getElementById('ragConfigModal');
         const form = document.getElementById('ragConfigForm');
         if (!config) return;
 
-        // Populate
         form.querySelector('[name="name"]').value = config.name;
-        form.querySelector('[name="host"]').value = nodeIP; // Hidden/Readonly (it calls it host in struct)
+        form.querySelector('[name="host"]').value = nodeIP; 
         
-        // Map fields
         const map = {
             'storage_dir': 'storage_dir',
             'llm_provider': 'llm_provider',
@@ -372,13 +339,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (input) input.value = config[val] || '';
         }
 
-        // Initialize model selection
         refreshRagModels(config.generic_openai_model_pref);
-
         showModal('ragConfigModal');
     }
 
-    // --- Shared Save & Restart Logic ---
     async function saveConfigAndRestart(formId, apiUrl, payloadBuilder, modalId, serviceType) {
         const form = document.getElementById(formId);
         if (!form) return;
@@ -388,7 +352,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const formData = new FormData(form);
             const rawData = Object.fromEntries(formData.entries());
             
-            // Build payload (custom logic per form)
             let data;
             try {
                 data = payloadBuilder(rawData);
@@ -402,7 +365,6 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.disabled = true;
 
             try {
-                // 1. Save Config
                 const res = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -414,15 +376,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error(errData.message || 'Failed to save config');
                 }
 
-                // 2. Restart Service
                 submitBtn.innerText = '正在重启服务...';
                 
-                // Determine restart params
-                // For vLLM: name=data.name, node_ip=data.ip, type='Container'
-                // For RAG: name=data.name, node_ip=data.host, type='Container' (AnythingLLM runs as container too)
                 const restartParams = {
                     name: data.name,
-                    node_ip: serviceType === 'vLLM' ? data.ip : data.host, // vLLM uses 'ip', RAG uses 'host'
+                    node_ip: serviceType === 'vLLM' ? data.ip : data.host, 
                     type: 'Container'
                 };
 
@@ -448,7 +406,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Initialize vLLM Save Handler
     saveConfigAndRestart(
         'vllmConfigForm',
         '/api/v1/configs/inference',
@@ -467,7 +424,6 @@ document.addEventListener('DOMContentLoaded', () => {
         'vLLM'
     );
 
-    // Initialize RAG (AnythingLLM) Save Handler
     saveConfigAndRestart(
         'ragConfigForm',
         '/api/v1/configs/rag',
@@ -480,7 +436,6 @@ document.addEventListener('DOMContentLoaded', () => {
         'RAG'
     );
 
-    // --- Add Node Logic ---
     window.downloadSSHKey = async function() {
         try {
             const response = await fetch('/deployment/api/ssh-key');
@@ -543,10 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const formData = new FormData(addNodeForm);
             const data = Object.fromEntries(formData.entries());
-            
-            // Mode is required for DeployService
             data.mode = 'new_deployment';
-            // Disable other services for just node registration
             data.enable_rag = false;
             data.enable_vectordb = false;
             data.enable_parser = false;
@@ -579,9 +531,226 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // --- Connect Service Logic ---
+    window.toggleServiceConnectMode = function(mode) {
+        const testBtnGroup = document.getElementById('test-connection-group');
+        const managedFields = document.querySelectorAll('.managed-only');
+        const externalFields = document.getElementById('external-fields');
+        
+        if (mode === 'integrate_existing') {
+            if (testBtnGroup) testBtnGroup.classList.remove('hidden');
+            if (externalFields) externalFields.classList.remove('hidden');
+            managedFields.forEach(el => el.classList.add('hidden'));
+        } else {
+            if (testBtnGroup) testBtnGroup.classList.add('hidden');
+            if (externalFields) externalFields.classList.add('hidden');
+            managedFields.forEach(el => el.classList.remove('hidden'));
+        }
+    };
+
+    const populateModelData = async () => {
+        try {
+            const typeRes = await fetch('/models/api/model-types');
+            const types = await typeRes.json();
+            
+            const typeSelects = ['connect-model-type', 'external-model-type'];
+            typeSelects.forEach(id => {
+                const sel = document.getElementById(id);
+                if (!sel) return;
+                sel.innerHTML = id === 'connect-model-type' ? '<option value="" disabled selected>选择模型类型</option>' : '<option value="" disabled selected>选择外部模型类型</option>';
+                types.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t;
+                    opt.textContent = t.toUpperCase();
+                    sel.appendChild(opt);
+                });
+            });
+
+            const modelRes = await fetch('/models/api');
+            const modelData = await modelRes.json();
+            const models = modelData.data || [];
+
+            const typeSelect = document.getElementById('connect-model-type');
+            const nameSelect = document.getElementById('connect-model-name');
+            
+            if (typeSelect && nameSelect) {
+                typeSelect.addEventListener('change', () => {
+                    const selectedType = typeSelect.value;
+                    nameSelect.innerHTML = '<option value="" disabled selected>选择模型名称</option>';
+                    
+                    const filtered = models.filter(m => m.model_type === selectedType);
+                    if (filtered.length > 0) {
+                        filtered.forEach(m => {
+                            const opt = document.createElement('option');
+                            opt.value = m.name;
+                            opt.textContent = m.name;
+                            nameSelect.appendChild(opt);
+                        });
+                    } else {
+                        const opt = document.createElement('option');
+                        opt.value = "";
+                        opt.textContent = "该类型下暂无模型";
+                        nameSelect.appendChild(opt);
+                    }
+                });
+            }
+
+        } catch (e) {
+            console.error("Failed to load model data for connect modal", e);
+        }
+    };
+
+    const populateConnectNodes = async () => {
+        const select = document.getElementById('connect-node-select');
+        if (!select) return;
+        
+        try {
+            const res = await fetch('/deployment/api/nodes');
+            const result = await res.json();
+            const nodes = result.data || [];
+            
+            select.innerHTML = '<option value="" disabled selected>选择目标节点</option>';
+            nodes.forEach(node => {
+                const opt = document.createElement('option');
+                const nodeIP = typeof node === 'string' ? node : node.node_ip;
+                opt.value = nodeIP;
+                opt.textContent = nodeIP;
+                select.appendChild(opt);
+            });
+        } catch(e) {
+            console.error("Failed to load nodes", e);
+            select.innerHTML = '<option value="" disabled>加载节点失败</option>';
+        }
+    };
+
+    window.testServiceConnect = async function() {
+        const form = document.getElementById('connectServiceForm');
+        const formData = new FormData(form);
+        const host = formData.get('target_node');
+        const port = formData.get('port');
+        const serviceType = formData.get('service_type');
+
+        if (!host || !port) {
+            alert("请选择节点并填写端口");
+            return;
+        }
+
+        const btn = document.querySelector('#test-connection-group button');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Testing...';
+        btn.disabled = true;
+
+        try {
+            let connType = 'tcp';
+            if (serviceType === 'inference') connType = 'inference';
+            else if (serviceType === 'rag') connType = 'rag_app';
+
+            const response = await fetch('/deployment/api/test-connection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: connType, host, port })
+            });
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                alert('Success: ' + result.message);
+            } else {
+                alert('Error: ' + result.message);
+            }
+        } catch (err) {
+            alert('网络错误，测试失败');
+        } finally {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    };
+
+    const connectServiceForm = document.getElementById('connectServiceForm');
+    if (connectServiceForm) {
+        connectServiceForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(connectServiceForm);
+            
+            const payload = {
+                mode: formData.get('mode'),
+                platform: 'nvidia', 
+                mgmt_host: configData.mgmt_host || '172.20.0.1',
+                mgmt_port: configData.mgmt_port || '8080',
+                target_nodes: formData.get('target_node'),
+                enable_rag: false,
+                enable_vectordb: false,
+                enable_parser: false,
+            };
+
+            const svcType = formData.get('service_type');
+            const mode = formData.get('mode');
+
+            if (svcType === 'inference') {
+                payload.inference_host = formData.get('target_node');
+                payload.inference_port = formData.get('port');
+                
+                if (mode === 'new_deployment') {
+                    payload.model_type = formData.get('model_type_select');
+                    payload.model_name = formData.get('model_name_select');
+                } else {
+                    payload.model_type = formData.get('external_model_type');
+                    payload.model_name = formData.get('external_model_name');
+                    payload.api_key = formData.get('api_key');
+                    payload.base_url = formData.get('base_url');
+                }
+            } else if (svcType === 'rag') {
+                payload.enable_rag = true;
+                payload.rag_host = formData.get('target_node');
+                payload.rag_port = formData.get('port');
+            } else if (svcType === 'vectordb') {
+                payload.enable_vectordb = true;
+                payload.vectordb_host = formData.get('target_node');
+                payload.vectordb_port = formData.get('port');
+                payload.vector_db = 'lancedb'; 
+            } else if (svcType === 'parser') {
+                payload.enable_parser = true;
+                payload.parser_host = formData.get('target_node');
+                payload.parser_port = formData.get('port');
+            }
+
+            const submitBtn = connectServiceForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> 处理中...';
+            submitBtn.disabled = true;
+
+            try {
+                const res = await fetch('/deployment/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (res.ok) {
+                    showToast('Success', '服务配置已保存并开始部署流程', 'success');
+                    hideModal('connectServiceModal');
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    const result = await res.json();
+                    throw new Error(result.error || result.message || 'Registration failed');
+                }
+            } catch (err) {
+                showToast('Error', err.message, 'error');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+    }
+
+    populateModelData();
+    populateConnectNodes();
 });
 
 function showToast(title, message, type) {
-    // Simple alert for now or implement a toast UI
-    alert(`${title}: ${message}`);
+    if (window.showNotification) {
+        window.showNotification(message, type);
+    } else {
+        alert(`${title}: ${message}`);
+    }
 }

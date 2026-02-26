@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"anyadmin-backend/pkg/global"
+
 	"github.com/spf13/viper"
 )
 
@@ -16,7 +17,7 @@ var (
 	BackupRecords []global.BackupRecord
 	ModelTypes    []string
 	Models        []global.Model
-	
+
 	// Deployment Nodes (Nested Structure)
 	DeploymentNodes []global.DeploymentNode
 
@@ -51,14 +52,14 @@ func init() {
 }
 
 type DataStore struct {
-	Users           []global.User            `json:"users"`
-	ImportTasks     []global.ImportTask      `json:"import_tasks"`
-	BackupRecords   []global.BackupRecord    `json:"backup_records"`
-	DeploymentNodes []global.DeploymentNode  `json:"deployment_nodes"`
-	ModelTypes      []string                 `json:"model_types"`
-	Models          []global.Model           `json:"models"`
-	MgmtHost        string                   `json:"mgmt_host"`
-	MgmtPort        string                   `json:"mgmt_port"`
+	Users           []global.User           `json:"users"`
+	ImportTasks     []global.ImportTask     `json:"import_tasks"`
+	BackupRecords   []global.BackupRecord   `json:"backup_records"`
+	DeploymentNodes []global.DeploymentNode `json:"deployment_nodes"`
+	ModelTypes      []string                `json:"model_types"`
+	Models          []global.Model          `json:"models"`
+	MgmtHost        string                  `json:"mgmt_host"`
+	MgmtPort        string                  `json:"mgmt_port"`
 }
 
 // ExecuteRead performs a thread-safe read operation
@@ -72,9 +73,9 @@ func ExecuteRead(fn func()) {
 func ExecuteWrite(fn func(), persist bool) error {
 	dataMu.Lock()
 	defer dataMu.Unlock()
-	
+
 	fn()
-	
+
 	if persist {
 		return saveToFile()
 	}
@@ -97,10 +98,10 @@ func InitData() {
 		if len(Users) == 0 {
 			adminUser := viper.GetString("admin.username")
 			adminPass := viper.GetString("admin.password")
-			
+
 			encAdminPass, _ := EncryptPassword(adminPass)
 			encOpPass, _ := EncryptPassword("password")
-			
+
 			Users = []global.User{
 				{
 					Username: adminUser,
@@ -117,11 +118,11 @@ func InitData() {
 			// Migration: Ensure all users have encrypted passwords
 			for i := range Users {
 				// Try to decrypt. If it fails, it's likely plain text.
-				// Also check if it's the specific plain text "password" to be sure, 
-				// or just rely on decryption failure. 
+				// Also check if it's the specific plain text "password" to be sure,
+				// or just rely on decryption failure.
 				// A simple heuristic: real encrypted string is long (Base64 of 256 bytes = 344 chars).
 				// "password" is short.
-				if len(Users[i].Password) < 100 { 
+				if len(Users[i].Password) < 100 {
 					enc, err := EncryptPassword(Users[i].Password)
 					if err == nil {
 						Users[i].Password = enc
@@ -132,7 +133,7 @@ func InitData() {
 					if err != nil {
 						// If decryption fails, maybe it's corrupted or just a long plain text?
 						// Re-encrypting might be risky if it was already encrypted but with a different key.
-						// Assume < 100 check covers most plain passwords. 
+						// Assume < 100 check covers most plain passwords.
 						// For now, trust the length check as RSA-2048 output is 256 bytes -> base64 is longer.
 					}
 				}
@@ -151,7 +152,7 @@ func InitData() {
 
 		// Initialize ModelTypes if empty
 		if len(ModelTypes) == 0 {
-			ModelTypes = []string{"llm", "vlm", "asr", "omni", "embedding", "reranker"}
+			ModelTypes = []string{"llm", "vlm", "asr", "ocr", "omni", "embedding", "reranker"}
 		}
 	}, true)
 }
@@ -180,7 +181,7 @@ func saveToFile() error {
 	return encoder.Encode(data)
 }
 
-// SaveToFile Public alias for backward compatibility or explicit save if needed, 
+// SaveToFile Public alias for backward compatibility or explicit save if needed,
 // though ExecuteWrite is preferred.
 func SaveToFile() error {
 	return ExecuteWrite(func() {}, true)

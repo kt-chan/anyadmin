@@ -14,6 +14,7 @@ type ServiceStatus struct {
 	Type      string  `json:"type"`
 	ModelType string  `json:"model_type,omitempty"`
 	ModelName string  `json:"model_name,omitempty"`
+	IsManaged bool    `json:"is_managed"`
 	Status    string  `json:"status"` // Running, Stopped, Error
 	Health    string  `json:"health"` // Healthy, Unhealthy
 	Uptime    string  `json:"uptime"`
@@ -63,6 +64,7 @@ func GetServicesHealth() []ServiceStatus {
 			Engine    string
 			ModelType string
 			ModelName string
+			IsManaged bool
 			IP        string
 		}
 	}, 0) // Initialize empty, capacity will grow
@@ -78,6 +80,7 @@ func GetServicesHealth() []ServiceStatus {
 					Engine    string
 					ModelType string
 					ModelName string
+					IsManaged bool
 					IP        string
 				}
 			}, len(utils.DeploymentNodes))
@@ -91,16 +94,20 @@ func GetServicesHealth() []ServiceStatus {
 			// Collect all configs (Inference + RAG) into a generic list for checking
 			for _, cfg := range n.InferenceCfgs {
 				nodes[i].Configs = append(nodes[i].Configs, struct {
-					Name, Engine, ModelType, ModelName, IP string
+					Name, Engine, ModelType, ModelName string
+					IsManaged                          bool
+					IP                                 string
 				}{
-					Name: cfg.Name, Engine: cfg.Engine, ModelType: cfg.ModelType, ModelName: cfg.ModelName, IP: cfg.IP,
+					Name: cfg.Name, Engine: cfg.Engine, ModelType: cfg.ModelType, ModelName: cfg.ModelName, IsManaged: cfg.IsManaged, IP: cfg.IP,
 				})
 			}
 			for _, cfg := range n.RagAppCfgs {
 				nodes[i].Configs = append(nodes[i].Configs, struct {
-					Name, Engine, ModelType, ModelName, IP string
+					Name, Engine, ModelType, ModelName string
+					IsManaged                          bool
+					IP                                 string
 				}{
-					Name: cfg.Name, Engine: "RAG App", ModelType: "rag", ModelName: "", IP: cfg.Host,
+					Name: cfg.Name, Engine: "RAG App", ModelType: "rag", ModelName: "", IsManaged: cfg.IsManaged, IP: cfg.Host,
 				})
 			}
 		}
@@ -201,6 +208,7 @@ func GetServicesHealth() []ServiceStatus {
 				Type:      "Container",
 				ModelType: cfg.ModelType,
 				ModelName: cfg.ModelName,
+				IsManaged: cfg.IsManaged,
 				Status:    svcStatus,
 				Health:    svcHealth,
 				Uptime:    svcUptime,

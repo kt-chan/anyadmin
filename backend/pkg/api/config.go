@@ -260,10 +260,11 @@ func GetServicesConfig(c *gin.Context) {
 	// Create a grouped view of services
 	// Map[ServiceName] -> []ServiceInstance
 	type ServiceInstance struct {
-		NodeIP string      `json:"node_ip"`
-		Type   string      `json:"type"` // "vLLM", "AnythingLLM", etc.
-		Port   string      `json:"port"`
-		Config interface{} `json:"config"`
+		NodeIP    string      `json:"node_ip"`
+		Type      string      `json:"type"` // "vLLM", "AnythingLLM", etc.
+		Port      string      `json:"port"`
+		IsManaged bool        `json:"is_managed"`
+		Config    interface{} `json:"config"`
 	}
 	groupedServices := make(map[string][]ServiceInstance)
 
@@ -272,20 +273,22 @@ func GetServicesConfig(c *gin.Context) {
 			// Inference Services
 			for _, cfg := range node.InferenceCfgs {
 				instance := ServiceInstance{
-					NodeIP: node.NodeIP,
-					Type:   "vLLM",
-					Port:   cfg.Port,
-					Config: cfg,
+					NodeIP:    node.NodeIP,
+					Type:      "vLLM",
+					Port:      cfg.Port,
+					IsManaged: cfg.IsManaged,
+					Config:    cfg,
 				}
 				groupedServices[cfg.Name] = append(groupedServices[cfg.Name], instance)
 			}
 			// RAG Apps
 			for _, cfg := range node.RagAppCfgs {
 				instance := ServiceInstance{
-					NodeIP: node.NodeIP,
-					Type:   "AnythingLLM",
-					Port:   cfg.Port,
-					Config: cfg,
+					NodeIP:    node.NodeIP,
+					Type:      "AnythingLLM",
+					Port:      cfg.Port,
+					IsManaged: cfg.IsManaged,
+					Config:    cfg,
 				}
 				groupedServices[cfg.Name] = append(groupedServices[cfg.Name], instance)
 			}

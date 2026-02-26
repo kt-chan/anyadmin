@@ -37,13 +37,19 @@ block content
                       h3(class="text-xl font-bold text-slate-800 flex items-center")
                         i(class="fas fa-cubes mr-3 text-blue-500")
                         | #{serviceName}
-                        span(class="ml-3 text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full uppercase tracking-wider") #{first.type}
-                      p(class="text-slate-400 text-xs mt-1") 集群化服务配置 (Unified Service Configuration)
+                        if first.is_managed
+                          span(class="ml-3 text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full uppercase tracking-wider") #{first.type}
+                        else
+                          span(class="ml-3 text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full uppercase tracking-wider") EXTERNAL
+                      p(class="text-slate-400 text-xs mt-1") #{first.is_managed ? '集群化服务配置 (Unified Service Configuration)' : '对接外部现有服务 (External Integrated Service)'}
                     
                     div(class="flex gap-2")
-                      button(class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition shadow-md shadow-blue-100", onclick=`editServiceConfig('', '${serviceName}', '${first.type === 'vLLM' ? 'vllm' : 'rag'}')`)
-                        i(class="fas fa-cog mr-2")
-                        | 配置全局参数
+                      if first.is_managed
+                        button(class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition shadow-md shadow-blue-100", onclick=`editServiceConfig('', '${serviceName}', '${first.type === 'vLLM' ? 'vllm' : 'rag'}')`)
+                          i(class="fas fa-cog mr-2")
+                          | 配置全局参数
+                      else
+                        div(class="px-4 py-2 text-slate-400 text-xs font-bold italic") 只读监控模式
 
                   .grid.grid-cols-1.gap-8(class="lg:grid-cols-3")
                     //- Service Level Config Details

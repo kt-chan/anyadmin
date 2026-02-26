@@ -17,6 +17,9 @@ type InferenceConfig struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deletedAt,omitempty"`
 	Name      string         `gorm:"uniqueIndex" json:"name"`
 	ModelType string         `json:"model_type"` // llm, vlm, asr, omni, embedding, reranker
+	IsManaged bool           `json:"is_managed"`
+	APIKey    string         `json:"api_key,omitempty"`
+	BaseURL   string         `json:"base_url,omitempty"`
 	Engine    string         `json:"engine"`
 	ModelName string         `json:"model_name"`
 	ModelPath string         `json:"model_path"`
@@ -41,6 +44,7 @@ type RagAppConfig struct {
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deletedAt,omitempty"`
 	Name      string         `json:"name"`
+	IsManaged bool           `json:"is_managed"`
 	Host      string         `json:"host"`
 	Port      string         `json:"port"`
 
@@ -131,6 +135,8 @@ type DeploymentConfig struct {
 	InferenceHost  string `json:"inference_host"`
 	InferencePort  string `json:"inference_port"`
 	ModelName      string `json:"model_name"`
+	APIKey         string `json:"api_key,omitempty"`
+	BaseURL        string `json:"base_url,omitempty"`
 	EnableRAG      bool   `json:"enable_rag"`
 	RAGHost        string `json:"rag_host,omitempty"`
 	RAGPort        string `json:"rag_port,omitempty"`

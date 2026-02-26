@@ -34,6 +34,9 @@ func DeployService(c *gin.Context) {
 	inferenceConfig := global.InferenceConfig{
 		Name:      svcName, // Standardize name to match container reported by agent
 		ModelType: req.ModelType,
+		IsManaged: req.Mode == "new_deployment",
+		APIKey:    req.APIKey,
+		BaseURL:   req.BaseURL,
 		IP:        req.InferenceHost,
 		Port:      req.InferencePort,
 		ModelName: req.ModelName,
@@ -238,10 +241,11 @@ func DeployService(c *gin.Context) {
 			// 	Port:   req.RAGPort,
 			// })
 			addOrUpdateRagCfg(req.RAGHost, global.RagAppConfig{
-				Name:     "anythingllm",
-				Host:     req.RAGHost,
-				Port:     req.RAGPort,
-				VectorDB: req.VectorDBType, // Assuming linked
+				Name:      "anythingllm",
+				IsManaged: req.Mode == "new_deployment",
+				Host:      req.RAGHost,
+				Port:      req.RAGPort,
+				VectorDB:  req.VectorDBType, // Assuming linked
 			})
 		}
 
@@ -249,6 +253,7 @@ func DeployService(c *gin.Context) {
 			addOrUpdateInferenceCfg(req.VectorDBHost, global.InferenceConfig{
 				Name:      strings.ToLower(req.VectorDBType),
 				ModelType: "vectordb",
+				IsManaged: req.Mode == "new_deployment",
 				Engine:    "Vector DB",
 				IP:        req.VectorDBHost,
 				Port:      req.VectorDBPort,
@@ -259,6 +264,7 @@ func DeployService(c *gin.Context) {
 			addOrUpdateInferenceCfg(req.ParserHost, global.InferenceConfig{
 				Name:      "mineru-api",
 				ModelType: "parser",
+				IsManaged: req.Mode == "new_deployment",
 				Engine:    "Parser",
 				IP:        req.ParserHost,
 				Port:      req.ParserPort,

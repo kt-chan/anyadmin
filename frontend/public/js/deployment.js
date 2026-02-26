@@ -246,7 +246,13 @@ async function updateNodeStatusInDashboard(ip) {
                     sc.querySelector('.svc-uptime').textContent = (isDown || svc.state !== 'running') ? '---' : svc.uptime;
                     
                     const typeTag = sc.querySelector('.svc-type');
-                    if (svc.model_type) {
+                    if (!svc.is_managed) {
+                        sc.querySelector('.svc-restart-btn').classList.add('hidden');
+                        sc.querySelector('.svc-stop-btn').classList.add('hidden');
+                        sc.querySelector('.svc-config-btn').classList.add('hidden');
+                        typeTag.textContent = 'EXTERNAL';
+                        typeTag.className = "svc-type bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold";
+                    } else if (svc.model_type) {
                         typeTag.textContent = svc.model_type;
                         if (svc.model_type === 'llm' || svc.model_type === 'vlm') {
                             typeTag.className = "svc-type bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold";

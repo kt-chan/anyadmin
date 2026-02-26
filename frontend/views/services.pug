@@ -29,6 +29,7 @@ block content
         #tab-services.tab-content
           if config && config.grouped_services && Object.keys(config.grouped_services).length
             .space-y-6
+              each instances, serviceName in config.grouped_services
                 - const projectInstances = instances
                 - const vllmInstances = projectInstances.filter(i => i.type === 'vLLM')
                 - const ragInstances = projectInstances.filter(i => i.type === 'AnythingLLM')

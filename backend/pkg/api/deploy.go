@@ -25,11 +25,14 @@ func DeployService(c *gin.Context) {
 
 	// Standardize name based on ModelType and unique identifier
 	// If ServiceName is provided, use it, otherwise generate one
-	instanceName := req.ServiceName
-	if instanceName == "" {
-		instanceName = fmt.Sprintf("%s-%s", strings.ToLower(req.ModelType), time.Now().Format("01021504"))
+	baseInstanceName := req.ServiceName
+	if baseInstanceName == "" {
+		baseInstanceName = fmt.Sprintf("%s-%s", strings.ToLower(req.ModelType), time.Now().Format("01021504"))
 	}
-	instanceName = strings.ToLower(instanceName)
+	baseInstanceName = strings.ToLower(baseInstanceName)
+
+	// Prefix with type to avoid port/env conflicts
+	instanceName := "inf-" + baseInstanceName
 
 	// Map DeploymentConfig to InferenceConfig for compatibility
 	inferenceConfig := global.InferenceConfig{
@@ -169,8 +172,9 @@ func DeployService(c *gin.Context) {
 			addInferenceCfg(req.InferenceHost, inferenceConfig)
 		}
 		if req.EnableRAG && req.RAGHost != "" {
+			ragInstanceName := "rag-" + baseInstanceName
 			addRagCfg(req.RAGHost, global.RagAppConfig{
-				Name:      instanceName + ":anythingllm", // Unique project name
+				Name:      ragInstanceName + ":anythingllm", // Unique project name
 				IsManaged: req.Mode == "new_deployment",
 				Host:      req.RAGHost,
 				Port:      req.RAGPort,
@@ -180,9 +184,10 @@ func DeployService(c *gin.Context) {
 
 		if req.EnableVectorDB && req.VectorDBHost != "" {
 			vdbName := strings.ToLower(req.VectorDBType)
-			name := instanceName + "-" + vdbName
+			vdbInstanceName := "vdb-" + baseInstanceName
+			name := vdbInstanceName + "-" + vdbName
 			if req.Mode == "new_deployment" {
-				name = instanceName + ":" + vdbName
+				name = vdbInstanceName + ":" + vdbName
 			}
 			addInferenceCfg(req.VectorDBHost, global.InferenceConfig{
 				Name:      name,
@@ -195,9 +200,10 @@ func DeployService(c *gin.Context) {
 		}
 
 		if req.EnableParser && req.ParserHost != "" {
-			name := instanceName + "-parser"
+			psrInstanceName := "psr-" + baseInstanceName
+			name := psrInstanceName + "-parser"
 			if req.Mode == "new_deployment" {
-				name = instanceName + ":mineru-api"
+				name = psrInstanceName + ":mineru-api"
 			}
 			addInferenceCfg(req.ParserHost, global.InferenceConfig{
 				Name:      name,
@@ -225,7 +231,7 @@ func DeployService(c *gin.Context) {
 			}
 
 			if req.EnableRAG && req.RAGHost != "" {
-				ragName := instanceName + ":anythingllm"
+				ragName := "rag-" + baseInstanceName + ":anythingllm"
 				configMap := map[string]string{
 					"port": req.RAGPort,
 				}
@@ -234,11 +240,11 @@ func DeployService(c *gin.Context) {
 
 			if req.EnableVectorDB && req.VectorDBHost != "" {
 				vdbName := strings.ToLower(req.VectorDBType)
-				service.ControlContainer(instanceName+":"+vdbName, "start", req.VectorDBHost)
+				service.ControlContainer("vdb-"+baseInstanceName+":"+vdbName, "start", req.VectorDBHost)
 			}
 
 			if req.EnableParser && req.ParserHost != "" {
-				service.ControlContainer(instanceName+":mineru-api", "start", req.ParserHost)
+				service.ControlContainer("psr-"+baseInstanceName+":mineru-api", "start", req.ParserHost)
 			}
 		}()
 	}

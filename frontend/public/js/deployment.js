@@ -244,29 +244,6 @@ async function updateNodeStatusInDashboard(ip) {
                     
                     // Clean service name (remove project prefix and instance suffix)
                     let displayName = svc.name;
-                    // Common patterns: "project-service-1", "project_service_1"
-                    const nameParts = svc.name.split(/[-_]/);
-                    if (nameParts.length >= 3) {
-                        // Check if it looks like a compose name: project-service-num
-                        // Or maybe it's just service-num. 
-                        // Let's try to extract common service keywords
-                        const targets = ["vllm", "anysearch", "anyzearch", "anythingllm", "milvus", "lancedb", "chroma", "pgvector", "mineru"];
-                        for (const t of targets) {
-                            if (svc.name.toLowerCase().includes(t)) {
-                                if (t === "anythingllm") displayName = "AnythingLLM";
-                                else if (t === "vllm") {
-                                    if (svc.name.toLowerCase().includes("llm")) displayName = "vLLM-LLM";
-                                    else if (svc.name.toLowerCase().includes("mineru")) displayName = "vLLM-MinerU";
-                                    else if (svc.name.toLowerCase().includes("embed")) displayName = "vLLM-Embed";
-                                    else displayName = "vLLM";
-                                } else {
-                                    displayName = t.charAt(0).toUpperCase() + t.slice(1);
-                                }
-                                break;
-                            }
-                        }
-                    }
-
                     sc.querySelector('.svc-name').textContent = displayName;
                     sc.querySelector('.svc-name').title = svc.name; // Keep full name in tooltip
                     sc.querySelector('.svc-uptime').textContent = (isDown || svc.state !== 'running') ? '---' : svc.uptime;
@@ -906,6 +883,7 @@ function updateSummary() {
   summaryList.innerHTML = '';
 
   const summaryData = [
+    { label: '部署名称', value: formData.get('service_name') || '(自动生成)' },
     { label: '部署模式', value: formData.get('mode') === 'new_deployment' ? '全新部署' : '对接现有' },
     { label: '硬件平台', value: formData.get('platform') === 'nvidia' ? 'NVIDIA GPU' : '华为昇腾' },
     { label: '模型类型', value: formData.get('model_type') || '未设置' },

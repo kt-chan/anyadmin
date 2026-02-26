@@ -37,6 +37,7 @@ func ControlContainer(c *gin.Context) {
 }
 
 type UpdateVLLMConfigRequest struct {
+	Name   string            `json:"name" binding:"required"`
 	NodeIP string            `json:"node_ip" binding:"required"`
 	Config map[string]string `json:"config" binding:"required"`
 }
@@ -57,10 +58,8 @@ func UpdateVLLMConfig(c *gin.Context) {
 			if node.NodeIP == req.NodeIP {
 				// Find inference config in this node
 				for j, cfg := range node.InferenceCfgs {
-					// Assuming we are updating the first vLLM config or by name if needed.
-					// Since request doesn't specify config name, we assume standard vLLM.
-					// Or check if Engine is vLLM
-					if cfg.Engine == "vLLM" || cfg.Name == "vllm" {
+					// Match by name
+					if cfg.Name == req.Name {
 						if val, ok := req.Config["VLLM_MAX_MODEL_LEN"]; ok {
 							if v, err := strconv.Atoi(val); err == nil {
 								utils.DeploymentNodes[i].InferenceCfgs[j].MaxModelLen = v
@@ -95,7 +94,7 @@ func UpdateVLLMConfig(c *gin.Context) {
 	}
 
 	// Always restart for now as per requirement
-	if err := service.UpdateVLLMConfig(req.NodeIP, req.Config, true); err != nil {
+	if err := service.UpdateVLLMConfig(req.NodeIP, req.Name, req.Config, true); err != nil {
 		log.Printf("[Container] Config update failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

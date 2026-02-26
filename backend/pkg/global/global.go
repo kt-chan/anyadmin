@@ -135,6 +135,7 @@ type DeploymentConfig struct {
 	InferenceHost  string `json:"inference_host"`
 	InferencePort  string `json:"inference_port"`
 	ModelName      string `json:"model_name"`
+	ServiceName    string `json:"service_name,omitempty"` // User defined instance name
 	APIKey         string `json:"api_key,omitempty"`
 	BaseURL        string `json:"base_url,omitempty"`
 	EnableRAG      bool   `json:"enable_rag"`
@@ -157,6 +158,7 @@ type DockerServiceStatus struct {
 	State     string `json:"state"`
 	Uptime    string `json:"uptime"`
 	ModelType string `json:"model_type,omitempty"`
+	IsManaged bool   `json:"is_managed"`
 }
 
 type Model struct {

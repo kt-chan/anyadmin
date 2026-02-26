@@ -34,6 +34,7 @@ func NewRouter() *gin.Engine {
 			auth.GET("/dashboard/stats", api.GetDashboardStats)
 			auth.POST("/container/control", api.ControlContainer)
 			auth.POST("/services/vllm/config", api.UpdateVLLMConfig)
+			auth.POST("/services/start", api.StartService)
 			auth.POST("/services/restart", api.RestartService)
 			auth.POST("/services/stop", api.StopService)
 			auth.GET("/container/logs/:name", api.StreamLogs)

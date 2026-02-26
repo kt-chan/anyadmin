@@ -53,6 +53,20 @@ const servicesService = {
     await apiClient.post('/api/v1/configs/inference', data, config);
   },
 
+  startService: async (serviceName, nodeIP, token, serviceType) => {
+    logger.info(`Starting service: ${serviceName} on node: ${nodeIP} (Type: ${serviceType})`);
+    const config = {
+      headers: { Authorization: `Bearer ${token}` }
+    };
+    
+    if (serviceType === 'Agent') {
+      await apiClient.post('/api/v1/deploy/agent/control', { ip: nodeIP, action: 'start' }, config);
+    } else {
+      await apiClient.post('/api/v1/services/start', { name: serviceName, action: 'start', node_ip: nodeIP, type: serviceType }, config);
+    }
+    return true;
+  },
+
   restartService: async (serviceName, nodeIP, token, serviceType) => {
     logger.info(`Restarting service: ${serviceName} on node: ${nodeIP} (Type: ${serviceType})`);
     const config = {

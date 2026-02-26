@@ -242,7 +242,33 @@ async function updateNodeStatusInDashboard(ip) {
                     const item = sc.querySelector('.service-item');
                     if (isDown) item.classList.add('opacity-75');
                     
-                    sc.querySelector('.svc-name').textContent = svc.name;
+                    // Clean service name (remove project prefix and instance suffix)
+                    let displayName = svc.name;
+                    // Common patterns: "project-service-1", "project_service_1"
+                    const nameParts = svc.name.split(/[-_]/);
+                    if (nameParts.length >= 3) {
+                        // Check if it looks like a compose name: project-service-num
+                        // Or maybe it's just service-num. 
+                        // Let's try to extract common service keywords
+                        const targets = ["vllm", "anysearch", "anyzearch", "anythingllm", "milvus", "lancedb", "chroma", "pgvector", "mineru"];
+                        for (const t of targets) {
+                            if (svc.name.toLowerCase().includes(t)) {
+                                if (t === "anythingllm") displayName = "AnythingLLM";
+                                else if (t === "vllm") {
+                                    if (svc.name.toLowerCase().includes("llm")) displayName = "vLLM-LLM";
+                                    else if (svc.name.toLowerCase().includes("mineru")) displayName = "vLLM-MinerU";
+                                    else if (svc.name.toLowerCase().includes("embed")) displayName = "vLLM-Embed";
+                                    else displayName = "vLLM";
+                                } else {
+                                    displayName = t.charAt(0).toUpperCase() + t.slice(1);
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    sc.querySelector('.svc-name').textContent = displayName;
+                    sc.querySelector('.svc-name').title = svc.name; // Keep full name in tooltip
                     sc.querySelector('.svc-uptime').textContent = (isDown || svc.state !== 'running') ? '---' : svc.uptime;
                     
                     const typeTag = sc.querySelector('.svc-type');
@@ -297,13 +323,18 @@ async function updateNodeStatusInDashboard(ip) {
                     // Attach handlers for Restart/Stop
                     const restartBtn = sc.querySelector('.svc-restart-btn');
                     if (restartBtn) {
-                        restartBtn.onclick = (e) => {
-                            e.stopPropagation();
-                            restartService(svc.name, ip, 'Container');
-                        };
                         if (svc.state !== 'running' && !isDown) {
+                            restartBtn.onclick = (e) => {
+                                e.stopPropagation();
+                                startService(svc.name, ip, 'Container');
+                            };
                             restartBtn.title = "Start Service";
                             restartBtn.querySelector('i').className = "fas fa-play text-xs text-green-600";
+                        } else {
+                            restartBtn.onclick = (e) => {
+                                e.stopPropagation();
+                                restartService(svc.name, ip, 'Container');
+                            };
                         }
                     }
                     
@@ -353,6 +384,31 @@ async function updateNodeStatusInDashboard(ip) {
 }
 
 // --- Service Control ---
+async function startService(serviceName, nodeIP, serviceType) {
+  try {
+    const response = await fetch('/api/service/start', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: serviceName,
+        node_ip: nodeIP,
+        type: serviceType
+      })
+    });
+    
+    if (response.ok) {
+      setTimeout(() => updateNodeStatusInDashboard(nodeIP), 2000);
+    } else {
+      alert('Start failed');
+    }
+  } catch (error) {
+    console.error('Start failed:', error);
+    alert('Network error during start');
+  }
+}
+
 async function restartService(serviceName, nodeIP, serviceType) {
   if (confirm(`确定要重启服务 ${serviceName} 吗？`)) {
     try {

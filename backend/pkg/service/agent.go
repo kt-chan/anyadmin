@@ -125,14 +125,14 @@ func sendAgentRequest(url string, payload interface{}) error {
 }
 
 // UpdateVLLMConfig updates the configuration for vLLM on a remote agent
-func UpdateVLLMConfig(nodeIP string, config map[string]string, restart bool) error {
-	log.Printf("[Agent] UpdateVLLMConfig on %s", nodeIP)
+func UpdateVLLMConfig(nodeIP string, containerName string, config map[string]string, restart bool) error {
+	log.Printf("[Agent] UpdateVLLMConfig on %s for %s", nodeIP, containerName)
 
 	agentPort := "8082"
 	agentURL := fmt.Sprintf("http://%s:%s/config/update", nodeIP, agentPort)
 
 	payload := map[string]interface{}{
-		"container_name": "vllm",
+		"container_name": containerName,
 		"config":         config,
 		"restart":        restart,
 	}
@@ -141,14 +141,14 @@ func UpdateVLLMConfig(nodeIP string, config map[string]string, restart bool) err
 }
 
 // UpdateAnythingLLMConfig updates the configuration for AnythingLLM on a remote agent
-func UpdateAnythingLLMConfig(nodeIP string, config map[string]string, restart bool) error {
-	log.Printf("[Agent] UpdateAnythingLLMConfig on %s", nodeIP)
+func UpdateAnythingLLMConfig(nodeIP string, containerName string, config map[string]string, restart bool) error {
+	log.Printf("[Agent] UpdateAnythingLLMConfig on %s for %s", nodeIP, containerName)
 
 	agentPort := "8082"
 	agentURL := fmt.Sprintf("http://%s:%s/config/update", nodeIP, agentPort)
 
 	payload := map[string]interface{}{
-		"container_name": "anythingllm",
+		"container_name": containerName,
 		"config":         config,
 		"restart":        restart,
 	}

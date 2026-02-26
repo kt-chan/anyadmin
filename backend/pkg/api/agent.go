@@ -4,8 +4,10 @@ import (
 	"anyadmin-backend/pkg/global"
 	"anyadmin-backend/pkg/service"
 	"anyadmin-backend/pkg/utils"
-	"github.com/gin-gonic/gin"
 	"net/http"
+	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 type HeartbeatRequest struct {
@@ -45,7 +47,7 @@ func CheckAgentStatus(c *gin.Context) {
 	}
 
 	status, exists := service.GetAgentStatus(ip)
-	
+
 	// Load configured services for this IP from mockdata
 	configuredServices := []global.DockerServiceStatus{}
 	hostname := ip
@@ -57,18 +59,20 @@ func CheckAgentStatus(c *gin.Context) {
 				foundInConfig = true
 				for _, cfg := range node.InferenceCfgs {
 					configuredServices = append(configuredServices, global.DockerServiceStatus{
-						Name:   cfg.Name,
-						Image:  cfg.Engine,
-						Status: "Configured (Stopped)",
-						State:  "stopped",
+						Name:      cfg.Name,
+						Image:     cfg.Engine,
+						Status:    "Configured (Stopped)",
+						State:     "stopped",
+						IsManaged: true,
 					})
 				}
 				for _, cfg := range node.RagAppCfgs {
 					configuredServices = append(configuredServices, global.DockerServiceStatus{
-						Name:   cfg.Name,
-						Image:  "RAG Application",
-						Status: "Configured (Stopped)",
-						State:  "stopped",
+						Name:      cfg.Name,
+						Image:     "RAG Application",
+						Status:    "Configured (Stopped)",
+						State:     "stopped",
+						IsManaged: true,
 					})
 				}
 				break
@@ -99,9 +103,24 @@ func CheckAgentStatus(c *gin.Context) {
 	// If exists, merge configured services if they are not in the reported heartbeat
 	for _, cfgSvc := range configuredServices {
 		found := false
-		for _, hbSvc := range status.Services {
-			if hbSvc.Name == cfgSvc.Name {
+		lcCfgName := strings.ToLower(cfgSvc.Name)
+		// Handle projectName:serviceName format by converting to common docker styles
+		dockerBase := strings.ReplaceAll(lcCfgName, ":", "-")
+		dockerAlt := strings.ReplaceAll(dockerBase, ".", "_")
+
+		for i, hbSvc := range status.Services {
+			lcHbName := strings.ToLower(hbSvc.Name)
+
+			// Match if names are equal OR if heartbeat name contains/is contained by sanitized config name
+			if lcHbName == lcCfgName ||
+				strings.Contains(lcHbName, dockerBase) ||
+				strings.Contains(lcHbName, dockerAlt) ||
+				strings.Contains(dockerBase, lcHbName) {
 				found = true
+				// Ensure it's marked as managed if it matches config
+				status.Services[i].IsManaged = true
+				// Use the prettier config name for display if it's a match
+				status.Services[i].Name = cfgSvc.Name
 				break
 			}
 		}

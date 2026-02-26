@@ -23,16 +23,17 @@ func DeployService(c *gin.Context) {
 		return
 	}
 
-	// Standardize name based on ModelType
-	// If ModelType is provided, use it as Name (standardized)
-	svcName := strings.ToLower(req.ModelType)
-	if svcName == "" {
-		svcName = "llm" // Fallback
+	// Standardize name based on ModelType and unique identifier
+	// If ServiceName is provided, use it, otherwise generate one
+	instanceName := req.ServiceName
+	if instanceName == "" {
+		instanceName = fmt.Sprintf("%s-%s", strings.ToLower(req.ModelType), time.Now().Format("01021504"))
 	}
+	instanceName = strings.ToLower(instanceName)
 
 	// Map DeploymentConfig to InferenceConfig for compatibility
 	inferenceConfig := global.InferenceConfig{
-		Name:      svcName, // Standardize name to match container reported by agent
+		Name:      instanceName, // This is the unique Instance/Project Name
 		ModelType: req.ModelType,
 		IsManaged: req.Mode == "new_deployment",
 		APIKey:    req.APIKey,
@@ -40,29 +41,31 @@ func DeployService(c *gin.Context) {
 		IP:        req.InferenceHost,
 		Port:      req.InferencePort,
 		ModelName: req.ModelName,
-		// model_path: req.ModelName,
 	}
 
-	// Map Engine based on Platform
-	switch req.Platform {
-	case "nvidia":
+	// Determine Compose Service Name
+	composeService := "vllm-llm"
+	switch req.ModelType {
+	case "embedding":
+		composeService = "vllm-embedding"
+	case "reranker":
+		composeService = "vllm-embedding" // Assuming same service handles both
+	case "ocr", "vlm":
+		composeService = "vllm-mineru"
+	}
+
+	// For managed services, we use the "project:service" convention
+	if req.Mode == "new_deployment" {
 		inferenceConfig.Engine = "vLLM"
-		// The container name in docker-compose is often engine-type, e.g., vllm-llm
-		inferenceConfig.Name = strings.ToLower(inferenceConfig.Engine + "-" + svcName)
-	case "ascend":
-		inferenceConfig.Engine = "MindIE"
-		inferenceConfig.Name = strings.ToLower(inferenceConfig.Engine + "-" + svcName)
-	default:
-		inferenceConfig.Engine = "Unknown"
+		// The Name stored in DB will be "instance:compose_service" 
+		// so agent knows what to do
+		inferenceConfig.Name = instanceName + ":" + composeService
+	} else {
+		inferenceConfig.Engine = "External"
 	}
 
-	// Calculate default balanced config
-	// We assume a default GPU memory if not known (e.g. 24GB) or we could query agent status if node exists.
-	// For new deployment, we might not have status yet. Use safe defaults or 24GB.
-	// In a real scenario, we should probably fetch this from the agent if possible.
-	// Let's check if we have agent status for this IP.
-	var gpuMem float64 = 8.0 // Default fall back
-
+	// ... (Calculation logic remains similar, but ensure it uses inferenceConfig.Name where appropriate)
+	var gpuMem float64 = 8.0 
 	calcParams := utils.CalculateConfigParams{
 		ModelNameOrPath: req.ModelName,
 		GPUMemoryGB:     gpuMem,
@@ -79,51 +82,35 @@ func DeployService(c *gin.Context) {
 		inferenceConfig.MaxNumSeqs = vllmCfg.MaxNumSeqs
 		inferenceConfig.MaxNumBatchedTokens = vllmCfg.MaxNumBatchedTokens
 		inferenceConfig.GpuMemoryUtilization = vllmCfg.GPUMemoryUtil
-
 	} else {
-		log.Printf("Failed to calculate default vllm config: %v", err)
-		// Set some safe defaults
-		inferenceConfig.Mode = "max_token"
 		inferenceConfig.MaxModelLen = 4096
 		inferenceConfig.MaxNumSeqs = 20
 		inferenceConfig.MaxNumBatchedTokens = 8192
 		inferenceConfig.GpuMemoryUtilization = 0.85
-		inferenceConfig.GPUMemoryGB = 0
-		inferenceConfig.GPUUtilization = 0
 	}
 
 	utils.ExecuteWrite(func() {
 		// Handle Target Nodes Update/Merge
 		if req.TargetNodes != "" && req.MgmtHost != "" && req.MgmtPort != "" {
 			nodes := strings.Split(req.TargetNodes, "\n")
-
-			// Create a map of existing nodes for easy lookup
 			existingNodes := make(map[string]global.DeploymentNode)
 			for _, node := range utils.DeploymentNodes {
 				existingNodes[node.NodeIP] = node
 			}
 
 			var updatedNodes []global.DeploymentNode
-
 			for _, nodeIP := range nodes {
 				nodeIP = strings.TrimSpace(nodeIP)
-				if nodeIP == "" {
-					continue
-				}
-
-				// Standardize IP (strip port)
+				if nodeIP == "" { continue }
 				host, _, err := net.SplitHostPort(nodeIP)
-				if err != nil {
-					host = nodeIP
-				}
+				if err != nil { host = nodeIP }
 
 				// Async deployment of agent
 				go service.DeployAgent(host, req.MgmtHost, req.MgmtPort, req.Mode)
 
-				// Preserve existing config or create new node
 				if existing, ok := existingNodes[host]; ok {
 					updatedNodes = append(updatedNodes, existing)
-					delete(existingNodes, host) // Remove so we know what's left
+					delete(existingNodes, host)
 				} else {
 					updatedNodes = append(updatedNodes, global.DeploymentNode{
 						NodeIP:        host,
@@ -133,125 +120,72 @@ func DeployService(c *gin.Context) {
 					})
 				}
 			}
-
-			// Append remaining nodes that weren't in the request?
-			// If the user provided a list of "Target Nodes" for this deployment,
-			// should we remove others?
-			// The wizard seems to define the cluster. Let's keep it sync with the list provided.
-			// But be careful not to lose data if the user just omitted one.
-			// For safety in this "Add/Deploy" context, we might just append new ones and ensure existing ones are updated.
-			// But req.TargetNodes usually comes from the textarea which lists ALL nodes.
 			utils.DeploymentNodes = updatedNodes
-
 			utils.MgmtHost = req.MgmtHost
 			utils.MgmtPort = req.MgmtPort
 		}
 	}, true)
 
-	// Mode specific logging or additional actions
+	// Mode specific logging
 	if req.Mode == "new_deployment" {
-		log.Printf("[全新部署] 正在初始化节点并拉起服务: %s", req.ModelName)
+		log.Printf("[全新部署] 正在初始化节点并拉起新服务: %s (%s)", instanceName, req.ModelName)
 	} else {
-		log.Printf("[接入服务] 正在登记现有服务: %s (%s:%s)", req.ModelName, req.InferenceHost, req.InferencePort)
+		log.Printf("[接入服务] 正在登记现有服务: %s (%s:%s)", instanceName, req.InferenceHost, req.InferencePort)
 	}
 
-	// Helper to add/update config in a node
-	addOrUpdateInferenceCfg := func(nodeIP string, newCfg global.InferenceConfig) {
+	// Helper to add config (Always ADD now)
+	addInferenceCfg := func(nodeIP string, newCfg global.InferenceConfig) {
 		for i, node := range utils.DeploymentNodes {
 			if node.NodeIP == nodeIP {
-				// Check if exists
-				found := false
-				for j, cfg := range node.InferenceCfgs {
-					if cfg.Name == newCfg.Name {
-						utils.DeploymentNodes[i].InferenceCfgs[j] = newCfg
-						found = true
-						break
-					}
-				}
-				if !found {
-					newCfg.CreatedAt = time.Now()
-					newCfg.UpdatedAt = time.Now()
-					utils.DeploymentNodes[i].InferenceCfgs = append(utils.DeploymentNodes[i].InferenceCfgs, newCfg)
-				}
+				newCfg.CreatedAt = time.Now()
+				newCfg.UpdatedAt = time.Now()
+				utils.DeploymentNodes[i].InferenceCfgs = append(utils.DeploymentNodes[i].InferenceCfgs, newCfg)
 				return
 			}
 		}
 	}
 
-	addOrUpdateRagCfg := func(nodeIP string, newCfg global.RagAppConfig) {
-		// Apply defaults from .env-anythingllm if missing
-		if newCfg.StorageDir == "" {
-			newCfg.StorageDir = "/app/server/storage"
-		}
-		if newCfg.LLMProvider == "" {
-			newCfg.LLMProvider = "generic-openai"
-		}
-		if newCfg.GenericOpenAIBasePath == "" {
-			newCfg.GenericOpenAIBasePath = "http://host.docker.internal:8000/v1"
-		}
-		if newCfg.GenericOpenAIModelPref == "" {
-			newCfg.GenericOpenAIModelPref = "Qwen3-1.7B"
-		}
-		if newCfg.GenericOpenAIModelTokenLimit == 0 {
-			newCfg.GenericOpenAIModelTokenLimit = 4098
-		}
-		if newCfg.GenericOpenAIMaxTokens == 0 {
-			newCfg.GenericOpenAIMaxTokens = 2048
-		}
-		// Hardcoded key from env
-		if newCfg.GenericOpenAIKey == "" {
-			newCfg.GenericOpenAIKey = "REPLACE_THIS_WITH_YOUR_ACTUAL_KEY"
-		}
-		if newCfg.VectorDB == "" {
-			newCfg.VectorDB = "lancedb"
-		}
+	addRagCfg := func(nodeIP string, newCfg global.RagAppConfig) {
+        // ... (Default settings)
+		if newCfg.StorageDir == "" { newCfg.StorageDir = "/app/server/storage" }
+		if newCfg.LLMProvider == "" { newCfg.LLMProvider = "generic-openai" }
+		if newCfg.GenericOpenAIBasePath == "" { newCfg.GenericOpenAIBasePath = "http://host.docker.internal:8000/v1" }
+		if newCfg.GenericOpenAIModelPref == "" { newCfg.GenericOpenAIModelPref = "Qwen3-1.7B" }
+		if newCfg.GenericOpenAIKey == "" { newCfg.GenericOpenAIKey = "REPLACE_THIS_WITH_YOUR_ACTUAL_KEY" }
+		if newCfg.VectorDB == "" { newCfg.VectorDB = "lancedb" }
 
 		for i, node := range utils.DeploymentNodes {
 			if node.NodeIP == nodeIP {
-				// Check if exists
-				found := false
-				for j, cfg := range node.RagAppCfgs {
-					if cfg.Name == newCfg.Name {
-						utils.DeploymentNodes[i].RagAppCfgs[j] = newCfg
-						found = true
-						break
-					}
-				}
-				if !found {
-					newCfg.CreatedAt = time.Now()
-					newCfg.UpdatedAt = time.Now()
-					utils.DeploymentNodes[i].RagAppCfgs = append(utils.DeploymentNodes[i].RagAppCfgs, newCfg)
-				}
+				newCfg.CreatedAt = time.Now()
+				newCfg.UpdatedAt = time.Now()
+				utils.DeploymentNodes[i].RagAppCfgs = append(utils.DeploymentNodes[i].RagAppCfgs, newCfg)
 				return
 			}
 		}
 	}
 
 	utils.ExecuteWrite(func() {
-		// Add Inference Config
 		if req.InferenceHost != "" {
-			addOrUpdateInferenceCfg(req.InferenceHost, inferenceConfig)
+			addInferenceCfg(req.InferenceHost, inferenceConfig)
 		}
-
 		if req.EnableRAG && req.RAGHost != "" {
-			// addOrUpdateInferenceCfg(req.RAGHost, global.InferenceConfig{
-			// 	Name:   "anythingllm",
-			// 	Engine: "RAG App",
-			// 	IP:     req.RAGHost,
-			// 	Port:   req.RAGPort,
-			// })
-			addOrUpdateRagCfg(req.RAGHost, global.RagAppConfig{
-				Name:      "anythingllm",
+			addRagCfg(req.RAGHost, global.RagAppConfig{
+				Name:      instanceName + ":anythingllm", // Unique project name
 				IsManaged: req.Mode == "new_deployment",
 				Host:      req.RAGHost,
 				Port:      req.RAGPort,
-				VectorDB:  req.VectorDBType, // Assuming linked
+				VectorDB:  req.VectorDBType,
 			})
 		}
 
 		if req.EnableVectorDB && req.VectorDBHost != "" {
-			addOrUpdateInferenceCfg(req.VectorDBHost, global.InferenceConfig{
-				Name:      strings.ToLower(req.VectorDBType),
+			vdbName := strings.ToLower(req.VectorDBType)
+			name := instanceName + "-" + vdbName
+			if req.Mode == "new_deployment" {
+				name = instanceName + ":" + vdbName
+			}
+			addInferenceCfg(req.VectorDBHost, global.InferenceConfig{
+				Name:      name,
 				ModelType: "vectordb",
 				IsManaged: req.Mode == "new_deployment",
 				Engine:    "Vector DB",
@@ -261,8 +195,12 @@ func DeployService(c *gin.Context) {
 		}
 
 		if req.EnableParser && req.ParserHost != "" {
-			addOrUpdateInferenceCfg(req.ParserHost, global.InferenceConfig{
-				Name:      "mineru-api",
+			name := instanceName + "-parser"
+			if req.Mode == "new_deployment" {
+				name = instanceName + ":mineru-api"
+			}
+			addInferenceCfg(req.ParserHost, global.InferenceConfig{
+				Name:      name,
 				ModelType: "parser",
 				IsManaged: req.Mode == "new_deployment",
 				Engine:    "Parser",
@@ -271,6 +209,39 @@ func DeployService(c *gin.Context) {
 			})
 		}
 	}, true)
+
+	// Trigger immediate start if managed
+	if req.Mode == "new_deployment" {
+		go func() {
+			// Give agent time to start if it was just deployed
+			time.Sleep(10 * time.Second)
+			
+			if req.InferenceHost != "" {
+				configMap := map[string]string{
+					"model_name": req.ModelName,
+					"port":       req.InferencePort,
+				}
+				service.UpdateVLLMConfig(req.InferenceHost, inferenceConfig.Name, configMap, true)
+			}
+
+			if req.EnableRAG && req.RAGHost != "" {
+				ragName := instanceName + ":anythingllm"
+				configMap := map[string]string{
+					"port": req.RAGPort,
+				}
+				service.UpdateAnythingLLMConfig(req.RAGHost, ragName, configMap, true)
+			}
+
+			if req.EnableVectorDB && req.VectorDBHost != "" {
+				vdbName := strings.ToLower(req.VectorDBType)
+				service.ControlContainer(instanceName+":"+vdbName, "start", req.VectorDBHost)
+			}
+
+			if req.EnableParser && req.ParserHost != "" {
+				service.ControlContainer(instanceName+":mineru-api", "start", req.ParserHost)
+			}
+		}()
+	}
 
 	// 记录审计日志
 	action := "服务部署"

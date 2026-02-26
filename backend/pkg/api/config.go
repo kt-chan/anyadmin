@@ -6,6 +6,7 @@ import (
 	"anyadmin-backend/pkg/utils"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -190,8 +191,8 @@ func SaveInferenceConfig(c *gin.Context) {
 				}
 
 				if len(agentConfig) > 0 {
-					fmt.Printf("[DEBUG] Triggering VLLM Config Update for Node: %s\n", nodeIP)
-					service.UpdateVLLMConfig(nodeIP, agentConfig, true)
+					fmt.Printf("[DEBUG] Triggering VLLM Config Update for Node: %s, Instance: %s\n", nodeIP, cfg.Name)
+					service.UpdateVLLMConfig(nodeIP, cfg.Name, agentConfig, true)
 				}
 			}
 		}
@@ -272,6 +273,11 @@ func GetServicesConfig(c *gin.Context) {
 		for _, node := range utils.DeploymentNodes {
 			// Inference Services
 			for _, cfg := range node.InferenceCfgs {
+				displayName := cfg.Name
+				if parts := strings.Split(cfg.Name, ":"); len(parts) == 2 {
+					displayName = parts[0] // Use instance/project name for grouping
+				}
+				
 				instance := ServiceInstance{
 					NodeIP:    node.NodeIP,
 					Type:      "vLLM",
@@ -279,10 +285,15 @@ func GetServicesConfig(c *gin.Context) {
 					IsManaged: cfg.IsManaged,
 					Config:    cfg,
 				}
-				groupedServices[cfg.Name] = append(groupedServices[cfg.Name], instance)
+				groupedServices[displayName] = append(groupedServices[displayName], instance)
 			}
 			// RAG Apps
 			for _, cfg := range node.RagAppCfgs {
+				displayName := cfg.Name
+				if parts := strings.Split(cfg.Name, ":"); len(parts) == 2 {
+					displayName = parts[0]
+				}
+				
 				instance := ServiceInstance{
 					NodeIP:    node.NodeIP,
 					Type:      "AnythingLLM",
@@ -290,7 +301,7 @@ func GetServicesConfig(c *gin.Context) {
 					IsManaged: cfg.IsManaged,
 					Config:    cfg,
 				}
-				groupedServices[cfg.Name] = append(groupedServices[cfg.Name], instance)
+				groupedServices[displayName] = append(groupedServices[displayName], instance)
 			}
 		}
 	})
@@ -421,8 +432,8 @@ func SaveRagAppConfig(c *gin.Context) {
 				}
 
 				if len(agentConfig) > 0 {
-					fmt.Printf("[DEBUG] Triggering AnythingLLM Config Update for Node: %s\n", nodeIP)
-					service.UpdateAnythingLLMConfig(nodeIP, agentConfig, true)
+					fmt.Printf("[DEBUG] Triggering AnythingLLM Config Update for Node: %s, Instance: %s\n", nodeIP, cfg.Name)
+					service.UpdateAnythingLLMConfig(nodeIP, cfg.Name, agentConfig, true)
 				}
 			}
 		}

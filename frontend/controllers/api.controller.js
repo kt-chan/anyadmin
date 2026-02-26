@@ -39,6 +39,35 @@ const apiController = {
         }
     },
 
+    // 启动服务
+    startService: async (req, res) => {
+        try {
+            let { name, node_ip, type } = req.body;
+            const token = req.session.user?.token;
+
+            if (!node_ip) {
+                const services = await servicesService.getServicesStatus(token);
+                const targets = services.filter(s => s.name.toLowerCase() === name.toLowerCase());
+                
+                if (targets.length > 0) {
+                    for (const target of targets) {
+                        await servicesService.startService(name, target.node_ip, token, target.type || type);
+                    }
+                    return response.success(res, { 
+                        startTime: new Date().toLocaleTimeString(),
+                        nodes: targets.map(t => t.node_ip) 
+                    }, `服务 ${name} 已在 ${targets.length} 个节点上触发启动`);
+                }
+                return response.error(res, `未找到服务 ${name} 的部署信息`, 404);
+            }
+
+            await servicesService.startService(name, node_ip, token, type);
+            return response.success(res, { startTime: new Date().toLocaleTimeString() }, `服务 ${name} 启动已触发`);
+        } catch (err) {
+            return response.error(res, '启动服务失败', 500, err);
+        }
+    },
+
     // 重启服务
     restartService: async (req, res) => {
         try {

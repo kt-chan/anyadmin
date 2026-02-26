@@ -674,6 +674,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const payload = {
                 mode: formData.get('mode'),
+                service_name: formData.get('service_name'), // Added unique name
                 platform: 'nvidia', 
                 mgmt_host: configData.mgmt_host || '172.20.0.1',
                 mgmt_port: configData.mgmt_port || '8080',

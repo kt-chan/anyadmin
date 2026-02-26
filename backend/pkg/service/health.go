@@ -173,13 +173,20 @@ func GetServicesHealth() []ServiceStatus {
 					svcStatus = "Stopped"
 					svcMsg = fmt.Sprintf("Container not found on node %s", nodeIP)
 					
+					lcCfgName := strings.ToLower(cfg.Name)
+					lcEngine := strings.ToLower(cfg.Engine)
+					// Handle projectName:serviceName format by converting to common docker styles
+					dockerBase := strings.ReplaceAll(lcCfgName, ":", "-")
+					dockerAlt := strings.ReplaceAll(dockerBase, ".", "_")
+
 					for _, dockerSvc := range agent.Services {
 						lcDockerName := strings.ToLower(dockerSvc.Name)
-						lcCfgName := strings.ToLower(cfg.Name)
-						lcEngine := strings.ToLower(cfg.Engine)
 
-						// Match if names are similar OR if it's a known engine container
-						isMatch := strings.Contains(lcDockerName, lcCfgName) || strings.Contains(lcCfgName, lcDockerName)
+						// Match if names are equal OR if docker name matches sanitized config name
+						isMatch := lcDockerName == lcCfgName || 
+								   strings.Contains(lcDockerName, dockerBase) || 
+								   strings.Contains(lcDockerName, dockerAlt) ||
+								   strings.Contains(dockerBase, lcDockerName)
 						
 						// Special case: if engine is vLLM, it might be named just "vllm"
 						if !isMatch && (lcEngine == "vllm" || lcEngine == "nvidia") {

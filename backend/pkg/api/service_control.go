@@ -15,6 +15,27 @@ type ServiceControlRequest struct {
 	Type   string `json:"type"` // Agent, Container, Core
 }
 
+// StartService handles service start requests
+func StartService(c *gin.Context) {
+	var req ServiceControlRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	username, _ := c.Get("username")
+	service.RecordLog(username.(string), "启动服务", "启动了服务 "+req.Name+" ("+req.Type+")", "Info")
+
+	if req.Type == "Container" {
+		if err := service.ControlContainer(req.Name, "start", req.NodeIP); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start container: " + err.Error()})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "starting", "message": "Service start initiated"})
+}
+
 // RestartService handles service restart requests
 func RestartService(c *gin.Context) {
 	var req ServiceControlRequest

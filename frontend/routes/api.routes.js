@@ -9,6 +9,7 @@ router.post('/config/concurrency', requireLogin, apiController.updateConcurrency
 router.post('/config/token-limit', requireLogin, apiController.updateTokenLimit);
 
 // 服务操作API
+router.post('/service/start', requireLogin, apiController.startService);
 router.post('/service/restart', requireLogin, apiController.restartService);
 router.post('/service/stop', requireLogin, apiController.stopService);
 router.post('/agent/control', requireLogin, apiController.controlAgent);

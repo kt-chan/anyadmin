@@ -32,6 +32,7 @@ type DockerServiceStatus struct {
 	State     string `json:"state"`
 	Uptime    string `json:"uptime"`
 	ModelType string `json:"model_type,omitempty"`
+	IsManaged bool   `json:"is_managed"`
 }
 
 // HeartbeatRequest defines the structure of the heartbeat payload
@@ -337,10 +338,28 @@ func ParseDockerPsOutput(output string) []DockerServiceStatus {
 				State:     parts[4],
 				Uptime:    parts[5],
 				ModelType: modelType,
+				IsManaged: true,
 			})
 		}
 	}
 	return services
+}
+
+func sanitizeProjectName(name string) string {
+	// Docker project names must consist only of lowercase alphanumeric characters,
+	// hyphens, and underscores as well as start with a letter or number.
+	name = strings.ToLower(name)
+	re := regexp.MustCompile(`[^a-z0-9_-]`)
+	sanitized := re.ReplaceAllString(name, "_")
+
+	// Ensure it starts with a letter or number
+	if len(sanitized) > 0 {
+		first := sanitized[0]
+		if !((first >= 'a' && first <= 'z') || (first >= '0' && first <= '9')) {
+			sanitized = "p" + sanitized
+		}
+	}
+	return sanitized
 }
 
 // --- Server / Control Logic ---
@@ -436,30 +455,44 @@ func handleContainerControl(w http.ResponseWriter, r *http.Request) {
 
 	workDir := DockerDir
 
-	// Validate working directory existence (optional, but good for debugging)
-	// We assume the directory exists as per the environment setup description.
+	// Support dynamic project names via "project:service" format
+	projectName := req.ContainerName
+	serviceName := req.ContainerName
+	if parts := strings.Split(req.ContainerName, ":"); len(parts) == 2 {
+		projectName = parts[0]
+		serviceName = parts[1]
+	}
+	projectName = sanitizeProjectName(projectName)
 
 	var args []string
-	containerEnv := DockerDir + ".env-" + req.ContainerName
+	// The instance-specific env file is named after the project/instance name
+	containerEnv := DockerDir + ".env-" + projectName
+	
+	// Check if instance-specific env exists, if not, try service-specific env
+	if _, err := os.Stat(containerEnv); os.IsNotExist(err) {
+		containerEnv = DockerDir + ".env-" + serviceName
+	}
 
-	args = append(args, "compose")
+	args = append(args, "compose", "-p", projectName)
 
 	// 1. Always load the base .env
 	args = append(args, "--env-file", DockerDir+".env")
 
-	// 2. Load service-specific env files
-	args = append(args, "--env-file", containerEnv)
+	// 2. Load service-specific or instance-specific env files
+	if _, err := os.Stat(containerEnv); err == nil {
+		args = append(args, "--env-file", containerEnv)
+	}
 
 	// 3. Determine command based on action
 	switch req.Action {
 	case "start":
 		// Use 'up -d' to ensure env vars and config are applied
-		args = append(args, "up", "-d", req.ContainerName)
+		args = append(args, "up", "-d", serviceName)
 	case "stop":
-		args = append(args, "stop", req.ContainerName)
+		args = append(args, "stop", serviceName)
 	case "restart":
 		// Use 'up -d --force-recreate' to force config reload/env application
-		args = append(args, "up", "-d", "--force-recreate", req.ContainerName)
+		args = append(args, "up", "-d", "--force-recreate", serviceName)
 	default:
 		http.Error(w, "Unknown action. Supported: start, stop, restart", http.StatusBadRequest)
 		return
@@ -512,23 +545,29 @@ func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Missing container_name", http.StatusBadRequest)
 		return
 	}
-	
-	// Only support vllm for now as per requirement, but could be generic
-	if req.ContainerName != "vllm" {
-		// Just warning, proceed if file exists
-	}
 
-	envPath := DockerDir + ".env-" + req.ContainerName
+	projectName := req.ContainerName
+	serviceName := req.ContainerName
+	if parts := strings.Split(req.ContainerName, ":"); len(parts) == 2 {
+		projectName = parts[0]
+		serviceName = parts[1]
+	}
+	projectName = sanitizeProjectName(projectName)
+	
+	// Use project-specific env file
+	envPath := DockerDir + ".env-" + projectName
 
 	// Read existing file
 	content, err := os.ReadFile(envPath)
 	if err != nil {
-		// If not exists, maybe create? For now, error out if not found
 		if os.IsNotExist(err) {
-			// Try creating basic if needed, or just error
-			log.Printf("Env file %s not found", envPath)
-			// Create empty if not exists
-			content = []byte("")
+			// If project env doesn't exist, try reading from service env as a template
+			serviceEnvPath := DockerDir + ".env-" + serviceName
+			if templateContent, err := os.ReadFile(serviceEnvPath); err == nil {
+				content = templateContent
+			} else {
+				content = []byte("")
+			}
 		} else {
 			http.Error(w, "Failed to read config file", http.StatusInternalServerError)
 			return
@@ -537,7 +576,7 @@ func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 
 	strContent := string(content)
 
-	// Key mapping for vLLM
+	// Key mapping based on service type
 	keyMap := map[string]string{
 		"model_name":             "VLLM_MODEL_NAME",
 		"max_model_len":          "VLLM_MAX_MODEL_LEN",
@@ -548,6 +587,21 @@ func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 		"gpu_memory_size":        "VLLM_GPU_MEMORY_SIZE",
 	}
 	
+	// Determine port variable based on service name
+	lowerService := strings.ToLower(serviceName)
+	if strings.Contains(lowerService, "anythingllm") {
+		keyMap["port"] = "ANYTHINGLLM_PORT"
+		keyMap["model_name"] = "GENERIC_OPEN_AI_MODEL_PREF"
+	} else if strings.Contains(lowerService, "llm") {
+		keyMap["port"] = "VLLM_LLM_PORT"
+		if strings.Contains(lowerService, "mineru") {
+			keyMap["model_name"] = "MINERU_VLLM_MODEL_NAME"
+			keyMap["port"] = "VLLM_MINERU_PORT"
+		}
+	} else if strings.Contains(lowerService, "embed") {
+		keyMap["port"] = "MINERU_PORT"
+	}
+	
 	// Update keys
 	for key, value := range req.Config {
 		targetKey := key
@@ -555,13 +609,10 @@ func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 			targetKey = mapped
 		}
 
-		// Simple regex replacement
-		// If key exists, replace it
 		re := regexp.MustCompile(fmt.Sprintf(`(?m)^%s=.*$`, targetKey))
 		if re.MatchString(strContent) {
 			strContent = re.ReplaceAllString(strContent, fmt.Sprintf("%s=%s", targetKey, value))
 		} else {
-			// Append if not exists
 			if len(strContent) > 0 && !strings.HasSuffix(strContent, "\n") {
 				strContent += "\n"
 			}
@@ -569,7 +620,6 @@ func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Write back
 	if err := os.WriteFile(envPath, []byte(strContent), 0644); err != nil {
 		log.Printf("Error writing env file: %v", err)
 		http.Error(w, "Failed to write config file", http.StatusInternalServerError)
@@ -578,10 +628,9 @@ func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 
 	msg := "Configuration updated."
 	
-	// Restart if requested
 	if req.Restart {
 		workDir := DockerDir
-		args := []string{"compose", "--env-file", DockerDir + ".env", "--env-file", envPath, "up", "-d", "--force-recreate", req.ContainerName}
+		args := []string{"compose", "-p", projectName, "--env-file", DockerDir + ".env", "--env-file", envPath, "up", "-d", "--force-recreate", serviceName}
 		cmdStr := "docker " + strings.Join(args, " ")
 		log.Printf("Restarting service with command: %s", cmdStr)
 		

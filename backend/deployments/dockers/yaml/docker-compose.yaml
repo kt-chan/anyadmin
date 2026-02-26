@@ -1,7 +1,6 @@
 services:
   vllm-llm:
     image: ${VLLM_IMAGE:-vllm/vllm-openai:latest}
-    container_name: vllm-llm
     profiles: ["llm"]
     shm_size: '4gb'
     ports:
@@ -30,12 +29,9 @@ services:
             - driver: nvidia
               device_ids: ['0']
               capabilities: [gpu]
-    env_file:
-      - /home/anyadmin/docker/.env-vllm-llm
 
   vllm-mineru:
     image: ${VLLM_IMAGE:-vllm/vllm-openai:latest}
-    container_name: vllm-mineru
     profiles: ["mineru"]
     shm_size: '4gb'
     ports:
@@ -64,13 +60,10 @@ services:
             - driver: nvidia
               device_ids: ['0']
               capabilities: [gpu]
-    env_file:
-      - /home/anyadmin/docker/.env-vllm-mineru
 
 
   vllm-embedding:
     image: ${VLLM_IMAGE:-vllm/vllm-openai:latest}
-    container_name: vllm-embedding
     profiles: ["embedding"]
     shm_size: '4gb'
     ports:
@@ -108,12 +101,9 @@ services:
             - driver: nvidia
               device_ids: ['0']
               capabilities: [gpu]
-    env_file:
-      - /home/anyadmin/docker/.env-vllm-embed
 
   anythingllm:
     image: ${ANYTHINGLLM_IMAGE:-mintplexlabs/anythingllm:1.8.5}
-    container_name: anythingllm
     profiles: ["rag"]
     cap_add:
       - SYS_ADMIN
@@ -139,12 +129,9 @@ services:
       - "${ANYTHINGLLM_PORT:-3001}:${ANYTHINGLLM_PORT:-3001}"
     extra_hosts:
       - host.docker.internal:host-gateway
-    env_file:
-      - /home/anyadmin/docker/.env-anythingllm
 
   mineru-api:
     image: mineru-client:2.7.6
-    container_name: mineru-api
     cap_add:
       - SYS_ADMIN
     restart: unless-stopped
@@ -154,8 +141,6 @@ services:
       - "${MINERU_PORT:-8010}:8000"
     environment:
       MINERU_MODEL_SOURCE: local
-    env_file: 
-      - /home/anyadmin/docker/.env-vllm-mineru
     entrypoint: mineru-api
     command:
       --host 0.0.0.0

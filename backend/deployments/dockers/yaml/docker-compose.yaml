@@ -10,12 +10,12 @@ services:
       - ${VLLM_MODEL_PATH:-/home/anyadmin/data/model}:/model
     entrypoint: python3 -m vllm.entrypoints.openai.api_server
     command: >
-      --model /model/${VLLM_LLM_MODEL_NAME:-Qwen3-1.7B}
-      --served-model-name ${VLLM_LLM_MODEL_NAME:-Qwen3-1.7B}
-      --max-model-len ${VLLM_LLM_MAX_MODEL_LEN:-4096}
-      --max-num-seqs ${VLLM_LLM_MAX_NUM_SEQS:-8}
-      --max-num-batched-tokens ${VLLM_LLM_MAX_NUM_BATCHED_TOKENS:-8192}
-      --gpu-memory-utilization ${VLLM_LLM_GPU_MEMORY_UTILIZATION:-0.85}
+      --model /model/${VLLM_MODEL_NAME:-Qwen3-1.7B}
+      --served-model-name ${VLLM_MODEL_NAME:-Qwen3-1.7B}
+      --max-model-len ${VLLM_MAX_MODEL_LEN:-4096}
+      --max-num-seqs ${VLLM_MAX_NUM_SEQS:-8}
+      --max-num-batched-tokens ${VLLM_MAX_NUM_BATCHED_TOKENS:-8192}
+      --gpu-memory-utilization ${VLLM_GPU_MEMORY_UTILIZATION:-0.85}
       --host 0.0.0.0
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -44,12 +44,12 @@ services:
       - ${VLLM_MODEL_PATH:-/home/anyadmin/data/model}:/model
     entrypoint: python3 -m vllm.entrypoints.openai.api_server
     command: >
-      --model /model/${VLLM_MINERU_MODEL_NAME:-MinerU-2.5}
-      --served-model-name {VLLM_MINERU_MODEL_NAME:-MinerU-2.5}
-      --max-model-len ${VLLM_MINERU_MAX_MODEL_LEN:-4096}
-      --max-num-seqs ${VLLM_MINERU_MAX_NUM_SEQS:-8}
-      --max-num-batched-tokens ${VLLM_MINERU_MAX_NUM_BATCHED_TOKENS:-8192}
-      --gpu-memory-utilization ${VLLM_MINERU_GPU_MEMORY_UTILIZATION:-0.85}
+      --model /model/${MINERU_VLLM_MODEL_NAME:-MinerU-2.5}
+      --served-model-name ${MINERU_VLLM_MODEL_NAME:-MinerU-2.5}
+      --max-model-len ${VLLM_MAX_MODEL_LEN:-4096}
+      --max-num-seqs ${VLLM_MAX_NUM_SEQS:-8}
+      --max-num-batched-tokens ${VLLM_MAX_NUM_BATCHED_TOKENS:-8192}
+      --gpu-memory-utilization ${VLLM_GPU_MEMORY_UTILIZATION:-0.85}
       --host 0.0.0.0
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -65,7 +65,7 @@ services:
               device_ids: ['0']
               capabilities: [gpu]
     env_file:
-      - /home/anyadmin/docker/.env-vllm-llm
+      - /home/anyadmin/docker/.env-vllm-mineru
 
 
   vllm-embedding:

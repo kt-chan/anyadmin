@@ -12,15 +12,16 @@ import (
 type ServiceStatus struct {
 	Name      string  `json:"name"`
 	Type      string  `json:"type"`
+	ModelType string  `json:"model_type,omitempty"`
 	ModelName string  `json:"model_name,omitempty"`
 	Status    string  `json:"status"` // Running, Stopped, Error
 	Health    string  `json:"health"` // Healthy, Unhealthy
-	Uptime  string  `json:"uptime"`
-	CPU     float64 `json:"cpu"`    // 进程 CPU 占用
-	Memory  uint64  `json:"memory"` // 进程内存占用 (Bytes)
-	PID     int32   `json:"pid"`
-	Message string  `json:"message"`
-	NodeIP  string  `json:"node_ip,omitempty"`
+	Uptime    string  `json:"uptime"`
+	CPU       float64 `json:"cpu"`    // 进程 CPU 占用
+	Memory    uint64  `json:"memory"` // 进程内存占用 (Bytes)
+	PID       int32   `json:"pid"`
+	Message   string  `json:"message"`
+	NodeIP    string  `json:"node_ip,omitempty"`
 }
 
 var startTime = time.Now()
@@ -54,46 +55,52 @@ func GetServicesHealth() []ServiceStatus {
 	}
 
 	// Copy nodes to avoid holding lock during processing
-	nodes := make([]struct{
-		IP string
+	nodes := make([]struct {
+		IP       string
 		Hostname string
-		Configs []struct{
-			Name string
-			Engine string
+		Configs  []struct {
+			Name      string
+			Engine    string
+			ModelType string
 			ModelName string
-			IP string
+			IP        string
 		}
 	}, 0) // Initialize empty, capacity will grow
 
 	utils.ExecuteRead(func() {
 		// Pre-allocate to avoid resize
 		if cap(nodes) < len(utils.DeploymentNodes) {
-			nodes = make([]struct{
-				IP string
+			nodes = make([]struct {
+				IP       string
 				Hostname string
-				Configs []struct{
-					Name string
-					Engine string
+				Configs  []struct {
+					Name      string
+					Engine    string
+					ModelType string
 					ModelName string
-					IP string
+					IP        string
 				}
 			}, len(utils.DeploymentNodes))
 		} else {
 			nodes = nodes[:len(utils.DeploymentNodes)]
 		}
-		
+
 		for i, n := range utils.DeploymentNodes {
 			nodes[i].IP = n.NodeIP
 			nodes[i].Hostname = n.Hostname
 			// Collect all configs (Inference + RAG) into a generic list for checking
 			for _, cfg := range n.InferenceCfgs {
-				nodes[i].Configs = append(nodes[i].Configs, struct{Name, Engine, ModelName, IP string}{
-					Name: cfg.Name, Engine: cfg.Engine, ModelName: cfg.ModelName, IP: cfg.IP,
+				nodes[i].Configs = append(nodes[i].Configs, struct {
+					Name, Engine, ModelType, ModelName, IP string
+				}{
+					Name: cfg.Name, Engine: cfg.Engine, ModelType: cfg.ModelType, ModelName: cfg.ModelName, IP: cfg.IP,
 				})
 			}
 			for _, cfg := range n.RagAppCfgs {
-				nodes[i].Configs = append(nodes[i].Configs, struct{Name, Engine, ModelName, IP string}{
-					Name: cfg.Name, Engine: "RAG App", ModelName: "", IP: cfg.Host,
+				nodes[i].Configs = append(nodes[i].Configs, struct {
+					Name, Engine, ModelType, ModelName, IP string
+				}{
+					Name: cfg.Name, Engine: "RAG App", ModelType: "rag", ModelName: "", IP: cfg.Host,
 				})
 			}
 		}
@@ -192,6 +199,7 @@ func GetServicesHealth() []ServiceStatus {
 			results = append(results, ServiceStatus{
 				Name:      strings.ToLower(cfg.Name),
 				Type:      "Container",
+				ModelType: cfg.ModelType,
 				ModelName: cfg.ModelName,
 				Status:    svcStatus,
 				Health:    svcHealth,

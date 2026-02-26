@@ -16,6 +16,7 @@ type InferenceConfig struct {
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deletedAt,omitempty"`
 	Name      string         `gorm:"uniqueIndex" json:"name"`
+	ModelType string         `json:"model_type"` // llm, vlm, asr, omni, embedding, reranker
 	Engine    string         `json:"engine"`
 	ModelName string         `json:"model_name"`
 	ModelPath string         `json:"model_path"`
@@ -126,6 +127,7 @@ type DeploymentConfig struct {
 	TargetNodes    string `json:"target_nodes"`
 	Mode           string `json:"mode"`
 	Platform       string `json:"platform"`
+	ModelType      string `json:"model_type"` // llm, vlm, asr, omni, embedding, reranker
 	InferenceHost  string `json:"inference_host"`
 	InferencePort  string `json:"inference_port"`
 	ModelName      string `json:"model_name"`
@@ -142,12 +144,23 @@ type DeploymentConfig struct {
 }
 
 type DockerServiceStatus struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Image  string `json:"image"`
-	Status string `json:"status"`
-	State  string `json:"state"`
-	Uptime string `json:"uptime"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Image     string `json:"image"`
+	Status    string `json:"status"`
+	State     string `json:"state"`
+	Uptime    string `json:"uptime"`
+	ModelType string `json:"model_type,omitempty"`
+}
+
+type Model struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deletedAt,omitempty"`
+	Name      string         `gorm:"uniqueIndex" json:"name"`
+	ModelType string         `json:"model_type"`
+	Size      int64          `json:"size"`
 }
 
 func InitConfig() {

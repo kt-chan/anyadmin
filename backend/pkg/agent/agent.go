@@ -25,12 +25,13 @@ var (
 
 // DockerServiceStatus represents the status of a specific docker container
 type DockerServiceStatus struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Image  string `json:"image"`
-	Status string `json:"status"`
-	State  string `json:"state"`
-	Uptime string `json:"uptime"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Image     string `json:"image"`
+	Status    string `json:"status"`
+	State     string `json:"state"`
+	Uptime    string `json:"uptime"`
+	ModelType string `json:"model_type,omitempty"`
 }
 
 // HeartbeatRequest defines the structure of the heartbeat payload
@@ -310,13 +311,32 @@ func ParseDockerPsOutput(output string) []DockerServiceStatus {
 			}
 		}
 		if isTarget {
+			modelType := "unknown"
+			lowerName := strings.ToLower(name)
+			if strings.Contains(lowerName, "llm") {
+				modelType = "llm"
+			} else if strings.Contains(lowerName, "vlm") || strings.Contains(lowerName, "mineru") {
+				modelType = "vlm"
+			} else if strings.Contains(lowerName, "embed") {
+				modelType = "embedding"
+			} else if strings.Contains(lowerName, "rerank") {
+				modelType = "reranker"
+			} else if strings.Contains(lowerName, "asr") {
+				modelType = "asr"
+			} else if strings.Contains(lowerName, "omni") {
+				modelType = "omni"
+			} else if strings.Contains(lowerName, "anythingllm") {
+				modelType = "rag"
+			}
+
 			services = append(services, DockerServiceStatus{
-				ID:     parts[0],
-				Name:   parts[1],
-				Image:  parts[2],
-				Status: parts[3],
-				State:  parts[4],
-				Uptime: parts[5],
+				ID:        parts[0],
+				Name:      parts[1],
+				Image:     parts[2],
+				Status:    parts[3],
+				State:     parts[4],
+				Uptime:    parts[5],
+				ModelType: modelType,
 			})
 		}
 	}

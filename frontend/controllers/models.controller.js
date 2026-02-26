@@ -86,6 +86,18 @@ exports.finalizeUpload = async (req, res) => {
   }
 };
 
+// API: Update model
+exports.updateModel = async (req, res) => {
+  try {
+    const token = req.session.user?.token;
+    const { name } = req.params;
+    const result = await modelsService.updateModel(token, name, req.body);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // API: Delete model
 exports.deleteModel = async (req, res) => {
   try {
@@ -96,5 +108,51 @@ exports.deleteModel = async (req, res) => {
     res.json({ success: true, message: 'Model deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// API: Get Model Types
+exports.getModelTypes = async (req, res) => {
+  try {
+    const token = req.session.user?.token;
+    const axiosConfig = {
+      headers: { Authorization: `Bearer ${token}` }
+    };
+    const apiClient = require('../utils/apiClient');
+    const response = await apiClient.get('/api/v1/model-types', axiosConfig);
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// API: Add Model Type
+exports.addModelType = async (req, res) => {
+  try {
+    const token = req.session.user?.token;
+    const axiosConfig = {
+      headers: { Authorization: `Bearer ${token}` }
+    };
+    const apiClient = require('../utils/apiClient');
+    const response = await apiClient.post('/api/v1/model-types', req.body, axiosConfig);
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// API: Delete Model Type
+exports.deleteModelType = async (req, res) => {
+  try {
+    const token = req.session.user?.token;
+    const axiosConfig = {
+      headers: { Authorization: `Bearer ${token}` }
+    };
+    const apiClient = require('../utils/apiClient');
+    const { type } = req.params;
+    const response = await apiClient.delete(`/api/v1/model-types/${type}`, axiosConfig);
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };

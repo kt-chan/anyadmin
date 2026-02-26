@@ -23,9 +23,17 @@ func DeployService(c *gin.Context) {
 		return
 	}
 
+	// Standardize name based on ModelType
+	// If ModelType is provided, use it as Name (standardized)
+	svcName := strings.ToLower(req.ModelType)
+	if svcName == "" {
+		svcName = "llm" // Fallback
+	}
+
 	// Map DeploymentConfig to InferenceConfig for compatibility
 	inferenceConfig := global.InferenceConfig{
-		Name:      "llm", // Standardize name to match container reported by agent
+		Name:      svcName, // Standardize name to match container reported by agent
+		ModelType: req.ModelType,
 		IP:        req.InferenceHost,
 		Port:      req.InferencePort,
 		ModelName: req.ModelName,
@@ -36,10 +44,11 @@ func DeployService(c *gin.Context) {
 	switch req.Platform {
 	case "nvidia":
 		inferenceConfig.Engine = "vLLM"
-		inferenceConfig.Name = strings.ToLower(inferenceConfig.Engine + "-" + inferenceConfig.Name)
+		// The container name in docker-compose is often engine-type, e.g., vllm-llm
+		inferenceConfig.Name = strings.ToLower(inferenceConfig.Engine + "-" + svcName)
 	case "ascend":
 		inferenceConfig.Engine = "MindIE"
-		inferenceConfig.Name = strings.ToLower(inferenceConfig.Engine + "-" + inferenceConfig.Name)
+		inferenceConfig.Name = strings.ToLower(inferenceConfig.Engine + "-" + svcName)
 	default:
 		inferenceConfig.Engine = "Unknown"
 	}
@@ -238,19 +247,21 @@ func DeployService(c *gin.Context) {
 
 		if req.EnableVectorDB && req.VectorDBHost != "" {
 			addOrUpdateInferenceCfg(req.VectorDBHost, global.InferenceConfig{
-				Name:   strings.ToLower(req.VectorDBType),
-				Engine: "Vector DB",
-				IP:     req.VectorDBHost,
-				Port:   req.VectorDBPort,
+				Name:      strings.ToLower(req.VectorDBType),
+				ModelType: "vectordb",
+				Engine:    "Vector DB",
+				IP:        req.VectorDBHost,
+				Port:      req.VectorDBPort,
 			})
 		}
 
 		if req.EnableParser && req.ParserHost != "" {
 			addOrUpdateInferenceCfg(req.ParserHost, global.InferenceConfig{
-				Name:   "mineru",
-				Engine: "Parser",
-				IP:     req.ParserHost,
-				Port:   req.ParserPort,
+				Name:      "mineru-api",
+				ModelType: "parser",
+				Engine:    "Parser",
+				IP:        req.ParserHost,
+				Port:      req.ParserPort,
 			})
 		}
 	}, true)

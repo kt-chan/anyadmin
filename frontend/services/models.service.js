@@ -88,6 +88,20 @@ const modelsService = {
     }
   },
 
+  // Update model
+  updateModel: async (token, name, data) => {
+    try {
+      const axiosConfig = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+      const response = await apiClient.put(`/api/v1/models/${name}`, data, axiosConfig);
+      return response.data;
+    } catch (error) {
+      logger.error(`Error updating model ${name}:`, error);
+      throw error;
+    }
+  },
+
   // Delete model
   deleteModel: async (token, name) => {
     try {

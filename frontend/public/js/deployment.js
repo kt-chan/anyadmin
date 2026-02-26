@@ -246,7 +246,16 @@ async function updateNodeStatusInDashboard(ip) {
                     sc.querySelector('.svc-uptime').textContent = (isDown || svc.state !== 'running') ? '---' : svc.uptime;
                     
                     const typeTag = sc.querySelector('.svc-type');
-                    if (svc.name.toLowerCase().includes('vllm')) {
+                    if (svc.model_type) {
+                        typeTag.textContent = svc.model_type;
+                        if (svc.model_type === 'llm' || svc.model_type === 'vlm') {
+                            typeTag.className = "svc-type bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold";
+                        } else if (svc.model_type === 'embedding' || svc.model_type === 'reranker') {
+                            typeTag.className = "svc-type bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold";
+                        } else {
+                            typeTag.className = "svc-type bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold";
+                        }
+                    } else if (svc.name.toLowerCase().includes('vllm')) {
                         typeTag.textContent = 'Inference';
                         typeTag.className = "svc-type bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold";
                     } else if (svc.name.toLowerCase().includes('anythingllm')) {
@@ -479,7 +488,28 @@ window.fetchNodesAndPopulate = async function() {
             sel.value = currentVal;
         }
     });
-  } catch (e) { console.error('Failed to fetch nodes', e); }
+
+    // Also populate model types
+    const typeRes = await fetch('/models/api/model-types');
+    const types = await typeRes.json();
+    const typeSelect = document.getElementById('model-type-select');
+    if (typeSelect) {
+        const currentType = typeSelect.value;
+        typeSelect.innerHTML = '<option value="" disabled selected>Select Type</option>';
+        types.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t;
+            opt.textContent = t.toUpperCase();
+            typeSelect.appendChild(opt);
+        });
+        if (types.includes(currentType)) {
+            typeSelect.value = currentType;
+        } else if (!currentType && types.includes('llm')) {
+            typeSelect.value = 'llm';
+        }
+    }
+
+  } catch (e) { console.error('Failed to fetch nodes/types', e); }
 }
 
 // --- Wizard Logic ---
@@ -565,6 +595,31 @@ window.refreshModels = async function(isManual = false) {
 function initWizard() {
   const nextBtn = document.getElementById('next-btn');
   const prevBtn = document.getElementById('prev-btn');
+
+    // Model selection change handler
+    const modelSelect = document.getElementById('model-select');
+    if (modelSelect) {
+        modelSelect.addEventListener('change', async function() {
+            if (!this.value) return;
+            
+            // Try to fetch model type from backend if it's a local model
+            const mode = document.querySelector('input[name="mode"]:checked')?.value;
+            if (mode === 'new_deployment') {
+                try {
+                    const res = await fetch('/models/api/models');
+                    const result = await res.json();
+                    if (result.models) {
+                        const model = result.models.find(m => m.name === this.value);
+                        if (model && model.model_type) {
+                            const typeSelect = document.getElementById('model-type-select');
+                            if (typeSelect) typeSelect.value = model.model_type;
+                            validateStep();
+                        }
+                    }
+                } catch (e) { console.error("Failed to auto-detect model type", e); }
+            }
+        });
+    }
 
   // --- New Logic for Step 2 Model Selection ---
   
@@ -791,6 +846,7 @@ function updateSummary() {
   const summaryData = [
     { label: '部署模式', value: formData.get('mode') === 'new_deployment' ? '全新部署' : '对接现有' },
     { label: '硬件平台', value: formData.get('platform') === 'nvidia' ? 'NVIDIA GPU' : '华为昇腾' },
+    { label: '模型类型', value: formData.get('model_type') || '未设置' },
     { label: '推理模型', value: formData.get('model_path') || '未设置' },
     { label: '推理主机', value: formData.get('inference_host') || '未设置' },
     { label: '知识库', value: formData.get('enable_vectordb') ? formData.get('vector_db') : '禁用' },

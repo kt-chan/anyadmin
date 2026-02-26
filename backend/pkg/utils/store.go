@@ -14,6 +14,8 @@ var (
 	Users         []global.User
 	ImportTasks   []global.ImportTask
 	BackupRecords []global.BackupRecord
+	ModelTypes    []string
+	Models        []global.Model
 	
 	// Deployment Nodes (Nested Structure)
 	DeploymentNodes []global.DeploymentNode
@@ -53,6 +55,8 @@ type DataStore struct {
 	ImportTasks     []global.ImportTask      `json:"import_tasks"`
 	BackupRecords   []global.BackupRecord    `json:"backup_records"`
 	DeploymentNodes []global.DeploymentNode  `json:"deployment_nodes"`
+	ModelTypes      []string                 `json:"model_types"`
+	Models          []global.Model           `json:"models"`
 	MgmtHost        string                   `json:"mgmt_host"`
 	MgmtPort        string                   `json:"mgmt_port"`
 }
@@ -144,6 +148,11 @@ func InitData() {
 		if MgmtPort == "" {
 			MgmtPort = "8080"
 		}
+
+		// Initialize ModelTypes if empty
+		if len(ModelTypes) == 0 {
+			ModelTypes = []string{"llm", "vlm", "asr", "omni", "embedding", "reranker"}
+		}
 	}, true)
 }
 
@@ -154,6 +163,8 @@ func saveToFile() error {
 		ImportTasks:     ImportTasks,
 		BackupRecords:   BackupRecords,
 		DeploymentNodes: DeploymentNodes,
+		ModelTypes:      ModelTypes,
+		Models:          Models,
 		MgmtHost:        MgmtHost,
 		MgmtPort:        MgmtPort,
 	}
@@ -195,6 +206,8 @@ func LoadFromFile() error {
 	ImportTasks = data.ImportTasks
 	BackupRecords = data.BackupRecords
 	DeploymentNodes = data.DeploymentNodes
+	ModelTypes = data.ModelTypes
+	Models = data.Models
 	MgmtHost = data.MgmtHost
 	MgmtPort = data.MgmtPort
 

@@ -35,6 +35,12 @@ router.post('/api/upload/init', modelsController.initUpload);
 router.post('/api/upload/chunk', upload.single('chunk'), modelsController.uploadChunk);
 router.post('/api/upload/abort', modelsController.abortUpload);
 router.post('/api/finalize', modelsController.finalizeUpload);
+router.put('/api/:name', modelsController.updateModel);
 router.delete('/api/:name', modelsController.deleteModel);
+
+// Model Types API
+router.get('/api/model-types', modelsController.getModelTypes);
+router.post('/api/model-types', modelsController.addModelType);
+router.delete('/api/model-types/:type', modelsController.deleteModelType);
 
 module.exports = router;

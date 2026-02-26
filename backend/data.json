@@ -26,7 +26,7 @@
       "node_ip": "172.20.0.10",
       "hostname": "172.20.0.10",
       "agent_config": {
-        "deployment_time": "2026-02-26T15:28:00+08:00",
+        "deployment_time": "2026-02-26T16:30:36+08:00",
         "log_file": "/home/anyadmin/logs/agent.log",
         "mgmt_host": "172.20.0.1",
         "mgmt_port": "8080",
@@ -36,10 +36,11 @@
       "inference_cfgs": [
         {
           "id": 0,
-          "createdAt": "2026-02-26T15:27:53.9624669+08:00",
-          "updatedAt": "2026-02-26T15:27:53.9624669+08:00",
+          "createdAt": "0001-01-01T00:00:00Z",
+          "updatedAt": "0001-01-01T00:00:00Z",
           "deletedAt": null,
           "name": "vllm-llm",
+          "model_type": "llm",
           "engine": "vLLM",
           "model_name": "llama-3.2-1B-Instruct",
           "model_path": "",
@@ -73,6 +74,53 @@
           "vector_db": "lancedb"
         }
       ]
+    }
+  ],
+  "model_types": [
+    "llm",
+    "vlm",
+    "asr",
+    "omni",
+    "embedding",
+    "reranker",
+    "ocr"
+  ],
+  "models": [
+    {
+      "id": 0,
+      "createdAt": "2026-02-13T10:30:49.4197892+08:00",
+      "updatedAt": "2026-02-26T16:29:52.4631929+08:00",
+      "deletedAt": null,
+      "name": "MinerU-2.5",
+      "model_type": "ocr",
+      "size": 2323675898
+    },
+    {
+      "id": 0,
+      "createdAt": "2026-02-09T17:30:30.9976243+08:00",
+      "updatedAt": "2026-02-26T16:30:03.1655062+08:00",
+      "deletedAt": null,
+      "name": "llama-3.2-1B-Instruct",
+      "model_type": "llm",
+      "size": 4954734509
+    },
+    {
+      "id": 0,
+      "createdAt": "2026-02-26T16:36:09.203087+08:00",
+      "updatedAt": "2026-02-26T16:36:09.203087+08:00",
+      "deletedAt": null,
+      "name": "bge-large-zh",
+      "model_type": "embedding",
+      "size": 1302803968
+    },
+    {
+      "id": 0,
+      "createdAt": "2026-02-26T16:42:10.190621+08:00",
+      "updatedAt": "2026-02-26T16:42:10.190621+08:00",
+      "deletedAt": null,
+      "name": "bge-reranker-large",
+      "model_type": "reranker",
+      "size": 6741725184
     }
   ],
   "mgmt_host": "172.20.0.1",

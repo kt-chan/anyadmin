@@ -19,13 +19,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Form Validation ---
     const checkFormValidity = () => {
         const name = document.getElementById('modelName').value;
+        const type = document.getElementById('modelType').value;
         const tarFile = document.getElementById('tarFile').files.length > 0;
         const sumFile = document.getElementById('sumFile').files.length > 0;
         
-        submitBtn.disabled = !(name && tarFile && sumFile) || isUploading;
+        submitBtn.disabled = !(name && type && tarFile && sumFile) || isUploading;
     };
 
-    ['modelName', 'tarFile', 'sumFile'].forEach(id => {
+    ['modelName', 'modelType', 'tarFile', 'sumFile'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', checkFormValidity);
         if (el) el.addEventListener('change', checkFormValidity);
@@ -62,7 +63,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (isUploading) await initUploadSession('sum', sumFile);
 
                 // 2. Start Upload Loop
-                if (isUploading) await processUploads(name);
+                const modelType = document.getElementById('modelType').value;
+                if (isUploading) await processUploads(name, modelType);
 
             } catch (err) {
                 if (isUploading) {
@@ -138,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateProgress(type, uploadState[type].offset, uploadState[type].total);
     }
 
-    async function processUploads(modelName) {
+    async function processUploads(modelName, modelType) {
         // Upload loop for both files. simpler to do one then the other or parallel?
         // Let's do parallel chunks for speed? No, simpler sequential or interleaved.
         // Let's just loop until both are done.
@@ -158,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isUploading && !isPaused) {
             // Both done
-            finalizeUpload(modelName);
+            finalizeUpload(modelName, modelType);
         }
     }
 
@@ -201,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function finalizeUpload(modelName) {
+    async function finalizeUpload(modelName, modelType) {
         if (!isUploading) return;
         updateButtons('finalizing');
         document.getElementById(`tarStatus`).innerText = "正在校验并保存...";
@@ -213,6 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     model_name: modelName,
+                    model_type: modelType,
                     tar_upload_id: uploadState.tar.id,
                     checksum_upload_id: uploadState.sum.id
                 })
@@ -238,6 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function toggleInputs(enabled) {
         document.getElementById('modelName').disabled = !enabled;
+        document.getElementById('modelType').disabled = !enabled;
         document.getElementById('tarFile').disabled = !enabled;
         document.getElementById('sumFile').disabled = !enabled;
         document.querySelector('button[onclick*="hideModal"]').disabled = !enabled;
@@ -291,6 +295,127 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleInputs(true);
         showProgressUI(false);
         updateButtons('idle');
+    }
+
+    // --- Model Types Management ---
+    window.manageModelTypes = () => {
+        showModal('modelTypesModal');
+        loadModelTypesList();
+    };
+
+    async function loadModelTypesList() {
+        const list = document.getElementById('modelTypesList');
+        if (!list) return;
+        
+        try {
+            const res = await fetch('/models/api/model-types');
+            const types = await res.json();
+            
+            list.innerHTML = '';
+            types.forEach(t => {
+                const tag = document.createElement('div');
+                tag.className = 'flex items-center gap-2 bg-white border border-slate-200 px-3 py-1 rounded-full text-sm font-bold text-slate-700 shadow-sm';
+                tag.innerHTML = `
+                    ${t}
+                    <button onclick="deleteModelType('${t}')" class="text-slate-400 hover:text-red-500 transition">
+                        <i class="fas fa-times-circle"></i>
+                    </button>
+                `;
+                list.appendChild(tag);
+            });
+
+            // Also update the dropdowns in modals
+            const selects = ['modelType', 'editModelType'];
+            selects.forEach(id => {
+                const select = document.getElementById(id);
+                if (select) {
+                    const currentVal = select.value;
+                    select.innerHTML = id === 'modelType' ? '<option value="" disabled selected>选择模型类型</option>' : '';
+                    types.forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t;
+                        opt.textContent = t.toUpperCase();
+                        select.appendChild(opt);
+                    });
+                    if (types.includes(currentVal)) select.value = currentVal;
+                }
+            });
+        } catch (e) {
+            console.error("Failed to load model types:", e);
+        }
+    }
+
+    window.addModelType = async () => {
+        const input = document.getElementById('newModelType');
+        const type = input.value.trim().toLowerCase();
+        if (!type) return;
+
+        try {
+            const res = await fetch('/models/api/model-types', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type })
+            });
+            if (res.ok) {
+                input.value = '';
+                loadModelTypesList();
+            }
+        } catch (e) {
+            console.error("Failed to add model type:", e);
+        }
+    };
+
+    window.deleteModelType = async (type) => {
+        if (!confirm(`确定要删除类型 "${type}" 吗？`)) return;
+
+        try {
+            const res = await fetch(`/models/api/model-types/${type}`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                loadModelTypesList();
+            }
+        } catch (e) {
+            console.error("Failed to delete model type:", e);
+        }
+    };
+
+    // Load initial model types
+    loadModelTypesList();
+
+    window.editModel = (name, currentType) => {
+        document.getElementById('editModelName').value = name;
+        document.getElementById('displayModelName').innerText = name;
+        document.getElementById('editModelType').value = currentType;
+        showModal('editModelModal');
+    };
+
+    const editForm = document.getElementById('editModelForm');
+    if (editForm) {
+        editForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('editModelName').value;
+            const model_type = document.getElementById('editModelType').value;
+
+            try {
+                const response = await fetch(`/models/api/${name}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, model_type })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showNotification('模型配置已更新', 'success');
+                    hideModal('editModelModal');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    throw new Error(result.message || '更新失败');
+                }
+            } catch (error) {
+                showNotification('更新失败: ' + error.message, 'error');
+            }
+        });
     }
 
     // Keep delete function

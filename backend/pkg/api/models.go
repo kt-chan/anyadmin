@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"anyadmin-backend/pkg/global"
+	"anyadmin-backend/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -22,7 +24,8 @@ var TempUploadDir = "deployments/tars/models/.tmp"
 
 type ModelInfo struct {
 	Name      string    `json:"name"`
-	Size      int64     `json:"size"` // Total size in bytes
+	ModelType string    `json:"model_type"` // llm, vlm, asr, omni, embedding, reranker
+	Size      int64     `json:"size"`       // Total size in bytes
 	UpdatedAt time.Time `json:"updated_at"`
 	Files     []string  `json:"files,omitempty"`
 }
@@ -40,6 +43,7 @@ type UploadInitResponse struct {
 
 type FinalizeRequest struct {
 	ModelName        string `json:"model_name"`
+	ModelType        string `json:"model_type"`
 	TarUploadID      string `json:"tar_upload_id"`
 	ChecksumUploadID string `json:"checksum_upload_id"`
 }
@@ -49,60 +53,127 @@ func init() {
 	os.MkdirAll(TempUploadDir, 0755)
 }
 
-// GetModels lists all available models in deployments/tars/models
+// GetModels lists all available models from utils.Models
 func GetModels(c *gin.Context) {
-	if _, err := os.Stat(ModelsDir); os.IsNotExist(err) {
-		if err := os.MkdirAll(ModelsDir, 0755); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create models directory"})
-			return
+	// If utils.Models is empty, try to populate from disk once (Migration)
+	// We check without lock first for performance, then syncModelsFromDisk handles its own locking.
+	needsSync := false
+	utils.ExecuteRead(func() {
+		if len(utils.Models) == 0 {
+			needsSync = true
 		}
+	})
+
+	if needsSync {
+		syncModelsFromDisk()
+	}
+
+	utils.ExecuteRead(func() {
+		c.JSON(http.StatusOK, gin.H{"models": utils.Models})
+	})
+}
+
+func syncModelsFromDisk() {
+	if _, err := os.Stat(ModelsDir); os.IsNotExist(err) {
+		return
 	}
 
 	entries, err := os.ReadDir(ModelsDir)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read models directory"})
 		return
 	}
 
-	models := []ModelInfo{}
-	for _, entry := range entries {
-		// Skip hidden files
-		if strings.HasPrefix(entry.Name(), ".") {
-			continue
-		}
-
-		info, err := entry.Info()
-		if err != nil {
-			continue
-		}
-
-		var size int64
-		name := entry.Name()
-
-		if entry.IsDir() {
-			modelPath := filepath.Join(ModelsDir, name)
-			filepath.Walk(modelPath, func(_ string, info os.FileInfo, err error) error {
-				if err == nil && !info.IsDir() {
-					size += info.Size()
-				}
-				return nil
-			})
-		} else {
-			// Only include if it's a .tar file
-			if !strings.HasSuffix(strings.ToLower(name), ".tar") {
+	utils.ExecuteWrite(func() {
+		for _, entry := range entries {
+			if strings.HasPrefix(entry.Name(), ".") {
 				continue
 			}
-			size = info.Size()
-		}
 
-		models = append(models, ModelInfo{
-			Name:      name,
-			Size:      size,
-			UpdatedAt: info.ModTime(),
-		})
+			info, err := entry.Info()
+			if err != nil {
+				continue
+			}
+
+			var size int64
+			name := entry.Name()
+
+			if entry.IsDir() {
+				modelPath := filepath.Join(ModelsDir, name)
+				filepath.Walk(modelPath, func(_ string, info os.FileInfo, err error) error {
+					if err == nil && !info.IsDir() {
+						size += info.Size()
+					}
+					return nil
+				})
+			} else {
+				if !strings.HasSuffix(strings.ToLower(name), ".tar") {
+					continue
+				}
+				size = info.Size()
+			}
+
+			utils.Models = append(utils.Models, global.Model{
+				Name:      name,
+				ModelType: getModelType(name),
+				Size:      size,
+				CreatedAt: info.ModTime(),
+				UpdatedAt: info.ModTime(),
+			})
+		}
+	}, true)
+}
+
+func UpdateModel(c *gin.Context) {
+	var req struct {
+		Name      string `json:"name" binding:"required"`
+		ModelType string `json:"model_type" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"models": models})
+	found := false
+	err := utils.ExecuteWrite(func() {
+		for i, m := range utils.Models {
+			if m.Name == req.Name {
+				utils.Models[i].ModelType = req.ModelType
+				utils.Models[i].UpdatedAt = time.Now()
+				found = true
+				break
+			}
+		}
+	}, true)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update model in data.json"})
+		return
+	}
+
+	if !found {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Model not found in data.json"})
+		return
+	}
+
+	// Also update model_info.json on disk for consistency
+	saveModelInfo(req.Name, req.ModelType)
+
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Model updated successfully"})
+}
+
+func getModelType(name string) string {
+	infoPath := filepath.Join(ModelsDir, name, "model_info.json")
+	data, err := os.ReadFile(infoPath)
+	if err != nil {
+		return "unknown"
+	}
+	var info struct {
+		ModelType string `json:"model_type"`
+	}
+	if err := json.Unmarshal(data, &info); err != nil {
+		return "unknown"
+	}
+	return info.ModelType
 }
 
 // InitUpload initializes a chunked upload session
@@ -155,7 +226,12 @@ func InitUpload(c *gin.Context) {
 
 // UploadChunk handles a single chunk
 func UploadChunk(c *gin.Context) {
-	uploadID := c.PostForm("upload_id")
+	// Ensure multipart form is parsed
+	if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
+		// Log error but try to continue, Gin might have parsed it already
+	}
+
+	uploadID := c.Request.FormValue("upload_id")
 	if uploadID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "upload_id is required"})
 		return
@@ -163,6 +239,7 @@ func UploadChunk(c *gin.Context) {
 
 	file, err := c.FormFile("chunk")
 	if err != nil {
+		fmt.Printf("[DEBUG] UploadChunk: chunk file missing or error: %v\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "chunk file is required"})
 		return
 	}
@@ -291,6 +368,34 @@ func FinalizeUpload(c *gin.Context) {
 	// Save the checksum file as well
 	os.WriteFile(destPath+".sha256", []byte(expectedSum), 0644)
 
+	// Save Model Info (Type)
+	saveModelInfo(req.ModelName, req.ModelType)
+
+	// Add to utils.Models and save to data.json
+	fileInfo, _ := os.Stat(destPath)
+	utils.ExecuteWrite(func() {
+		// Check if exists, replace or append
+		found := false
+		for i, m := range utils.Models {
+			if m.Name == req.ModelName {
+				utils.Models[i].ModelType = req.ModelType
+				utils.Models[i].Size = fileInfo.Size()
+				utils.Models[i].UpdatedAt = time.Now()
+				found = true
+				break
+			}
+		}
+		if !found {
+			utils.Models = append(utils.Models, global.Model{
+				Name:      req.ModelName,
+				ModelType: req.ModelType,
+				Size:      fileInfo.Size(),
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			})
+		}
+	}, true)
+
 	// Extract config.json for the dashboard/wizard to read model details
 	if err := extractConfigFile(destPath, dir); err != nil {
 		// Log warning but don't fail the whole upload if just config extraction fails
@@ -298,6 +403,17 @@ func FinalizeUpload(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Model uploaded and verified successfully"})
+}
+
+func saveModelInfo(name string, modelType string) {
+	infoPath := filepath.Join(ModelsDir, name, "model_info.json")
+	info := struct {
+		ModelType string `json:"model_type"`
+	}{
+		ModelType: modelType,
+	}
+	data, _ := json.MarshalIndent(info, "", "  ")
+	os.WriteFile(infoPath, data, 0644)
 }
 
 // extractConfigFile pulls specifically config.json from a tar/tar.gz
@@ -495,6 +611,16 @@ func DeleteModel(c *gin.Context) {
 
 	// Also try to remove associated checksum file if it exists
 	os.Remove(targetPath + ".sha256")
+
+	// Remove from utils.Models
+	utils.ExecuteWrite(func() {
+		for i, m := range utils.Models {
+			if m.Name == name {
+				utils.Models = append(utils.Models[:i], utils.Models[i+1:]...)
+				break
+			}
+		}
+	}, true)
 
 	c.JSON(http.StatusOK, gin.H{"status": "success"})
 }

@@ -62,7 +62,13 @@ func NewRouter() *gin.Engine {
 			auth.POST("/models/upload/chunk", api.UploadChunk)
 			auth.POST("/models/upload/abort", api.AbortUpload)
 			auth.POST("/models/finalize", api.FinalizeUpload)
+			auth.PUT("/models/:name", api.UpdateModel)
 			auth.DELETE("/models/:name", api.DeleteModel)
+
+			// Model Types
+			auth.GET("/model-types", api.GetModelTypes)
+			auth.POST("/model-types", api.AddModelType)
+			auth.DELETE("/model-types/:type", api.DeleteModelType)
 			
 			auth.GET("/import/tasks", api.GetImportTasks)
 			auth.POST("/import/tasks", api.CreateImportTask)

@@ -1,18 +1,21 @@
 networks:
-  # Fixed name allows multiple projects to share the same network
+  # Shared network for all projects
   genai-network:
-    name: genai-network
-    driver: bridge
+    external: true
 
 services:
   # LiteLLM Proxy Gateway: Unified entry point for all models
   litellm:
     image: ghcr.io/berriai/litellm:1.81.14
-    container_name: litellm-proxy
     ports:
       - "4000:4000"
     volumes:
       - ./litellm_config.yaml:/app/config.yaml
+    env_file:
+      - .env
+      - .env-litellm
+    environment:
+      - LITELLM_LOG=DEBUG
     command: ["--config", "/app/config.yaml"]
     networks:
       - genai-network

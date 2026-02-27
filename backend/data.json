@@ -79,12 +79,12 @@
         {
           "id": 0,
           "createdAt": "2026-02-27T15:31:52.502413+08:00",
-          "updatedAt": "2026-02-27T15:31:52.502413+08:00",
+          "updatedAt": "2026-02-27T18:34:18.0180928+08:00",
           "deletedAt": null,
           "name": "inf-remote-glm-4-flash",
           "model_type": "llm",
           "is_managed": false,
-          "api_key": "ZfiYb+yjRUJEVobULjXovutPWn8iGHCriFcyhfzOewgSXaEtOx1qw9B1exlKYbPnY4+SfpotBR6LzhtMSeBKZx3eGsNQNHvLHPIu9LJ1Im3N2KCW4tuXXHRJaxJd0qA1NUswQRqvbwbShtbeBFcX+Dr7bnrAmN7l6XQcExMnBySOcpEgdtpYxdMNn+qrc43F5htaAT5NoeyuaSFd6qWwEab+fTzyS1dWwqvqYtrz+zazFp2rMpobrlShB1L2YlotVC0caLNkDE18dK3gJes7x3gVcsN8WtWA4UZr+/W4jxQxosnqWU1R1E5AMR+9a9lyb555TQMtETTP60axPerskOS6F02n4vlHt1IoHa6L1exr4qvFoMAjA5CjA+EBSEDnMgq76fJtVdMzdCMag4+uRnpLMNpsiXHPI4XDnRSJSjFw0a1VzYGq6JDshlWOC6dhWnHBtOhMBzgpacnYQgcmamdZ33EDWu7w2LqS3TVvAijYlOG5TjuVtFhJAFvnAv8lJZkBzYxVWqS15e1K4Of8Bo/B2MUnry+EFoGk9woJqpdljg/wBaDJHEc3RvNSQUBAZGAi/mKQYIlLerTNn/yOlsV4Z7cb0YSZc6F4Ej2Fgryd+jJgOjHyw2nvMisiqwPUh+1lNe9+VraFjuBibuYffvqYw4wXAN1tIb4uXAUOZJY=",
+          "api_key": "c1wwXNx/TlG+XsyrlW3RWxVn3lFHzGfilG7F1Ex6bvZGIFWIvkI4C5TKDL9tTVQy7bwiFTpCMTz0xuYxbAIhOULBoU6G7VczQLHwXB+GOjpCDmCdy+QtOpszNqau9mnyhl9/8lZWjJ26VSCP7He8vbMZABnAIQIyHgGCefQDFylcpR87krtdCZdlAdudA57xJ61LEqp1EatxV8YK93VnWSuhsFi3CKUvZOrHbh7kfPJZiN4mgCay+stDF5TH6/wHJDTlQzYUVP7uguIjKROGofbfxmJh5CZinyCpkpSLCcic3Z+dW+fz+vBI6zEZjTZOS+MmPhgAOu51ZrbULF6Ca08T3jPH4JPjKyPTCaUuFXf1YuVZ1gpzJxKIdqfoEtSNt4eI/uhlC2qXcWvqKNW8MYISh5qkBuVdMaswfwMGiSb/nE0Zrx4dDse6qFdMsj48+o+MNN7j6qqO5JfxBzjOHQooHSiuJ7MHL2F7sstVCW/pmw7KGx8/6w+t72bFmEToE+Ip+lgT3owC4Cp6IR5Q76MgzuTvwWKZzfSOyxBOHgURyqUDz6n+/ic+e/P3btSByvl1ut37evtAFnRPuVotDWtgeVUk7JnuKKXXJ/K0MkTdm+I6JnZ6AoiO8ELKFZgP2f6Vyed7VU3OQvO6z26SfEiG31PvHc3aB4E9gQaAy0s=",
           "base_url": "https://open.bigmodel.cn/api/paas/v4",
           "engine": "External",
           "model_name": "glm-4-flash",
@@ -104,7 +104,7 @@
         {
           "id": 0,
           "createdAt": "2026-02-27T15:00:26.011993+08:00",
-          "updatedAt": "2026-02-27T16:35:03.016764+08:00",
+          "updatedAt": "2026-02-27T16:50:03.6729196+08:00",
           "deletedAt": null,
           "name": "rag-demo:anythingllm",
           "is_managed": true,
@@ -113,10 +113,10 @@
           "storage_dir": "/app/server/storage",
           "llm_provider": "generic-openai",
           "generic_openai_base_path": "http://litellm:4000/v1",
-          "generic_openai_model_pref": "llama-3.2-1B-Instruct",
+          "generic_openai_model_pref": "glm-4-flash",
           "generic_openai_model_token_limit": 4096,
           "generic_openai_max_tokens": 2048,
-          "generic_openai_api_key": "cRBVLZge8cJ4rOBqv3zEVz57yKMACP5R3y5fDZ9gVF2nRB0yKRbBRQ7cY14sLV21dc8hERR3gjNbsKmt+H6w7PgFo6Vvx3jFUyXht6nw0j8a2qqX8CyUJjLEmQOjU+6oiuwby9kHVwjfKVtSEpFWay6YiBHBw/2ChK91qCG0lNBnXIz7FjT7ri98jY4jso608K7wqifNkg98/J6IJ1yyzTHRPWOLbMIBHNcsnbmTwl54hnIKJs4XSd+UIe+E2Abiv2bc9b4z/Y5tm2rpzumP/IFtKfl7kbdV/5c7xGfxZeJCWbFqcCphxCIrvCkL05ZYzws9rmvN1wf9zUSWiOyUEuZHgIi97/Crpi3HA3RTavUxehw4eUzhNjPHKtwtmBn6RZJKUHuEernHy1BxuMaLyF1c+Ax18rLXalYBLKo1lEk1UAjlHJF/fqnqMoZNRtrkU6gPjBT9BdZvnmN8L8qf3InW5I29vz36x6HUngKBVf/S9Rg8pWP8MtqihkHmUo98TDBGjyGkNkykQcSGgfGYmUNivtTmvkUdoo/5TeIVVF7k85AujBMaHz3D7Wba2G5zMEL4vNcqe9WGQwtiz4a1DKgGf1eL0jkcwCBfW8Tt+apuQ3pSJpjMmmJFGP8lOk1OhVFq0oUym4PClY6YCV+j4z2fUYOmITEYn17rAsdydWo=",
+          "generic_openai_api_key": "UfT1kMrdEbzsKsIBWcwrGbGJ/IetS0vtDi/92Cbk3y6siwpEypRnF5d1Y6U2ItuPsMJhOaoAp9USOxHyQ+QKHDREJMRWrd9RzDPg5IbJdQuVq0NW7/MFaHu/VKlD7296aCSGFgevkQC0vXoYRv5oL2MqCtz4wuXneuwRWn/RqY8pnBOijZQJF8RUXNIlziX4HT2sfU70DiH6FioOuiWoU20XrM92GqQKWiK12M8xbeVC4j68wPNGIivueIN222F6O85XJODz+aCgT4ib0SpuTogf62Fm7Ie09LxMnu0aqu87Axrrfmigv/fV+9Qw35C6XpHgNmmM9pEm5z5ydh8H3/AhgPn06uNzs+e17oEUA7OLorxwocan9uLmA1HkSif72rj73UjPclJe01bRS0FA0fNBnfm83pXSFXukTx9Eggi5Hbz8ZnyFFw8Ob57jzr2Xo4VEWn7nqCNmmL/F8WhdKCtLpC4C084R3WsAM7grWL6nGi1CumagwjXXbeyoqlC3H8RQTFmTqpBKd8/XD9Is0wnKF8gXCM5q3xaJEWzrt6kHwhiEkXbG4qaSVeDffATcP3Thd65w2yVllPnmWyZ3mRZb5CxPnXMsBEZhhCTtjpQJGMLL5Qi5EVfVn+WlEgwPnuVzKyLJpacBPn8QVE0MZR8BZJ2YhZUAsHWw+GlDm+s=",
           "vector_db": "lancedb"
         }
       ]

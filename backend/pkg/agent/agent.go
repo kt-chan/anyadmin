@@ -514,9 +514,14 @@ func handleContainerControl(w http.ResponseWriter, r *http.Request) {
 	// The instance-specific env file is named after the project/instance name
 	containerEnv := DockerDir + ".env-" + projectName
 	
-	// Check if instance-specific env exists, if not, try service-specific env
-	if _, err := os.Stat(containerEnv); os.IsNotExist(err) {
-		containerEnv = DockerDir + ".env-" + serviceName
+	// Force LiteLLM to use a fixed env file name
+	if serviceName == "litellm" {
+		containerEnv = DockerDir + ".env-litellm"
+	} else {
+		// Check if instance-specific env exists, if not, try service-specific env
+		if _, err := os.Stat(containerEnv); os.IsNotExist(err) {
+			containerEnv = DockerDir + ".env-" + serviceName
+		}
 	}
 
 	args = append(args, "compose", "-p", projectName)
@@ -552,6 +557,9 @@ func handleContainerControl(w http.ResponseWriter, r *http.Request) {
 
 	// Start command in background
 	go func() {
+		// Ensure shared network exists
+		exec.Command("docker", "network", "create", "genai-network").Run()
+
 		// Use bash -c to execute the full command string for better compatibility and clear logging
 		cmd := exec.Command("bash", "-c", "cd "+workDir+" && "+cmdStr)
 		output, err := cmd.CombinedOutput()
@@ -605,6 +613,11 @@ func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	
 	// Use project-specific env file
 	envPath := DockerDir + ".env-" + projectName
+	
+	// Force LiteLLM to use a fixed env file name
+	if serviceName == "litellm" {
+		envPath = DockerDir + ".env-litellm"
+	}
 
 	// Read existing file
 	content, err := os.ReadFile(envPath)
@@ -688,6 +701,9 @@ func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Restarting service with command: %s", cmdStr)
 		
 		go func() {
+			// Ensure shared network exists
+			exec.Command("docker", "network", "create", "genai-network").Run()
+
 			cmd := exec.Command("bash", "-c", "cd "+workDir+" && "+cmdStr)
 			output, err := cmd.CombinedOutput()
 			if err != nil {

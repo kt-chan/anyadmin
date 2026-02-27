@@ -396,6 +396,8 @@ func SaveRagAppConfig(c *gin.Context) {
 				decryptedKey := cfg.GenericOpenAIKey
 				if dec, err := utils.DecryptPassword(cfg.GenericOpenAIKey); err == nil {
 					decryptedKey = dec
+				} else {
+					fmt.Printf("[DEBUG] DecryptPassword failed for %s: %v\n", cfg.Name, err)
 				}
 				agentConfig["GENERIC_OPEN_AI_API_KEY"] = decryptedKey
 			}

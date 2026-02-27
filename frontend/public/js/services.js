@@ -122,6 +122,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // --- RSA Encryption Helper ---
+    async function encryptValue(value) {
+        if (!value || value.length > 100) return value; // Already encrypted or too long
+        
+        try {
+            const res = await fetch('/public-key');
+            const result = await res.json();
+            if (result.success && result.publicKey) {
+                const encrypt = new JSEncrypt();
+                encrypt.setPublicKey(result.publicKey);
+                const encrypted = encrypt.encrypt(value);
+                return encrypted || value;
+            }
+        } catch (err) {
+            console.error('Encryption failed:', err);
+        }
+        return value;
+    }
+
+    const DUMMY_KEY = "********";
+
     function openExternalModal(config, nodeIP) {
         const form = document.getElementById('externalConfigForm');
         if (!config) return;
@@ -129,7 +150,16 @@ document.addEventListener('DOMContentLoaded', () => {
         form.querySelector('[name="name"]').value = config.name;
         form.querySelector('[name="node_ip"]').value = nodeIP; 
         form.querySelector('[name="model_name"]').value = config.model_name || '';
-        form.querySelector('[name="api_key"]').value = config.api_key || '';
+        
+        const keyInput = form.querySelector('[name="api_key"]');
+        if (config.api_key) {
+            keyInput.value = DUMMY_KEY;
+            keyInput.dataset.original = config.api_key;
+        } else {
+            keyInput.value = '';
+            keyInput.dataset.original = '';
+        }
+        
         form.querySelector('[name="base_url"]').value = config.base_url || '';
 
         showModal('externalConfigModal');
@@ -147,6 +177,13 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.disabled = true;
 
             try {
+                // Handle API Key Encryption
+                if (data.api_key === DUMMY_KEY) {
+                    data.api_key = externalForm.querySelector('[name="api_key"]').dataset.original;
+                } else if (data.api_key) {
+                    data.api_key = await encryptValue(data.api_key);
+                }
+
                 // Same endpoint as vLLM but with different payload
                 const res = await fetch('/api/v1/configs/inference', {
                     method: 'POST',
@@ -244,44 +281,49 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.refreshRagModels = async function(selectedModel) {
-        const form = document.getElementById('ragConfigForm');
         const modelSelect = document.getElementById('rag-model-select');
-        const host = form.querySelector('[name="host"]').value;
         const syncIcon = document.querySelector('button[onclick="refreshRagModels()"] i');
 
         if (!modelSelect) return;
 
         modelSelect.disabled = true;
         if (syncIcon) syncIcon.classList.add('fa-spin');
-        modelSelect.innerHTML = '<option value="" disabled selected>Loading models...</option>';
+        modelSelect.innerHTML = '<option value="" disabled selected>Loading LLMs...</option>';
 
         try {
-            const targetHost = host || '127.0.0.1'; 
-            const payload = { host: targetHost, port: '8000', mode: 'new_deployment' }; 
+            // Instead of calling remote discovery, we filter the local config data for 'llm' types
+            const llmModels = [];
             
-            const response = await fetch('/deployment/api/discover-models', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            if (configData.nodes) {
+                configData.nodes.forEach(node => {
+                    if (node.inference_cfgs) {
+                        node.inference_cfgs.forEach(cfg => {
+                            if (cfg.model_type === 'llm' && cfg.model_name) {
+                                if (!llmModels.includes(cfg.model_name)) {
+                                    llmModels.push(cfg.model_name);
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+
+            modelSelect.innerHTML = '<option value="" disabled>Select an LLM</option>';
             
-            const result = await response.json();
-            modelSelect.innerHTML = '<option value="" disabled>Select a Model</option>';
-            
-            if (result.success && result.data && result.data.data) {
-                result.data.data.forEach(model => {
+            if (llmModels.length > 0) {
+                llmModels.forEach(modelName => {
                     const opt = document.createElement('option');
-                    opt.value = model.id;
-                    opt.textContent = model.id;
-                    if (model.id === selectedModel) opt.selected = true;
+                    opt.value = modelName;
+                    opt.textContent = modelName;
+                    if (modelName === selectedModel) opt.selected = true;
                     modelSelect.appendChild(opt);
                 });
             } else {
-                modelSelect.innerHTML = '<option value="">No models found</option>';
+                modelSelect.innerHTML = '<option value="">No local LLMs found</option>';
             }
         } catch (error) {
-            console.error('Error refreshing models:', error);
-            modelSelect.innerHTML = '<option value="">Error loading models</option>';
+            console.error('Error populating RAG models:', error);
+            modelSelect.innerHTML = '<option value="">Error loading list</option>';
         } finally {
             modelSelect.disabled = false;
             if (syncIcon) syncIcon.classList.remove('fa-spin');
@@ -388,6 +430,16 @@ document.addEventListener('DOMContentLoaded', () => {
             'vector_db': 'vector_db'
         };
 
+        const keyGroup = document.getElementById('rag-api-key-group');
+        const basePath = config.generic_openai_base_path || '';
+        const isUsingLiteLLM = basePath.includes('litellm') || basePath.includes(':4000');
+
+        if (isUsingLiteLLM && keyGroup) {
+            keyGroup.classList.add('hidden');
+        } else if (keyGroup) {
+            keyGroup.classList.remove('hidden');
+        }
+
         for (const [key, val] of Object.entries(map)) {
             const input = form.querySelector(`[name="${key}"]`);
             if (input) {
@@ -396,7 +448,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (value === undefined || value === null) {
                     value = '';
                 }
-                input.value = value;
+
+                if (key === 'generic_openai_api_key') {
+                    if (value) {
+                        input.value = DUMMY_KEY;
+                        input.dataset.original = value;
+                    } else if (isUsingLiteLLM) {
+                        // Pre-populate with dummy key for LiteLLM handshake
+                        input.value = 'sk-any-key';
+                        input.dataset.original = 'sk-any-key';
+                    } else {
+                        input.value = '';
+                        input.dataset.original = '';
+                    }
+                } else {
+                    input.value = value;
+                }
             }
         }
 
@@ -416,6 +483,15 @@ document.addEventListener('DOMContentLoaded', () => {
             let data;
             try {
                 data = payloadBuilder(rawData);
+
+                // Handle API Key encryption for RAG
+                if (formId === 'ragConfigForm') {
+                    if (data.generic_openai_api_key === DUMMY_KEY) {
+                        data.generic_openai_api_key = form.querySelector('[name="generic_openai_api_key"]').dataset.original;
+                    } else if (data.generic_openai_api_key) {
+                        data.generic_openai_api_key = await encryptValue(data.generic_openai_api_key);
+                    }
+                }
             } catch (err) {
                 showToast('Error', 'Invalid form data: ' + err.message, 'error');
                 return;
@@ -874,7 +950,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     payload.model_type = formData.get('external_model_type');
                     payload.model_name = formData.get('external_model_name');
-                    payload.api_key = formData.get('api_key');
+                    payload.api_key = await encryptValue(formData.get('api_key'));
                     payload.base_url = formData.get('base_url');
                 }
             } else if (svcType === 'rag') {

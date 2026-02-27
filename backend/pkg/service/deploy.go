@@ -591,26 +591,24 @@ func SyncLiteLLMConfig(nodeIP string) error {
 					sb.WriteString(fmt.Sprintf("      api_base: http://%s:%s/v1\n", cfg.IP, cfg.Port))
 					sb.WriteString("      api_key: \"not-needed\"\n")
 				} else if !cfg.IsManaged && cfg.Engine == "External" {
-					// External Cloud
+					// External Cloud (OpenAI / DeepSeek / Zhipu etc)
 					envVarName := strings.ToUpper(strings.ReplaceAll(cfg.ModelName, "-", "_")) + "_API_KEY"
 					sb.WriteString(fmt.Sprintf("  - model_name: %s\n", cfg.ModelName))
 					sb.WriteString("    litellm_params:\n")
 					
-					modelPrefix := "openai"
-					if strings.Contains(cfg.BaseURL, "deepseek") {
-						modelPrefix = "deepseek"
-					} else if strings.Contains(cfg.BaseURL, "bigmodel") {
-						modelPrefix = "zhipu"
-					}
-					
-					sb.WriteString(fmt.Sprintf("      model: %s/%s\n", modelPrefix, cfg.ModelName))
+					// Use openai driver with explicit base for maximum compatibility with Zhipu
+					sb.WriteString(fmt.Sprintf("      model: openai/%s\n", cfg.ModelName))
 					sb.WriteString(fmt.Sprintf("      api_base: %s\n", cfg.BaseURL))
-					sb.WriteString(fmt.Sprintf("      api_key: \"${%s}\"\n", envVarName))
+					sb.WriteString("      custom_llm_provider: openai\n")
+					
+					// Use 'os.environ/' which is the most robust way for LiteLLM to resolve internal variables
+					sb.WriteString(fmt.Sprintf("      api_key: \"os.environ/%s\"\n", envVarName))
 
 					// Decrypt key for .env storage
 					if dec, err := utils.DecryptPassword(cfg.APIKey); err == nil {
 						envKeys[envVarName] = dec
 					} else {
+						log.Printf("[SyncLiteLLM] DecryptPassword failed for %s: %v", cfg.ModelName, err)
 						envKeys[envVarName] = cfg.APIKey
 					}
 				}
@@ -650,15 +648,25 @@ func SyncLiteLLMConfig(nodeIP string) error {
 			return
 		}
 		ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remotePath))
-		
-		// Update .env-litellm via agent
-		if len(envKeys) > 0 {
-			UpdateVLLMConfig(host, "litellm", envKeys, false)
-		}
 
-		// Trigger reload via Docker Compose
-		log.Printf("[SyncLiteLLM] Reloading LiteLLM on %s", ip)
-		ExecuteCommand(client, "cd /home/anyadmin/docker && docker compose up -d --force-recreate litellm")
+		// Also push the latest docker-compose.yaml to ensure env_file is included
+		localComposePath := filepath.Join(backendDir, "deployments/dockers/yaml/docker-compose.yaml")
+		remoteComposePath := "/home/anyadmin/docker/docker-compose.yaml"
+		if err := CopyFile(client, localComposePath, remoteComposePath); err != nil {
+			log.Printf("[SyncLiteLLM] Compose copy failed for %s: %v", ip, err)
+		} else {
+			ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remoteComposePath))
+		}
+		
+		// Update .env-litellm via agent and trigger restart
+		if len(envKeys) > 0 {
+			// This call handles BOTH writing the env file AND restarting the container correctly
+			UpdateVLLMConfig(host, "litellm:litellm", envKeys, true)
+		} else {
+			// Manual reload only if no keys changed
+			log.Printf("[SyncLiteLLM] Reloading LiteLLM on %s", ip)
+			ExecuteCommand(client, "cd /home/anyadmin/docker && docker compose -p litellm up -d --force-recreate litellm")
+		}
 	}
 
 	if nodeIP != "" {

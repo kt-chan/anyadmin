@@ -131,7 +131,7 @@ func DeployService(c *gin.Context) {
 					}
 					// Always add LiteLLM as core proxy for new nodes
 					newNode.InferenceCfgs = append(newNode.InferenceCfgs, global.InferenceConfig{
-						Name:      "proxy-litellm:litellm",
+						Name:      "litellm:litellm",
 						ModelType: "proxy",
 						IsManaged: true,
 						Engine:    "LiteLLM",
@@ -156,6 +156,13 @@ func DeployService(c *gin.Context) {
 
 	// Helper to add config (Upsert logic)
 	addInferenceCfg := func(nodeIP string, newCfg global.InferenceConfig) {
+		// Encrypt key if not already encrypted
+		if newCfg.APIKey != "" && len(newCfg.APIKey) < 100 {
+			if enc, err := utils.EncryptPassword(newCfg.APIKey); err == nil {
+				newCfg.APIKey = enc
+			}
+		}
+
 		for i, node := range utils.DeploymentNodes {
 			if node.NodeIP == nodeIP {
 				// Check if already exists by name
@@ -188,9 +195,11 @@ func DeployService(c *gin.Context) {
 		if newCfg.GenericOpenAIKey == "" { 
 			newCfg.GenericOpenAIKey = "sk-any-key" 
 		}
-		// Encrypt key
-		if enc, err := utils.EncryptPassword(newCfg.GenericOpenAIKey); err == nil {
-			newCfg.GenericOpenAIKey = enc
+		// Encrypt key if not already encrypted
+		if len(newCfg.GenericOpenAIKey) < 100 {
+			if enc, err := utils.EncryptPassword(newCfg.GenericOpenAIKey); err == nil {
+				newCfg.GenericOpenAIKey = enc
+			}
 		}
 		if newCfg.VectorDB == "" { newCfg.VectorDB = "lancedb" }
 
@@ -292,7 +301,7 @@ func DeployService(c *gin.Context) {
 					if err != nil { host = nodeIP }
 					
 					log.Printf("[AutoStart] Triggering LiteLLM on %s", host)
-					service.ControlContainer("proxy-litellm:litellm", "start", host)
+					service.ControlContainer("litellm:litellm", "start", host)
 				}
 			}
 
@@ -311,7 +320,13 @@ func DeployService(c *gin.Context) {
 				}
 				// Use the provided API Key if available
 				if req.APIKey != "" {
-					configMap["generic_openai_api_key"] = req.APIKey
+					decryptedKey := req.APIKey
+					if dec, err := utils.DecryptPassword(req.APIKey); err == nil {
+						decryptedKey = dec
+					} else {
+						log.Printf("[Deploy] DecryptPassword failed for RAG API Key: %v", err)
+					}
+					configMap["generic_openai_api_key"] = decryptedKey
 				} else {
 					configMap["generic_openai_api_key"] = "sk-any-key"
 				}

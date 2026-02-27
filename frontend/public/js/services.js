@@ -336,7 +336,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         for (const [key, val] of Object.entries(map)) {
             const input = form.querySelector(`[name="${key}"]`);
-            if (input) input.value = config[val] || '';
+            if (input) {
+                let value = config[val];
+                // Ensure numeric 0 values are not treated as falsy and empty strings are handled
+                if (value === undefined || value === null) {
+                    value = '';
+                }
+                input.value = value;
+            }
         }
 
         refreshRagModels(config.generic_openai_model_pref);
@@ -429,8 +436,8 @@ document.addEventListener('DOMContentLoaded', () => {
         '/api/v1/configs/rag',
         (rawData) => ({
             ...rawData,
-            generic_openai_model_token_limit: parseInt(rawData.generic_openai_model_token_limit),
-            generic_openai_max_tokens: parseInt(rawData.generic_openai_max_tokens)
+            generic_openai_model_token_limit: parseInt(rawData.generic_openai_model_token_limit) || 0,
+            generic_openai_max_tokens: parseInt(rawData.generic_openai_max_tokens) || 0
         }),
         'ragConfigModal',
         'RAG'
@@ -532,21 +539,85 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- Delete Service ---
+    window.deleteService = async (serviceName) => {
+        if (!confirm(`确定要彻底删除服务 "${serviceName}" 吗？此操作将从所有节点移除关联的配置。`)) {
+            return;
+        }
+
+        try {
+            // Try to delete inference config
+            const resInf = await fetch(`/api/v1/configs/inference/${encodeURIComponent(serviceName)}`, {
+                method: 'DELETE'
+            });
+            
+            // Try to delete rag config (might not exist, but that's okay)
+            const resRag = await fetch(`/api/v1/configs/rag/${encodeURIComponent(serviceName)}`, {
+                method: 'DELETE'
+            });
+
+            if (resInf.ok || resRag.ok) {
+                showToast('Success', '服务配置已彻底删除', 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                const errInf = await resInf.json();
+                throw new Error(errInf.error || errInf.message || '删除失败');
+            }
+        } catch (err) {
+            showToast('Error', err.message, 'error');
+        }
+    };
+
     // --- Connect Service Logic ---
-    window.toggleServiceConnectMode = function(mode) {
+    // Ensure modal fields are correct when opening
+    const originalShowModal = window.showModal;
+    window.showModal = function(modalId) {
+        if (originalShowModal) originalShowModal(modalId);
+        if (modalId === 'connectServiceModal') {
+            updateServiceModalFields();
+        }
+    };
+
+    window.updateServiceModalFields = function() {
+        const mode = document.querySelector('input[name="mode"]:checked').value;
+        const serviceType = document.getElementById('service-type-select').value;
+        
         const testBtnGroup = document.getElementById('test-connection-group');
         const managedFields = document.querySelectorAll('.managed-only');
         const externalFields = document.getElementById('external-fields');
+        const modelSelectionFields = document.getElementById('model-selection-fields');
+        const portOnlyField = document.getElementById('port-only-field');
         
+        // Services that need model type/name from the platform library
+        const needsModelConfig = (serviceType === 'inference' || serviceType === 'parser');
+
         if (mode === 'integrate_existing') {
             if (testBtnGroup) testBtnGroup.classList.remove('hidden');
             if (externalFields) externalFields.classList.remove('hidden');
             managedFields.forEach(el => el.classList.add('hidden'));
+            
+            // For external, we still need the port from model-selection-fields
+            modelSelectionFields.classList.remove('hidden');
+            portOnlyField.classList.add('hidden');
         } else {
             if (testBtnGroup) testBtnGroup.classList.add('hidden');
             if (externalFields) externalFields.classList.add('hidden');
-            managedFields.forEach(el => el.classList.remove('hidden'));
+            
+            if (needsModelConfig) {
+                managedFields.forEach(el => el.classList.remove('hidden'));
+                modelSelectionFields.classList.remove('hidden');
+                portOnlyField.classList.add('hidden');
+            } else {
+                // RAG and VectorDB in managed mode don't need model type/name
+                managedFields.forEach(el => el.classList.add('hidden'));
+                modelSelectionFields.classList.add('hidden');
+                portOnlyField.classList.remove('hidden');
+            }
         }
+    };
+
+    window.toggleServiceConnectMode = function(mode) {
+        updateServiceModalFields();
     };
 
     const populateModelData = async () => {
@@ -686,10 +757,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const svcType = formData.get('service_type');
             const mode = formData.get('mode');
+            
+            // Determine port (handle alternative input if primary is hidden)
+            let port = formData.get('port');
+            if (!port || port === "") {
+                port = formData.get('port_alt');
+            }
+
+            if (!port || port === "") {
+                showToast('Error', '请填写服务端口', 'error');
+                return;
+            }
 
             if (svcType === 'inference') {
                 payload.inference_host = formData.get('target_node');
-                payload.inference_port = formData.get('port');
+                payload.inference_port = port;
                 
                 if (mode === 'new_deployment') {
                     payload.model_type = formData.get('model_type_select');
@@ -703,16 +785,17 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (svcType === 'rag') {
                 payload.enable_rag = true;
                 payload.rag_host = formData.get('target_node');
-                payload.rag_port = formData.get('port');
+                payload.rag_port = port;
             } else if (svcType === 'vectordb') {
                 payload.enable_vectordb = true;
                 payload.vectordb_host = formData.get('target_node');
-                payload.vectordb_port = formData.get('port');
+                payload.vectordb_port = port;
                 payload.vector_db = 'lancedb'; 
             } else if (svcType === 'parser') {
                 payload.enable_parser = true;
                 payload.parser_host = formData.get('target_node');
-                payload.parser_port = formData.get('port');
+                payload.parser_port = port;
+                payload.model_type = formData.get('model_type_select');
             }
 
             const submitBtn = connectServiceForm.querySelector('button[type="submit"]');

@@ -36,8 +36,10 @@ router.get('/metrics', requireLogin, apiController.getSystemMetrics);
 router.post('/v1/configs/vllm-calculate', requireLogin, apiController.calculateVllmConfig);
 // 保存推理配置 API
 router.post('/v1/configs/inference', requireLogin, apiController.saveInferenceConfig);
+router.delete('/v1/configs/inference/:id', requireLogin, apiController.deleteInferenceConfig);
 // 保存 RAG 配置 API
 router.post('/v1/configs/rag', requireLogin, apiController.saveRagConfig);
+router.delete('/v1/configs/rag/:id', requireLogin, apiController.deleteRagConfig);
 
 // 调试API (公开访问)
 router.get('/debug', apiController.debugInfo);

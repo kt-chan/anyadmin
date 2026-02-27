@@ -221,15 +221,117 @@ func GetInferenceConfigs(c *gin.Context) {
 }
 
 func DeleteInferenceConfig(c *gin.Context) {
-	// Mock delete
-	// In real logic we would delete from DB and stop container
+	name := c.Param("id")
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing service name"})
+		return
+	}
+
+	type deletionTarget struct {
+		NodeIP string
+		Name   string
+	}
+	var targets []deletionTarget
+
+	found := false
+	err := utils.ExecuteWrite(func() {
+		for i, node := range utils.DeploymentNodes {
+			var newInferenceCfgs []global.InferenceConfig
+			for _, cfg := range node.InferenceCfgs {
+				// Match by full name or prefix (project name)
+				if cfg.Name == name || strings.HasPrefix(cfg.Name, name+":") {
+					found = true
+					targets = append(targets, deletionTarget{NodeIP: node.NodeIP, Name: cfg.Name})
+					// Record that we found it, but don't add to new list (thus deleting it)
+					fmt.Printf("[DEBUG] Deleting Inference Config: %s from Node: %s\n", cfg.Name, node.NodeIP)
+					continue
+				}
+				newInferenceCfgs = append(newInferenceCfgs, cfg)
+			}
+			utils.DeploymentNodes[i].InferenceCfgs = newInferenceCfgs
+		}
+	}, true)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save configuration after deletion"})
+		return
+	}
+
+	if !found {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Service not found"})
+		return
+	}
+
+	// Trigger container stop/down on agents
+	go func() {
+		for _, target := range targets {
+			fmt.Printf("[DEBUG] Triggering Container Down for Node: %s, Instance: %s\n", target.NodeIP, target.Name)
+			if err := service.ControlContainer(target.Name, "down", target.NodeIP); err != nil {
+				fmt.Printf("[ERROR] Failed to stop container %s on node %s: %v\n", target.Name, target.NodeIP, err)
+			}
+		}
+	}()
+
 	username, _ := c.Get("username")
-	service.RecordLog(username.(string), "删除服务", "彻底移除了模型配置及其关联容器", "Warning")
+	service.RecordLog(username.(string), "删除服务", "彻底移除了推理服务配置及关联容器: "+name, "Warning")
 
-	// TODO: Implement actual deletion from nested structure if needed
-	// For now just return success as per original mock
+	c.JSON(http.StatusOK, gin.H{"message": "推理服务及其关联容器已彻底删除"})
+}
 
-	c.JSON(http.StatusOK, gin.H{"message": "服务已彻底删除"})
+func DeleteRagAppConfig(c *gin.Context) {
+	name := c.Param("id")
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing app name"})
+		return
+	}
+
+	type deletionTarget struct {
+		NodeIP string
+		Name   string
+	}
+	var targets []deletionTarget
+
+	found := false
+	err := utils.ExecuteWrite(func() {
+		for i, node := range utils.DeploymentNodes {
+			var newRagAppCfgs []global.RagAppConfig
+			for _, cfg := range node.RagAppCfgs {
+				if cfg.Name == name || strings.HasPrefix(cfg.Name, name+":") {
+					found = true
+					targets = append(targets, deletionTarget{NodeIP: node.NodeIP, Name: cfg.Name})
+					fmt.Printf("[DEBUG] Deleting RAG App Config: %s from Node: %s\n", cfg.Name, node.NodeIP)
+					continue
+				}
+				newRagAppCfgs = append(newRagAppCfgs, cfg)
+			}
+			utils.DeploymentNodes[i].RagAppCfgs = newRagAppCfgs
+		}
+	}, true)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save configuration after deletion"})
+		return
+	}
+
+	if !found {
+		c.JSON(http.StatusNotFound, gin.H{"error": "RAG App not found"})
+		return
+	}
+
+	// Trigger container stop/down on agents
+	go func() {
+		for _, target := range targets {
+			fmt.Printf("[DEBUG] Triggering Container Down for Node: %s, Instance: %s\n", target.NodeIP, target.Name)
+			if err := service.ControlContainer(target.Name, "down", target.NodeIP); err != nil {
+				fmt.Printf("[ERROR] Failed to stop container %s on node %s: %v\n", target.Name, target.NodeIP, err)
+			}
+		}
+	}()
+
+	username, _ := c.Get("username")
+	service.RecordLog(username.(string), "删除服务", "彻底移除了 RAG 应用配置及关联容器: "+name, "Warning")
+
+	c.JSON(http.StatusOK, gin.H{"message": "RAG 应用及其关联容器已彻底删除"})
 }
 
 // System Config

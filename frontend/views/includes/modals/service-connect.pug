@@ -28,7 +28,7 @@ div(id="connectServiceModal", class="modal")
         div(class="grid grid-cols-2 gap-4")
           div
             label(class="block text-xs font-bold text-slate-700 mb-1") 服务类型 (Type)
-            select(name="service_type", class="w-full border border-slate-200 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none", required)
+            select#service-type-select(name="service_type", class="w-full border border-slate-200 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none", required, onchange="updateServiceModalFields()")
               option(value="inference") 推理引擎 (Inference)
               option(value="rag") RAG 应用 (AnythingLLM)
               option(value="vectordb") 向量数据库 (Vector DB)
@@ -39,21 +39,27 @@ div(id="connectServiceModal", class="modal")
             select#connect-node-select(name="target_node", class="w-full border border-slate-200 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none", required)
               option(value="", disabled, selected) 加载中...
         
-        div(class="grid grid-cols-2 gap-4")
+        #model-selection-fields
+          div(class="grid grid-cols-2 gap-4 mb-4")
+            div
+              label(class="block text-xs font-bold text-slate-700 mb-1") 端口 (Port)
+              input(type="number", name="port", placeholder="8000", class="w-full border border-slate-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none")
+            
+            //- Managed only fields
+            div.managed-only
+              label(class="block text-xs font-bold text-slate-700 mb-1") 关联模型类型 (Model Type)
+              select#connect-model-type(name="model_type_select", class="w-full border border-slate-200 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none")
+                option(value="", disabled, selected) 加载中...
+          
+          div.managed-only
+            label(class="block text-xs font-bold text-slate-700 mb-1") 关联模型名称 (Model Name)
+            select#connect-model-name(name="model_name_select", class="w-full border border-slate-200 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none")
+              option(value="", disabled, selected) 请先选择类型
+        
+        #port-only-field.hidden
           div
             label(class="block text-xs font-bold text-slate-700 mb-1") 端口 (Port)
-            input(type="number", name="port", placeholder="8000", class="w-full border border-slate-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none", required)
-          
-          //- Managed only fields
-          div.managed-only
-            label(class="block text-xs font-bold text-slate-700 mb-1") 关联模型类型 (Model Type)
-            select#connect-model-type(name="model_type_select", class="w-full border border-slate-200 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none")
-              option(value="", disabled, selected) 加载中...
-        
-        div.managed-only
-          label(class="block text-xs font-bold text-slate-700 mb-1") 关联模型名称 (Model Name)
-          select#connect-model-name(name="model_name_select", class="w-full border border-slate-200 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none")
-            option(value="", disabled, selected) 请先选择类型
+            input(type="number", name="port_alt", placeholder="8000", class="w-full border border-slate-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none")
 
         //- External mode fields
         div#external-fields.hidden.space-y-4.p-4.bg-slate-50.rounded-xl.border.border-slate-200

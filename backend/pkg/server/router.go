@@ -44,6 +44,7 @@ func NewRouter() *gin.Engine {
 			auth.GET("/configs/services", api.GetServicesConfig)
 			auth.POST("/configs/system", api.SaveSystemConfig)
 			auth.POST("/configs/rag", api.SaveRagAppConfig)
+			auth.DELETE("/configs/rag/:id", api.DeleteRagAppConfig)
 			auth.POST("/configs/agent", api.SaveAgentConfig)
 			auth.POST("/configs/vllm-calculate", api.CalculateVLLMConfig)
 			auth.GET("/deploy/ssh-key", api.GetSystemSSHKey)

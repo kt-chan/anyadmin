@@ -280,6 +280,30 @@ const apiController = {
         } catch (err) {
             return response.error(res, '保存RAG配置失败', 500, err);
         }
+    },
+
+    // 删除推理配置
+    deleteInferenceConfig: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const token = req.session.user?.token;
+            await servicesService.deleteInferenceConfig(id, token);
+            return response.success(res, {}, '推理配置已删除');
+        } catch (err) {
+            return response.error(res, '删除推理配置失败', 500, err);
+        }
+    },
+
+    // 删除 RAG 配置
+    deleteRagConfig: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const token = req.session.user?.token;
+            await servicesService.deleteRagConfig(id, token);
+            return response.success(res, {}, 'RAG配置已删除');
+        } catch (err) {
+            return response.error(res, '删除RAG配置失败', 500, err);
+        }
     }
 };
 

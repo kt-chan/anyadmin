@@ -53,6 +53,16 @@ const servicesService = {
     await apiClient.post('/api/v1/configs/inference', data, config);
   },
 
+  deleteInferenceConfig: async (id, token) => {
+    const config = { headers: { Authorization: `Bearer ${token}` } };
+    await apiClient.delete(`/api/v1/configs/inference/${encodeURIComponent(id)}`, config);
+  },
+
+  deleteRagConfig: async (id, token) => {
+    const config = { headers: { Authorization: `Bearer ${token}` } };
+    await apiClient.delete(`/api/v1/configs/rag/${encodeURIComponent(id)}`, config);
+  },
+
   startService: async (serviceName, nodeIP, token, serviceType) => {
     logger.info(`Starting service: ${serviceName} on node: ${nodeIP} (Type: ${serviceType})`);
     const config = {

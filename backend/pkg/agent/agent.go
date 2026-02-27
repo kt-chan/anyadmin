@@ -493,8 +493,11 @@ func handleContainerControl(w http.ResponseWriter, r *http.Request) {
 	case "restart":
 		// Use 'up -d --force-recreate' to force config reload/env application
 		args = append(args, "up", "-d", "--force-recreate", serviceName)
+	case "down":
+		// Stop and remove containers, networks, images, and volumes
+		args = append(args, "down")
 	default:
-		http.Error(w, "Unknown action. Supported: start, stop, restart", http.StatusBadRequest)
+		http.Error(w, "Unknown action. Supported: start, stop, restart, down", http.StatusBadRequest)
 		return
 	}
 

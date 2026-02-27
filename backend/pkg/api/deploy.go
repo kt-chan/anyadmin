@@ -200,16 +200,26 @@ func DeployService(c *gin.Context) {
 		}
 
 		if req.EnableParser && req.ParserHost != "" {
-			psrInstanceName := "psr-" + baseInstanceName
+			parserType := req.ModelType
+			if parserType == "" {
+				parserType = "ocr" // Fallback
+			}
+			psrInstanceName := parserType + "-" + baseInstanceName
 			name := psrInstanceName + "-parser"
 			if req.Mode == "new_deployment" {
 				name = psrInstanceName + ":mineru-api"
 			}
+
+			engine := "vLLM"
+			if req.Platform == "ascend" {
+				engine = "MindIE"
+			}
+
 			addInferenceCfg(req.ParserHost, global.InferenceConfig{
 				Name:      name,
-				ModelType: "parser",
+				ModelType: parserType,
 				IsManaged: req.Mode == "new_deployment",
-				Engine:    "Parser",
+				Engine:    engine,
 				IP:        req.ParserHost,
 				Port:      req.ParserPort,
 			})
@@ -244,7 +254,11 @@ func DeployService(c *gin.Context) {
 			}
 
 			if req.EnableParser && req.ParserHost != "" {
-				service.ControlContainer("psr-"+baseInstanceName+":mineru-api", "start", req.ParserHost)
+				parserType := req.ModelType
+				if parserType == "" {
+					parserType = "ocr"
+				}
+				service.ControlContainer(parserType+"-"+baseInstanceName+":mineru-api", "start", req.ParserHost)
 			}
 		}()
 	}

@@ -437,6 +437,18 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 		ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remoteComposePath))
 	}
 
+	// Copy LiteLLM Config
+	log.Println("[Deploy] Copying litellm_config.yaml...")
+	localLiteLLMPath := filepath.Join(backendDir, "deployments/dockers/yaml/litellm_config.yaml")
+	remoteLiteLLMPath := "/home/anyadmin/docker/litellm_config.yaml"
+	if _, err := os.Stat(localLiteLLMPath); err == nil {
+		if err := CopyFile(client, localLiteLLMPath, remoteLiteLLMPath); err != nil {
+			log.Printf("Warning: failed to copy litellm_config.yaml: %v", err)
+		} else {
+			ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remoteLiteLLMPath))
+		}
+	}
+
 	// Copy Environment files
 	log.Println("[Deploy] Copying environment files...")
 	localEnvDir := filepath.Join(backendDir, "deployments/dockers/yaml")
@@ -551,6 +563,117 @@ func calculateHash(filePath string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
+// SyncLiteLLMConfig regenerates litellm_config.yaml from data.json and pushes to all nodes
+func SyncLiteLLMConfig(nodeIP string) error {
+	backendDir := getBackendDir()
+	if backendDir == "" {
+		return fmt.Errorf("backend dir not found")
+	}
+
+	// 1. Generate new litellm_config.yaml content with ENV placeholders
+	var sb strings.Builder
+	sb.WriteString("model_list:\n")
+
+	// Collect keys to be pushed to .env
+	envKeys := make(map[string]string)
+
+	utils.ExecuteRead(func() {
+		for _, node := range utils.DeploymentNodes {
+			for _, cfg := range node.InferenceCfgs {
+				if cfg.ModelType != "llm" {
+					continue
+				}
+
+				if cfg.IsManaged && cfg.Engine == "vLLM" {
+					sb.WriteString(fmt.Sprintf("  - model_name: %s\n", cfg.ModelName))
+					sb.WriteString("    litellm_params:\n")
+					sb.WriteString(fmt.Sprintf("      model: openai/%s\n", "model")) // Use standard 'model' served-name
+					sb.WriteString(fmt.Sprintf("      api_base: http://%s:%s/v1\n", cfg.IP, cfg.Port))
+					sb.WriteString("      api_key: \"not-needed\"\n")
+				} else if !cfg.IsManaged && cfg.Engine == "External" {
+					// External Cloud
+					envVarName := strings.ToUpper(strings.ReplaceAll(cfg.ModelName, "-", "_")) + "_API_KEY"
+					sb.WriteString(fmt.Sprintf("  - model_name: %s\n", cfg.ModelName))
+					sb.WriteString("    litellm_params:\n")
+					
+					modelPrefix := "openai"
+					if strings.Contains(cfg.BaseURL, "deepseek") {
+						modelPrefix = "deepseek"
+					} else if strings.Contains(cfg.BaseURL, "bigmodel") {
+						modelPrefix = "zhipu"
+					}
+					
+					sb.WriteString(fmt.Sprintf("      model: %s/%s\n", modelPrefix, cfg.ModelName))
+					sb.WriteString(fmt.Sprintf("      api_base: %s\n", cfg.BaseURL))
+					sb.WriteString(fmt.Sprintf("      api_key: \"${%s}\"\n", envVarName))
+
+					// Decrypt key for .env storage
+					if dec, err := utils.DecryptPassword(cfg.APIKey); err == nil {
+						envKeys[envVarName] = dec
+					} else {
+						envKeys[envVarName] = cfg.APIKey
+					}
+				}
+			}
+		}
+	})
+
+	sb.WriteString("\nlitellm_settings:\n")
+	sb.WriteString("  drop_params: true\n")
+	sb.WriteString("  set_verbose: true\n")
+
+	configPath := filepath.Join(backendDir, "deployments/dockers/yaml/litellm_config.yaml")
+	if err := os.WriteFile(configPath, []byte(sb.String()), 0644); err != nil {
+		return fmt.Errorf("failed to write litellm_config.yaml: %w", err)
+	}
+
+	// 2. Push to nodes and trigger agent updates
+	pushToNode := func(ip string) {
+		host := ip
+		port := "22"
+		if strings.Contains(ip, ":") {
+			parts := strings.Split(ip, ":")
+			host = parts[0]
+			port = parts[1]
+		}
+
+		client, err := GetSSHClient(host, port)
+		if err != nil {
+			log.Printf("[SyncLiteLLM] SSH failed for %s: %v", ip, err)
+			return
+		}
+		defer client.Close()
+
+		remotePath := "/home/anyadmin/docker/litellm_config.yaml"
+		if err := CopyFile(client, configPath, remotePath); err != nil {
+			log.Printf("[SyncLiteLLM] Copy failed for %s: %v", ip, err)
+			return
+		}
+		ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remotePath))
+		
+		// Update .env-litellm via agent
+		if len(envKeys) > 0 {
+			UpdateVLLMConfig(host, "litellm", envKeys, false)
+		}
+
+		// Trigger reload via Docker Compose
+		log.Printf("[SyncLiteLLM] Reloading LiteLLM on %s", ip)
+		ExecuteCommand(client, "cd /home/anyadmin/docker && docker compose up -d --force-recreate litellm")
+	}
+
+	if nodeIP != "" {
+		pushToNode(nodeIP)
+	} else {
+		utils.ExecuteRead(func() {
+			for _, node := range utils.DeploymentNodes {
+				pushToNode(node.NodeIP)
+			}
+		})
+	}
+
+	return nil
+}
+
 // ControlAgent manages the agent process on a remote node
 func ControlAgent(nodeIP, action string) error {
 	user := "admin"
@@ -570,7 +693,7 @@ func ControlAgent(nodeIP, action string) error {
 		if err != nil {
 			msg := fmt.Sprintf("[Agent Control] SSH connection failed to %s: %v", nodeIP, err)
 			log.Println(msg)
-			RecordLog(user, "Agent Control", msg, "Error")
+			RecordLog(user, "Agent Deployment", msg, "Error")
 			return
 		}
 		defer client.Close()

@@ -1,4 +1,31 @@
+networks:
+  # Fixed name allows multiple projects to share the same network
+  genai-network:
+    name: genai-network
+    driver: bridge
+
 services:
+  # LiteLLM Proxy Gateway: Unified entry point for all models
+  litellm:
+    image: ghcr.io/berriai/litellm:1.81.14
+    container_name: litellm-proxy
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./litellm_config.yaml:/app/config.yaml
+    command: ["--config", "/app/config.yaml"]
+    networks:
+      - genai-network
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:4000/health/readiness\")'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Generic vLLM service for dynamic deployment
+  # Reused for all LLM instances via Docker Compose projects (-p)
   vllm-llm:
     image: ${VLLM_IMAGE:-vllm/vllm-openai:latest}
     profiles: ["llm"]
@@ -10,7 +37,7 @@ services:
     entrypoint: python3 -m vllm.entrypoints.openai.api_server
     command: >
       --model /model/${VLLM_MODEL_NAME:-Qwen3-1.7B}
-      --served-model-name ${VLLM_MODEL_NAME:-Qwen3-1.7B}
+      --served-model-name ${VLLM_SERVED_MODEL_NAME:-model}
       --max-model-len ${VLLM_MAX_MODEL_LEN:-4096}
       --max-num-seqs ${VLLM_MAX_NUM_SEQS:-8}
       --max-num-batched-tokens ${VLLM_MAX_NUM_BATCHED_TOKENS:-8192}
@@ -21,14 +48,19 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
     deploy:
       resources:
+        # GPU Reservation: Dynamically allocated via environment
         reservations:
           devices:
             - driver: nvidia
-              device_ids: ['0']
+              device_ids: ['${GPU_DEVICE_ID:-0}']
               capabilities: [gpu]
+    networks:
+      genai-network:
+        # Use a predictable alias for LiteLLM routing
+        aliases:
+          - ${VLLM_NETWORK_ALIAS:-vllm-instance}
 
   vllm-mineru:
     image: ${VLLM_IMAGE:-vllm/vllm-openai:latest}
@@ -52,7 +84,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
     deploy:
       resources:
         reservations:
@@ -60,7 +91,8 @@ services:
             - driver: nvidia
               device_ids: ['0']
               capabilities: [gpu]
-
+    networks:
+      - genai-network
 
   vllm-embedding:
     image: ${VLLM_IMAGE:-vllm/vllm-openai:latest}
@@ -93,7 +125,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
     deploy:
       resources:
         reservations:
@@ -101,6 +132,8 @@ services:
             - driver: nvidia
               device_ids: ['0']
               capabilities: [gpu]
+    networks:
+      - genai-network
 
   anythingllm:
     image: ${ANYTHINGLLM_IMAGE:-mintplexlabs/anythingllm:1.8.5}
@@ -112,31 +145,22 @@ services:
       - SERVER_PORT=${ANYTHINGLLM_PORT:-3001}
       - STORAGE_DIR=${ANYTHINGLLM_STORAGE_DIR:-/app/server/storage}
       - LLM_PROVIDER=${LLM_PROVIDER:-generic-openai}
-      - GENERIC_OPEN_AI_BASE_PATH=${GENERIC_OPEN_AI_BASE_PATH:-http://host.docker.internal:8000/v1}
-      - GENERIC_OPEN_AI_MODEL_PREF=${GENERIC_OPEN_AI_MODEL_PREF:-Qwen3-1.7B}
+      - GENERIC_OPEN_AI_BASE_PATH=${GENERIC_OPEN_AI_BASE_PATH:-http://litellm:4000/v1}
+      - GENERIC_OPEN_AI_MODEL_PREF=${GENERIC_OPEN_AI_MODEL_PREF:-qwen}
       - GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT=${GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT:-4098}
       - GENERIC_OPEN_AI_MAX_TOKENS=${GENERIC_OPEN_AI_MAX_TOKENS:-2048}
       - GENERIC_OPEN_AI_API_KEY=${GENERIC_OPEN_AI_API_KEY:-AnyThing0f02d8295easdfadsaQBr0uz3sHAAb}
       - VECTOR_DB=${VECTOR_DB:-lancedb}
-      - AUTH_TOKEN=${AUTH_TOKEN:-@hwKT1986}
-      - JWT_SECRET=${JWT_SECRET:-677c14ce-49cc-4471-a489-6446f5f6aedb}
-      - DISABLE_TELEMETRY=${DISABLE_TELEMETRY:-true}
     volumes:
       - ${ANYTHINGLLM_DATA_PATH:-/home/anyadmin/data/anythingllm}/storage:/app/server/storage
-      - ${ANYTHINGLLM_DATA_PATH:-/home/anyadmin/data/anythingllm}/collector/hotdir/:/app/collector/hotdir
-      - ${ANYTHINGLLM_DATA_PATH:-/home/anyadmin/data/anythingllm}/collector/outputs/:/app/collector/outputs
     ports:
       - "${ANYTHINGLLM_PORT:-3001}:${ANYTHINGLLM_PORT:-3001}"
-    extra_hosts:
-      - host.docker.internal:host-gateway
+    networks:
+      - genai-network
 
   mineru-api:
     image: mineru-client:2.7.6
-    cap_add:
-      - SYS_ADMIN
-    restart: unless-stopped
     profiles: ["mineru"]
-    shm_size: '4gb'
     ports:
       - "${MINERU_PORT:-8010}:8000"
     environment:
@@ -145,18 +169,5 @@ services:
     command:
       --host 0.0.0.0
       --port 8000
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/docs || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    ulimits:
-      memlock: -1
-      stack: 4194304
-    ipc: host
-    extra_hosts:
-      - host.docker.internal:host-gateway
-    depends_on:
-      vllm-mineru:
-        condition: service_healthy
+    networks:
+      - genai-network

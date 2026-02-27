@@ -232,101 +232,97 @@ async function updateNodeStatusInDashboard(ip) {
             
             // Services List
             if (agent.services && agent.services.length > 0) {
-                services.innerHTML = '<h5 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Running Services</h5>';
-                const list = document.createElement('div');
-                list.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3";
+                // Only show managed services in this 'Running Services' dashboard view
+                const managedServices = agent.services.filter(s => s.is_managed);
                 
-                const st = document.getElementById('service-item-template');
-                agent.services.forEach(svc => {
-                    const sc = st.content.cloneNode(true);
-                    const item = sc.querySelector('.service-item');
-                    if (isDown) item.classList.add('opacity-75');
+                if (managedServices.length > 0) {
+                    services.innerHTML = '<h5 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Running Services</h5>';
+                    const list = document.createElement('div');
+                    list.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3";
                     
-                    // Clean service name (remove project prefix and instance suffix)
-                    let displayName = svc.name;
-                    sc.querySelector('.svc-name').textContent = displayName;
-                    sc.querySelector('.svc-name').title = svc.name; // Keep full name in tooltip
-                    sc.querySelector('.svc-uptime').textContent = (isDown || svc.state !== 'running') ? '---' : svc.uptime;
-                    
-                    const typeTag = sc.querySelector('.svc-type');
-                    if (!svc.is_managed) {
-                        sc.querySelector('.svc-restart-btn').classList.add('hidden');
-                        sc.querySelector('.svc-stop-btn').classList.add('hidden');
-                        sc.querySelector('.svc-config-btn').classList.add('hidden');
-                        typeTag.textContent = 'EXTERNAL';
-                        typeTag.className = "svc-type bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold";
-                    } else if (svc.model_type) {
-                        typeTag.textContent = svc.model_type;
-                        if (svc.model_type === 'llm' || svc.model_type === 'vlm') {
+                    const st = document.getElementById('service-item-template');
+                    managedServices.forEach(svc => {
+                        const sc = st.content.cloneNode(true);
+                        const item = sc.querySelector('.service-item');
+                        if (isDown) item.classList.add('opacity-75');
+                        
+                        // Clean service name (remove project prefix and instance suffix)
+                        let displayName = svc.name;
+                        sc.querySelector('.svc-name').textContent = displayName;
+                        sc.querySelector('.svc-name').title = svc.name; // Keep full name in tooltip
+                        sc.querySelector('.svc-uptime').textContent = (isDown || svc.state !== 'running') ? '---' : svc.uptime;
+                        
+                        const typeTag = sc.querySelector('.svc-type');
+                        if (svc.model_type) {
+                            typeTag.textContent = svc.model_type;
+                            if (svc.model_type === 'llm' || svc.model_type === 'vlm') {
+                                typeTag.className = "svc-type bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold";
+                            } else if (svc.model_type === 'embedding' || svc.model_type === 'reranker') {
+                                typeTag.className = "svc-type bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold";
+                            } else {
+                                typeTag.className = "svc-type bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold";
+                            }
+                        } else if (svc.name.toLowerCase().includes('vllm')) {
+                            typeTag.textContent = 'Inference';
                             typeTag.className = "svc-type bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold";
-                        } else if (svc.model_type === 'embedding' || svc.model_type === 'reranker') {
-                            typeTag.className = "svc-type bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold";
-                        } else {
+                        } else if (svc.name.toLowerCase().includes('anythingllm')) {
+                            typeTag.textContent = 'RAG APP';
                             typeTag.className = "svc-type bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold";
+                        } else if (svc.image && svc.image.toLowerCase().includes('milvus')) {
+                            typeTag.textContent = 'VectorDB';
+                            typeTag.className = "svc-type bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold";
                         }
-                    } else if (svc.name.toLowerCase().includes('vllm')) {
-                        typeTag.textContent = 'Inference';
-                        typeTag.className = "svc-type bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold";
-                    } else if (svc.name.toLowerCase().includes('anythingllm')) {
-                        typeTag.textContent = 'RAG APP';
-                        typeTag.className = "svc-type bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold";
-                    } else if (svc.image && svc.image.toLowerCase().includes('milvus')) {
-                        typeTag.textContent = 'VectorDB';
-                        typeTag.className = "svc-type bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold";
-                    }
 
-                    const statusText = sc.querySelector('.svc-status-text');
-                    // const dot = sc.querySelector('.svc-status-dot');
-                    
-                    let svcColor = svc.state === 'running' ? 'bg-green-500' : 'bg-red-500';
-                    let text = svc.state === 'running' ? '运行中' : '已停止';
-                    let icon = svc.state === 'running' ? 'fa-check-circle' : 'fa-stop-circle';
-                    let textColor = svc.state === 'running' ? 'text-green-500' : 'text-red-500';
+                        const statusText = sc.querySelector('.svc-status-text');
+                        
+                        let text = svc.state === 'running' ? '运行中' : '已停止';
+                        let icon = svc.state === 'running' ? 'fa-check-circle' : 'fa-stop-circle';
+                        let textColor = svc.state === 'running' ? 'text-green-500' : 'text-red-500';
 
-                    if (isDown) {
-                        svcColor = 'bg-slate-400';
-                        text = '离线 (节点异常)';
-                        icon = 'fa-minus-circle';
-                        textColor = 'text-slate-400';
-                    } else if (isWarning) {
-                        svcColor = 'bg-yellow-500';
-                        textColor = 'text-yellow-500';
-                    }
-
-                    statusText.className = `svc-status-text text-[10px] font-bold hidden md:flex items-center gap-1 ${textColor} uppercase`;
-                    statusText.innerHTML = `<i class="fas ${icon} text-[10px]"></i>${text}`;
-                    // dot.className = `svc-status-dot w-2 h-2 rounded-full ${svcColor}`;
-                    
-                    // Attach handlers for Restart/Stop
-                    const restartBtn = sc.querySelector('.svc-restart-btn');
-                    if (restartBtn) {
-                        if (svc.state !== 'running' && !isDown) {
-                            restartBtn.onclick = (e) => {
-                                e.stopPropagation();
-                                startService(svc.name, ip, 'Container');
-                            };
-                            restartBtn.title = "Start Service";
-                            restartBtn.querySelector('i').className = "fas fa-play text-xs text-green-600";
-                        } else {
-                            restartBtn.onclick = (e) => {
-                                e.stopPropagation();
-                                restartService(svc.name, ip, 'Container');
-                            };
+                        if (isDown) {
+                            text = '离线 (节点异常)';
+                            icon = 'fa-minus-circle';
+                            textColor = 'text-slate-400';
+                        } else if (isWarning) {
+                            textColor = 'text-yellow-500';
                         }
-                    }
-                    
-                    const stopBtn = sc.querySelector('.svc-stop-btn');
-                    if (stopBtn) {
-                         stopBtn.onclick = (e) => {
-                             e.stopPropagation();
-                             stopService(svc.name, ip, 'Container');
-                         };
-                         if (svc.state !== 'running') stopBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                    }
 
-                    list.appendChild(sc);
-                });
-                services.appendChild(list);
+                        statusText.className = `svc-status-text text-[10px] font-bold hidden md:flex items-center gap-1 ${textColor} uppercase`;
+                        statusText.innerHTML = `<i class="fas ${icon} text-[10px]"></i>${text}`;
+                        
+                        // Attach handlers for Restart/Stop
+                        const restartBtn = sc.querySelector('.svc-restart-btn');
+                        if (restartBtn) {
+                            if (svc.state !== 'running' && !isDown) {
+                                restartBtn.onclick = (e) => {
+                                    e.stopPropagation();
+                                    startService(svc.name, ip, 'Container');
+                                };
+                                restartBtn.title = "Start Service";
+                                restartBtn.querySelector('i').className = "fas fa-play text-xs text-green-600";
+                            } else {
+                                restartBtn.onclick = (e) => {
+                                    e.stopPropagation();
+                                    restartService(svc.name, ip, 'Container');
+                                };
+                            }
+                        }
+                        
+                        const stopBtn = sc.querySelector('.svc-stop-btn');
+                        if (stopBtn) {
+                             stopBtn.onclick = (e) => {
+                                 e.stopPropagation();
+                                 stopService(svc.name, ip, 'Container');
+                             };
+                             if (svc.state !== 'running') stopBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                        }
+
+                        list.appendChild(sc);
+                    });
+                    services.appendChild(list);
+                } else {
+                    services.innerHTML = '';
+                }
             } else {
                 services.innerHTML = '';
             }
@@ -1075,41 +1071,47 @@ async function pollAgent(ip) {
                     // Update Services
                     if (servicesList) {
                         if (agent.services && agent.services.length > 0) {
-                            servicesList.innerHTML = '';
-                            agent.services.forEach(svc => {
-                                const svcEl = document.createElement('div');
-                                svcEl.className = "flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg shadow-sm";
-                                
-                                const isRunning = svc.state === 'running';
-                                const statusColor = isRunning ? 'text-green-500' : 'text-red-500';
-                                
-                                svcEl.innerHTML = `
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-500">
-                                            <i class="fas fa-box text-xs"></i>
+                            const managedServices = agent.services.filter(s => s.is_managed);
+                            
+                            if (managedServices.length > 0) {
+                                servicesList.innerHTML = '';
+                                managedServices.forEach(svc => {
+                                    const svcEl = document.createElement('div');
+                                    svcEl.className = "flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg shadow-sm";
+                                    
+                                    const isRunning = svc.state === 'running';
+                                    const statusColor = isRunning ? 'text-green-500' : 'text-red-500';
+                                    
+                                    svcEl.innerHTML = `
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-500">
+                                                <i class="fas fa-box text-xs"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-sm font-bold text-slate-700">${svc.name}</div>
+                                                <div class="text-[10px] text-slate-400 font-mono">${svc.image}</div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <div class="text-sm font-bold text-slate-700">${svc.name}</div>
-                                            <div class="text-[10px] text-slate-400 font-mono">${svc.image}</div>
+                                        <div class="text-right">
+                                            <div class="text-[10px] font-bold ${statusColor} uppercase">${svc.state}</div>
+                                            <div class="text-[10px] text-slate-400">${svc.uptime}</div>
                                         </div>
-                                    </div>
-                                    <div class="text-right">
-                                        <div class="text-[10px] font-bold ${statusColor} uppercase">${svc.state}</div>
-                                        <div class="text-[10px] text-slate-400">${svc.uptime}</div>
-                                    </div>
-                                `;
-                                servicesList.appendChild(svcEl);
-                            });
+                                    `;
+                                    servicesList.appendChild(svcEl);
+                                });
 
-                            // All verified, switch to Nodes Status tab
-                            clearInterval(interval);
-                            if (statusText) statusText.innerText = "部署验证成功！正在切换至节点状态...";
-                            setTimeout(() => {
-                                const nodesTabBtn = document.querySelector('button[data-target="tab-nodes-content"]');
-                                if (nodesTabBtn) nodesTabBtn.click();
-                            }, 1500);
+                                // All verified, switch to Nodes Status tab
+                                clearInterval(interval);
+                                if (statusText) statusText.innerText = "部署验证成功！正在切换至节点状态...";
+                                setTimeout(() => {
+                                    const nodesTabBtn = document.querySelector('button[data-target="tab-nodes-content"]');
+                                    if (nodesTabBtn) nodesTabBtn.click();
+                                }, 1500);
+                            } else {
+                                servicesList.innerHTML = '<p class="text-xs text-slate-400 italic">尚未检测到托管服务。正在启动中...</p>';
+                            }
                         } else if (agent.docker_status === 'active') {
-                            servicesList.innerHTML = '<p class="text-xs text-slate-400 italic">尚未检测到目标服务。正在启动中...</p>';
+                            servicesList.innerHTML = '<p class="text-xs text-slate-400 italic">尚未检测到托管服务。正在启动中...</p>';
                         }
                     }
                 }

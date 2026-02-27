@@ -291,7 +291,7 @@ func getDockerServices() []DockerServiceStatus {
 
 // ParseDockerPsOutput parses docker ps output
 func ParseDockerPsOutput(output string) []DockerServiceStatus {
-	targets := []string{"vllm", "anysearch", "anyzearch", "anythingllm", "anything-llm", "milvus", "lancedb", "chroma", "pgvector", "mineru"}
+	targets := []string{"vllm", "anysearch", "anyzearch", "anythingllm", "anything-llm", "milvus", "lancedb", "chroma", "pgvector", "mineru", "litellm"}
 	var services []DockerServiceStatus
 	lines := strings.Split(strings.TrimSpace(output), "\n")
 
@@ -328,6 +328,8 @@ func ParseDockerPsOutput(output string) []DockerServiceStatus {
 				modelType = "omni"
 			} else if strings.Contains(lowerName, "anythingllm") {
 				modelType = "rag"
+			} else if strings.Contains(lowerName, "litellm") {
+				modelType = "proxy"
 			}
 
 			services = append(services, DockerServiceStatus{
@@ -386,6 +388,7 @@ func StartServer(port string) {
 	mux.HandleFunc("/health", handleHealth)
 	mux.HandleFunc("/container/control", handleContainerControl)
 	mux.HandleFunc("/config/update", HandleUpdateConfig)
+	mux.HandleFunc("/config/sync-litellm", HandleSyncLiteLLM)
 	mux.HandleFunc("/models/discover", handleDiscoverModels)
 
 	addr := ":" + port
@@ -393,6 +396,49 @@ func StartServer(port string) {
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatalf("Failed to start agent server: %v", err)
 	}
+}
+
+// HandleSyncLiteLLM handles synchronization of litellm_config.yaml
+func HandleSyncLiteLLM(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		NodeIP string `json:"node_ip"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("Received LiteLLM sync request for node: %s", req.NodeIP)
+
+	// In this implementation, the backend already pushed the file via SCP during deployment.
+	// This endpoint can be used to trigger a proxy reload if needed.
+	// LiteLLM supports hot-reloading when the config file changes, but we can force it.
+	
+	workDir := DockerDir
+	cmdStr := "docker compose up -d --force-recreate litellm"
+	
+	go func() {
+		cmd := exec.Command("bash", "-c", "cd "+workDir+" && "+cmdStr)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			log.Printf("LiteLLM reload failed: %v, Output: %s", err, output)
+		} else {
+			log.Printf("LiteLLM reloaded successfully: %s", output)
+		}
+	}()
+
+	resp := ContainerControlResponse{
+		Success: true,
+		Message: "LiteLLM sync/reload triggered",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
 
 func handleDiscoverModels(w http.ResponseWriter, r *http.Request) {
@@ -582,10 +628,13 @@ func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	// Key mapping based on service type
 	keyMap := map[string]string{
 		"model_name":             "VLLM_MODEL_NAME",
+		"served_model_name":      "VLLM_SERVED_MODEL_NAME",
+		"network_alias":          "VLLM_NETWORK_ALIAS",
 		"max_model_len":          "VLLM_MAX_MODEL_LEN",
 		"max_num_seqs":           "VLLM_MAX_NUM_SEQS",
 		"max_num_batched_tokens": "VLLM_MAX_NUM_BATCHED_TOKENS",
 		"gpu_memory_utilization": "VLLM_GPU_MEMORY_UTILIZATION",
+		"gpu_device_id":          "GPU_DEVICE_ID",
 		"mode":                   "VLLM_MODE",
 		"gpu_memory_size":        "VLLM_GPU_MEMORY_SIZE",
 	}
@@ -595,6 +644,7 @@ func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	if strings.Contains(lowerService, "anythingllm") {
 		keyMap["port"] = "ANYTHINGLLM_PORT"
 		keyMap["model_name"] = "GENERIC_OPEN_AI_MODEL_PREF"
+		keyMap["generic_openai_api_key"] = "GENERIC_OPEN_AI_API_KEY"
 	} else if strings.Contains(lowerService, "llm") {
 		keyMap["port"] = "VLLM_LLM_PORT"
 		if strings.Contains(lowerService, "mineru") {

@@ -1257,5 +1257,74 @@ Error response from daemon: failed to set up container networking: driver failed
 
 
 
+## Task 42
+you have to rewrite and enrich this script as well as the corresponding frontend, backend, and remote agent services for below funcitonal features enrichment objective. And you have to follow Coding Guide provided in final section of below context.
 
-ghcr.io/berriai/litellm:1.81.14
+*** funcitonal features enrichment Objective ***
+
+Act as a Senior DevOps and AI Engineer. I need to refactor a local vLLM deployment into a scalable GenAI Proxy architecture. Generate a production-ready `docker-compose.yaml` and a `litellm_config.yaml` that sets up LiteLLM as a unified proxy gateway.
+You should convert current docker-compose sets up to use LiteLLM as a proxy server, along with local vLLM instances in managed mode and also support cloud configuration for openai, GLM (Zhipu AI) and DeepSeek and non managed mode (integrating existing service).
+
+### Pre-condition or Pre-work
+1. scan @backend/pkg/api/deploy.go @backend/pkg/api/agent.go @tests/backend/deployments/tars/models/ @backend/deployments/dockers/yaml/docker-compose.yaml  to understand the current setup and logic in handling container deployment for model provision
+2. reuse vllm-llm service for model deployment with docker compose profile, it is already support various model via  VLLM_MODEL_NAME and VLLM_MODEL_PATH variable. do not create services like vllm-llama or vllm-qwen in docker-compose.yaml
+3. keep existing features, such as anythingllm rag, mineru ocr. you should enrich the current design with extra layer of litellm as proxy.
+
+### Architecture Requirements
+1.  **LiteLLM Proxy Service**:
+    * Image: `ghcr.io/berriai/litellm:1.81.14`.
+    * Ports: Map `4000:4000`.
+    * Volumes: Mount a local `config.yaml` to `/app/config.yaml`.
+    * Dependencies: Must wait for the local vLLM services to be healthy.
+
+2.  **Local vLLM Instances (In-Network)**:
+    * **Service 1 (Qwen)**: Use `vllm/vllm-openai`, use corresponding model at @tests/backend/deployments/tars/models/ , port `8001`.
+    * **Service 2 (Llama)**: Use `vllm/vllm-openai`, use corresponding model at @tests/backend/deployments/tars/models/, port `8002`.
+    * **Hardware**: Include `deploy.resources.reservations.devices` for NVIDIA GPUs for both.
+
+3.  **Networking**: 
+    * Create a dedicated bridge network named `genai-network`.
+    * LiteLLM must communicate with vLLM instances using their internal Docker service names (e.g., http://vllm-qwen:8000).
+
+4.  **LiteLLM Model Configuration (`config.yaml`)**:
+    Implement a `model_list` containing:
+    * **Local**: Qwen and Llama (pointing to the internal vLLM containers).
+    * **Cloud**: OpenAI (gpt-4o), DeepSeek (deepseek-chat), and Zhipu AI/GLM (glm-4).
+    * **Environment Variables**: Use placeholders for all API keys (e.g., ${OPENAI_API_KEY}).
+
+### Output Format
+- Provide the complete `docker-compose.yaml`.
+- Provide the complete `litellm_config.yaml`.
+- Provide a sample `.env` file containing all necessary environment variables for the cloud providers.
+- Add brief comments explaining the GPU reservation block and the internal networking logic.
+
+**Coding Guide**  
+- this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO.
+- The remote host is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and you have to run ssh with passwordless id_rsa key at @backend\keys with root user to remote host. 
+- You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
+- Write unit tests to verify any update systematically by accessing the frontend app and backend services code changes. Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
+- All the unit test should be put under /tests folder, and all the loggging should be put under /logs folder
+- All the unit test related to agent should use the remote host on this ip 172.20.0.10 with port 8082 for agent interaction 
+- All the unit test updating @backend\data.json, you should first make a copy, and then restore it after test is done.
+- Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, use  powershell scripts under @scripts folder to terminate proccess on port 3000 and 8080 or redeploym agents
+
+
+## Task 43
+you have to rewrite and enrich this script as well as the corresponding frontend, backend, and remote agent services for below funcitonal features enrichment objective. And you have to follow Coding Guide provided in final section of below context.
+
+*** funcitonal features enrichment Objective ***
+1. update 注册新服务 at @frontend/views/services.pug 对接现有 (Existing), to use litellm as proxy to route to cloud service.
+2. skip unit test and integration test .
+
+
+**Coding Guide**  
+- this is a windows environment and you are running in powershell, you have frontend code with nodejs in express Archtiecture, backend code and remote agent code are both in GO.
+- The remote host is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and you have to run ssh with passwordless id_rsa key at @backend\keys with root user to remote host. 
+- You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
+- Write unit tests to verify any update systematically by accessing the frontend app and backend services code changes. Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. 
+- All the unit test should be put under /tests folder, and all the loggging should be put under /logs folder
+- All the unit test related to agent should use the remote host on this ip 172.20.0.10 with port 8082 for agent interaction 
+- All the unit test updating @backend\data.json, you should first make a copy, and then restore it after test is done.
+- Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
+- Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, use  powershell scripts under @scripts folder to terminate proccess on port 3000 and 8080 or redeploym agents

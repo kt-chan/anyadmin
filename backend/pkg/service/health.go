@@ -158,6 +158,11 @@ func GetServicesHealth() []ServiceStatus {
 
 		// 3. Services from Configuration for this Node
 		for _, cfg := range node.Configs {
+			// Skip non-managed external services from this technical container list
+			if !cfg.IsManaged {
+				continue
+			}
+
 			svcStatus := "Offline"
 			svcHealth := "Unhealthy"
 			svcUptime := "-"
@@ -186,7 +191,8 @@ func GetServicesHealth() []ServiceStatus {
 						isMatch := lcDockerName == lcCfgName || 
 								   strings.Contains(lcDockerName, dockerBase) || 
 								   strings.Contains(lcDockerName, dockerAlt) ||
-								   strings.Contains(dockerBase, lcDockerName)
+								   strings.Contains(dockerBase, lcDockerName) ||
+								   (strings.Contains(lcCfgName, "litellm") && strings.Contains(lcDockerName, "litellm"))
 						
 						// Special case: if engine is vLLM, it might be named just "vllm"
 						if !isMatch && (lcEngine == "vllm" || lcEngine == "nvidia") {

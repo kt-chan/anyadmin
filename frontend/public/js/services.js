@@ -117,8 +117,62 @@ document.addEventListener('DOMContentLoaded', () => {
             openVllmModal(config, nodeIP);
         } else if (type === 'rag') {
             openRagModal(config, nodeIP);
+        } else if (type === 'external') {
+            openExternalModal(config, nodeIP);
         }
     };
+
+    function openExternalModal(config, nodeIP) {
+        const form = document.getElementById('externalConfigForm');
+        if (!config) return;
+
+        form.querySelector('[name="name"]').value = config.name;
+        form.querySelector('[name="node_ip"]').value = nodeIP; 
+        form.querySelector('[name="model_name"]').value = config.model_name || '';
+        form.querySelector('[name="api_key"]').value = config.api_key || '';
+        form.querySelector('[name="base_url"]').value = config.base_url || '';
+
+        showModal('externalConfigModal');
+    }
+
+    const externalForm = document.getElementById('externalConfigForm');
+    if (externalForm) {
+        externalForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(externalForm);
+            const data = Object.fromEntries(formData.entries());
+            
+            const submitBtn = externalForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerText;
+            submitBtn.disabled = true;
+
+            try {
+                // Same endpoint as vLLM but with different payload
+                const res = await fetch('/api/v1/configs/inference', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...data,
+                        ip: data.node_ip,
+                        is_managed: false,
+                        engine: 'External'
+                    })
+                });
+                
+                if (res.ok) {
+                    showToast('Success', '外部服务配置已更新', 'success');
+                    hideModal('externalConfigModal');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    throw new Error('Failed to save');
+                }
+            } catch (err) {
+                showToast('Error', err.message, 'error');
+                submitBtn.innerText = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+    }
 
     function openVllmModal(config, nodeIP) {
         const form = document.getElementById('vllmConfigForm');
@@ -579,45 +633,86 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.updateServiceModalFields = function() {
-        const mode = document.querySelector('input[name="mode"]:checked').value;
-        const serviceType = document.getElementById('service-type-select').value;
+        const modeEl = document.querySelector('input[name="mode"]:checked');
+        if (!modeEl) return;
+        const mode = modeEl.value;
+        
+        const serviceTypeSelect = document.getElementById('service-type-select');
+        const serviceType = serviceTypeSelect ? serviceTypeSelect.value : 'inference';
         
         const testBtnGroup = document.getElementById('test-connection-group');
-        const managedFields = document.querySelectorAll('.managed-only');
-        const externalFields = document.getElementById('external-fields');
-        const modelSelectionFields = document.getElementById('model-selection-fields');
-        const portOnlyField = document.getElementById('port-only-field');
+        const managedFieldsGroup = document.getElementById('managed-fields-group');
+        const externalFieldsGroup = document.getElementById('external-fields-group');
+        const managedOnlyElements = document.querySelectorAll('.managed-only');
         
         // Services that need model type/name from the platform library
         const needsModelConfig = (serviceType === 'inference' || serviceType === 'parser');
 
         if (mode === 'integrate_existing') {
+            if (managedFieldsGroup) managedFieldsGroup.classList.add('hidden');
+            if (externalFieldsGroup) externalFieldsGroup.classList.remove('hidden');
             if (testBtnGroup) testBtnGroup.classList.remove('hidden');
-            if (externalFields) externalFields.classList.remove('hidden');
-            managedFields.forEach(el => el.classList.add('hidden'));
-            
-            // For external, we still need the port from model-selection-fields
-            modelSelectionFields.classList.remove('hidden');
-            portOnlyField.classList.add('hidden');
         } else {
+            // 托管部署 (New)
+            if (managedFieldsGroup) managedFieldsGroup.classList.remove('hidden');
+            if (externalFieldsGroup) externalFieldsGroup.classList.add('hidden');
             if (testBtnGroup) testBtnGroup.classList.add('hidden');
-            if (externalFields) externalFields.classList.add('hidden');
             
             if (needsModelConfig) {
-                managedFields.forEach(el => el.classList.remove('hidden'));
-                modelSelectionFields.classList.remove('hidden');
-                portOnlyField.classList.add('hidden');
+                managedOnlyElements.forEach(el => el.classList.remove('hidden'));
             } else {
-                // RAG and VectorDB in managed mode don't need model type/name
-                managedFields.forEach(el => el.classList.add('hidden'));
-                modelSelectionFields.classList.add('hidden');
-                portOnlyField.classList.remove('hidden');
+                managedOnlyElements.forEach(el => el.classList.add('hidden'));
             }
         }
     };
 
     window.toggleServiceConnectMode = function(mode) {
         updateServiceModalFields();
+    };
+
+    window.selectCloudPreset = function(provider) {
+        const typeSelect = document.getElementById('external-model-type');
+        const serviceTypeSelect = document.getElementById('service-type-select');
+        const nodeSelect = document.getElementById('connect-node-select');
+        const portInput = document.getElementById('connect-port');
+        
+        const nameInput = document.getElementById('external_model_name');
+        const baseUrlInput = document.getElementById('base_url');
+        const apiKeyInput = document.getElementById('api_key');
+
+        // 1. Set Service Metadata (Hidden but used for anchoring to LiteLLM)
+        if (serviceTypeSelect) serviceTypeSelect.value = 'inference';
+        if (typeSelect) typeSelect.value = 'llm';
+        if (nodeSelect) nodeSelect.value = '172.20.0.10';
+        if (portInput) portInput.value = '4000';
+
+        // 2. Set Remote Routing logic
+        switch(provider) {
+            case 'openai':
+                nameInput.value = 'gpt-4o';
+                baseUrlInput.value = 'https://api.openai.com/v1';
+                apiKeyInput.value = 'your-openai-key';
+                break;
+            case 'deepseek':
+                nameInput.value = 'deepseek-chat';
+                baseUrlInput.value = 'https://api.deepseek.com';
+                apiKeyInput.value = 'your-deepseek-key';
+                break;
+            case 'zhipu':
+                nameInput.value = 'glm-4';
+                baseUrlInput.value = 'https://open.bigmodel.cn/api/paas/v4';
+                apiKeyInput.value = 'your-zhipu-key';
+                break;
+        }
+
+        // Highlight selected btn
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            if (btn.innerText.toLowerCase().includes(provider)) {
+                btn.classList.add('bg-indigo-50', 'border-indigo-400', 'text-indigo-600', 'ring-2', 'ring-indigo-100');
+            } else {
+                btn.classList.remove('bg-indigo-50', 'border-indigo-400', 'text-indigo-600', 'ring-2', 'ring-indigo-100');
+            }
+        });
     };
 
     const populateModelData = async () => {

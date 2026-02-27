@@ -63,7 +63,8 @@ func CheckAgentStatus(c *gin.Context) {
 						Image:     cfg.Engine,
 						Status:    "Configured (Stopped)",
 						State:     "stopped",
-						IsManaged: true,
+						ModelType: cfg.ModelType,
+						IsManaged: cfg.IsManaged,
 					})
 				}
 				for _, cfg := range node.RagAppCfgs {
@@ -72,7 +73,8 @@ func CheckAgentStatus(c *gin.Context) {
 						Image:     "RAG Application",
 						Status:    "Configured (Stopped)",
 						State:     "stopped",
-						IsManaged: true,
+						ModelType: "rag",
+						IsManaged: cfg.IsManaged,
 					})
 				}
 				break
@@ -115,12 +117,17 @@ func CheckAgentStatus(c *gin.Context) {
 			if lcHbName == lcCfgName ||
 				strings.Contains(lcHbName, dockerBase) ||
 				strings.Contains(lcHbName, dockerAlt) ||
-				strings.Contains(dockerBase, lcHbName) {
+				strings.Contains(dockerBase, lcHbName) ||
+				(strings.Contains(lcCfgName, "litellm") && strings.Contains(lcHbName, "litellm")) {
 				found = true
 				// Ensure it's marked as managed if it matches config
 				status.Services[i].IsManaged = true
 				// Use the prettier config name for display if it's a match
 				status.Services[i].Name = cfgSvc.Name
+				// Ensure model type is preserved from config if missing in heartbeat
+				if status.Services[i].ModelType == "" || status.Services[i].ModelType == "unknown" {
+					status.Services[i].ModelType = cfgSvc.ModelType
+				}
 				break
 			}
 		}

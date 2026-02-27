@@ -7,83 +7,87 @@ div(id="connectServiceModal", class="modal")
         i(class="fas fa-times")
 
     form#connectServiceForm
-      div(class="space-y-4 mb-6")
-        //- 服务名称
+      div(class="space-y-6 mb-6")
+        //- Instance Name
         div
           label(class="block text-xs font-bold text-slate-700 mb-1") 服务实例名称 (Instance Name)
-          input(type="text", name="service_name", placeholder="例如: llama3-production", class="w-full border border-slate-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none", required)
-          p(class="text-[10px] text-slate-400 mt-1") * 用于区分同一节点上的多个服务
+          input(type="text", name="service_name", placeholder="例如: gpt-4o-cloud", class="w-full border border-slate-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none", required)
+          p(class="text-[10px] text-slate-400 mt-1") * 用于在 AnyAdmin 矩阵中唯一标识此服务
 
-        //- 注册模式选择
+        //- Mode Selection
         div
           label(class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2") 注册模式 (Registration Mode)
-          div(class="flex gap-4 bg-slate-50 p-1 rounded-xl border border-slate-100")
-            label(class="flex-1 cursor-pointer")
+          div(class="flex gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200")
+            label(class="flex-1 cursor-pointer group")
               input(type="radio", name="mode", value="new_deployment", class="hidden peer", onchange="toggleServiceConnectMode(this.value)", checked)
-              div(class="text-center py-2 rounded-lg text-sm font-bold text-slate-500 peer-checked_bg-white peer-checked_text-blue-600 peer-checked_shadow-sm transition") 托管部署 (New)
-            label(class="flex-1 cursor-pointer")
+              div(class="text-center py-2.5 rounded-lg text-sm font-bold text-slate-500 peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-md transition-all flex items-center justify-center gap-2 border border-transparent peer-checked:border-blue-100")
+                i(class="fas fa-rocket text-xs")
+                | 托管部署 (New)
+            label(class="flex-1 cursor-pointer group")
               input(type="radio", name="mode", value="integrate_existing", class="hidden peer", onchange="toggleServiceConnectMode(this.value)")
-              div(class="text-center py-2 rounded-lg text-sm font-bold text-slate-500 peer-checked_bg-white peer-checked_text-blue-600 peer-checked_shadow-sm transition") 对接现有 (Existing)
+              div(class="text-center py-2.5 rounded-lg text-sm font-bold text-slate-500 peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:shadow-md transition-all flex items-center justify-center gap-2 border border-transparent peer-checked:border-indigo-100")
+                i(class="fas fa-plug text-xs")
+                | 对接现有 (Existing)
 
-        div(class="grid grid-cols-2 gap-4")
-          div
-            label(class="block text-xs font-bold text-slate-700 mb-1") 服务类型 (Type)
-            select#service-type-select(name="service_type", class="w-full border border-slate-200 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none", required, onchange="updateServiceModalFields()")
-              option(value="inference") 推理引擎 (Inference)
-              option(value="rag") RAG 应用 (AnythingLLM)
-              option(value="vectordb") 向量数据库 (Vector DB)
-              option(value="parser") 文档解析器 (Parser)
-          
-          div
-            label(class="block text-xs font-bold text-slate-700 mb-1") 目标节点 (Target Node)
-            select#connect-node-select(name="target_node", class="w-full border border-slate-200 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none", required)
-              option(value="", disabled, selected) 加载中...
-        
-        #model-selection-fields
-          div(class="grid grid-cols-2 gap-4 mb-4")
-            div
-              label(class="block text-xs font-bold text-slate-700 mb-1") 端口 (Port)
-              input(type="number", name="port", placeholder="8000", class="w-full border border-slate-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none")
-            
-            //- Managed only fields
-            div.managed-only
-              label(class="block text-xs font-bold text-slate-700 mb-1") 关联模型类型 (Model Type)
-              select#connect-model-type(name="model_type_select", class="w-full border border-slate-200 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none")
-                option(value="", disabled, selected) 加载中...
-          
-          div.managed-only
-            label(class="block text-xs font-bold text-slate-700 mb-1") 关联模型名称 (Model Name)
-            select#connect-model-name(name="model_name_select", class="w-full border border-slate-200 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none")
-              option(value="", disabled, selected) 请先选择类型
-        
-        #port-only-field.hidden
-          div
-            label(class="block text-xs font-bold text-slate-700 mb-1") 端口 (Port)
-            input(type="number", name="port_alt", placeholder="8000", class="w-full border border-slate-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none")
-
-        //- External mode fields
-        div#external-fields.hidden.space-y-4.p-4.bg-slate-50.rounded-xl.border.border-slate-200
+        //- 1. Managed Deployment Group (Local Provisioning)
+        #managed-fields-group.space-y-4
           div(class="grid grid-cols-2 gap-4")
             div
-              label(class="block text-xs font-bold text-slate-700 mb-1") 外部模型类型 (Type)
-              select#external-model-type(name="external_model_type", class="w-full border border-slate-200 p-2.5 rounded-lg bg-white")
-                //- Populated by JS
+              label(class="block text-xs font-bold text-slate-700 mb-1") 服务类型 (Type)
+              select#service-type-select(name="service_type", class="w-full border border-slate-200 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none", onchange="updateServiceModalFields()")
+                option(value="inference") 推理引擎 (Inference)
+                option(value="rag") RAG 应用 (AnythingLLM)
+                option(value="vectordb") 向量数据库 (Vector DB)
+                option(value="parser") 文档解析器 (Parser)
             div
-              label(class="block text-xs font-bold text-slate-700 mb-1") 外部模型名称 (Model Name)
-              input(type="text", name="external_model_name", placeholder="例如: gpt-4", class="w-full border border-slate-200 p-2.5 rounded-lg")
+              label(class="block text-xs font-bold text-slate-700 mb-1") 目标节点 (Target Node)
+              select#connect-node-select(name="target_node", class="w-full border border-slate-200 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none")
+                option(value="", disabled, selected) 加载中...
+          
+          div(class="grid grid-cols-2 gap-4")
+            div
+              label(class="block text-xs font-bold text-slate-700 mb-1") 端口 (Port)
+              input#connect-port(type="number", name="port", placeholder="8000", class="w-full border border-slate-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none")
+            div.managed-only
+              label(class="block text-xs font-bold text-slate-700 mb-1") 关联模型类型
+              select#connect-model-type(name="model_type_select", class="w-full border border-slate-200 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none")
+                option(value="", disabled, selected) 选择类型
+          
+          div.managed-only
+            label(class="block text-xs font-bold text-slate-700 mb-1") 关联模型名称
+            select#connect-model-name(name="model_name_select", class="w-full border border-slate-200 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none")
+              option(value="", disabled, selected) 请先选择类型
+
+        //- 2. Existing Connection Group (Cloud/External)
+        #external-fields-group.hidden.space-y-4
+          div(class="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100")
+            label(class="block text-xs font-bold text-indigo-700 mb-3 uppercase tracking-wide") 快捷选择 (Cloud Preset)
+            div(class="grid grid-cols-3 gap-2 mb-1")
+              button(type="button", onclick="selectCloudPreset('openai')", class="preset-btn px-2 py-2.5 border border-slate-200 rounded-lg text-[10px] font-bold bg-white hover:bg-blue-50 transition-all") OpenAI
+              button(type="button", onclick="selectCloudPreset('deepseek')", class="preset-btn px-2 py-2.5 border border-slate-200 rounded-lg text-[10px] font-bold bg-white hover:bg-blue-50 transition-all") DeepSeek
+              button(type="button", onclick="selectCloudPreset('zhipu')", class="preset-btn px-2 py-2.5 border border-slate-200 rounded-lg text-[10px] font-bold bg-white hover:bg-blue-50 transition-all") Zhipu/GLM
+
+          div(class="grid grid-cols-2 gap-4")
+            div
+              label(class="block text-xs font-bold text-slate-700 mb-1") 外部模型类型
+              select#external-model-type(name="external_model_type", class="w-full border border-slate-200 p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none")
+            div
+              label(class="block text-xs font-bold text-slate-700 mb-1") 外部模型名称
+              input#external_model_name(type="text", name="external_model_name", placeholder="例如: gpt-4", class="w-full border border-slate-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none")
           
           div
             label(class="block text-xs font-bold text-slate-700 mb-1") API Key (Optional)
-            input(type="text", name="api_key", placeholder="sk-...", class="w-full border border-slate-200 p-2.5 rounded-lg")
+            input#api_key(type="text", name="api_key", placeholder="sk-...", class="w-full border border-slate-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none")
           
           div
             label(class="block text-xs font-bold text-slate-700 mb-1") Base URL (Optional)
-            input(type="text", name="base_url", placeholder="https://api.openai.com/v1", class="w-full border border-slate-200 p-2.5 rounded-lg")
+            input#base_url(type="text", name="base_url", placeholder="https://api.openai.com/v1", class="w-full border border-slate-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none")
+            p(class="text-[9px] text-slate-400 mt-1 italic") * 云服务将通过默认网关 (172.20.0.10:4000) 统一纳管
 
-        div#test-connection-group.hidden
-          button(type="button", onclick="testServiceConnect()", class="w-full border border-blue-600 text-blue-600 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-50 transition")
+        #test-connection-group.hidden
+          button(type="button", onclick="testServiceConnect()", class="w-full border border-indigo-600 text-indigo-600 py-2.5 rounded-lg text-sm font-bold hover:bg-indigo-50 transition-all shadow-sm")
             i(class="fas fa-plug mr-2")
-            | 测试连接 (Test Connection)
+            | 测试远程连接 (Test Connection)
 
       div(class="flex justify-end gap-3 pt-6 border-t border-slate-100")
         button(type="button", onclick="hideModal('connectServiceModal')", class="px-6 py-2.5 text-slate-500 font-bold text-sm hover:bg-slate-100 rounded-lg transition") 取消

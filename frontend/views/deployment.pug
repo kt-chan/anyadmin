@@ -73,6 +73,16 @@ block content
                   input(type="text", name="service_name", placeholder="Optional: e.g. my-llm-deployment", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
                   p(class="text-[10px] text-slate-500 mt-1") 系统将自动根据此名称生成独立的环境变量文件（如 .env-inf-xxx, .env-rag-xxx），防止端口冲突。
 
+                //- LiteLLM Gateway Info
+                .mt-6.p-4.bg-purple-50.rounded-xl.border.border-purple-100
+                  h4.font-bold.text-sm.text-purple-800.mb-2 
+                    i.fas.fa-network-wired.mr-2
+                    | GenAI Gateway (LiteLLM)
+                  p.text-xs.text-purple-600 LiteLLM 将作为统一网关自动部署在所有目标节点上（默认端口: 4000）。
+                  div(class="mt-2 flex items-center gap-2")
+                    span(class="px-2 py-0.5 bg-white border border-purple-200 text-purple-700 rounded text-[10px] font-mono") Port: 4000
+                    span(class="px-2 py-0.5 bg-white border border-purple-200 text-purple-700 rounded text-[10px] font-mono") OpenAI Compatible API
+
                 //- SSH Configuration Guide
                 .mt-6.p-4.bg-blue-50.rounded-xl.border.border-blue-100
                   h4.font-bold.text-sm.text-blue-800.mb-2 
@@ -165,15 +175,15 @@ block content
                   .grid.grid-cols-2.gap-6
                     div
                       label.block.text-sm.font-medium.text-slate-700.mb-1 推理模型类型
-                      select#model-type-select(name="model_type", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
+                      select#model-type-select(name="model_type", class="w-full h-11 rounded-lg border border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm")
                         option(value="", disabled, selected) Select Type
                         //- Options will be populated by JS
                     div
                       label.block.text-sm.font-medium.text-slate-700.mb-1 推理模型
                       .flex.gap-2
-                        select#model-select(name="model_path", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
+                        select#model-select(name="model_path", class="flex-1 h-11 rounded-lg border border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm")
                           option(value="", disabled, selected) Select a Model
-                        button(type="button", onclick="refreshModels(true)", class="px-3 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 text-slate-600 shadow-sm")
+                        button(type="button", onclick="refreshModels(true)", class="w-11 h-11 flex items-center justify-center bg-white border border-slate-300 rounded-lg hover:bg-slate-50 text-slate-600 shadow-sm transition")
                           i.fas.fa-sync-alt
 
                   div(class="grid grid-cols-2 gap-6 pt-2")

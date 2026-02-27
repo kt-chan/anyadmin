@@ -34,12 +34,20 @@ func DeployService(c *gin.Context) {
 	// Prefix with type to avoid port/env conflicts
 	instanceName := "inf-" + baseInstanceName
 
+	// Encrypt API Key if provided
+	encryptedAPIKey := req.APIKey
+	if req.APIKey != "" {
+		if enc, err := utils.EncryptPassword(req.APIKey); err == nil {
+			encryptedAPIKey = enc
+		}
+	}
+
 	// Map DeploymentConfig to InferenceConfig for compatibility
 	inferenceConfig := global.InferenceConfig{
 		Name:      instanceName, // This is the unique Instance/Project Name
 		ModelType: req.ModelType,
 		IsManaged: req.Mode == "new_deployment",
-		APIKey:    req.APIKey,
+		APIKey:    encryptedAPIKey,
 		BaseURL:   req.BaseURL,
 		IP:        req.InferenceHost,
 		Port:      req.InferencePort,
@@ -115,12 +123,22 @@ func DeployService(c *gin.Context) {
 					updatedNodes = append(updatedNodes, existing)
 					delete(existingNodes, host)
 				} else {
-					updatedNodes = append(updatedNodes, global.DeploymentNode{
+					newNode := global.DeploymentNode{
 						NodeIP:        host,
 						Hostname:      host,
 						InferenceCfgs: []global.InferenceConfig{},
 						RagAppCfgs:    []global.RagAppConfig{},
+					}
+					// Always add LiteLLM as core proxy for new nodes
+					newNode.InferenceCfgs = append(newNode.InferenceCfgs, global.InferenceConfig{
+						Name:      "proxy-litellm:litellm",
+						ModelType: "proxy",
+						IsManaged: true,
+						Engine:    "LiteLLM",
+						IP:        host,
+						Port:      "4000",
 					})
+					updatedNodes = append(updatedNodes, newNode)
 				}
 			}
 			utils.DeploymentNodes = updatedNodes
@@ -136,32 +154,64 @@ func DeployService(c *gin.Context) {
 		log.Printf("[接入服务] 正在登记现有服务: %s (%s:%s)", instanceName, req.InferenceHost, req.InferencePort)
 	}
 
-	// Helper to add config (Always ADD now)
+	// Helper to add config (Upsert logic)
 	addInferenceCfg := func(nodeIP string, newCfg global.InferenceConfig) {
 		for i, node := range utils.DeploymentNodes {
 			if node.NodeIP == nodeIP {
-				newCfg.CreatedAt = time.Now()
-				newCfg.UpdatedAt = time.Now()
-				utils.DeploymentNodes[i].InferenceCfgs = append(utils.DeploymentNodes[i].InferenceCfgs, newCfg)
+				// Check if already exists by name
+				found := false
+				for j, existing := range node.InferenceCfgs {
+					if existing.Name == newCfg.Name {
+						newCfg.CreatedAt = existing.CreatedAt
+						newCfg.UpdatedAt = time.Now()
+						utils.DeploymentNodes[i].InferenceCfgs[j] = newCfg
+						found = true
+						break
+					}
+				}
+				if !found {
+					newCfg.CreatedAt = time.Now()
+					newCfg.UpdatedAt = time.Now()
+					utils.DeploymentNodes[i].InferenceCfgs = append(utils.DeploymentNodes[i].InferenceCfgs, newCfg)
+				}
 				return
 			}
 		}
 	}
 
 	addRagCfg := func(nodeIP string, newCfg global.RagAppConfig) {
-        // ... (Default settings)
+		// ... (Default settings)
 		if newCfg.StorageDir == "" { newCfg.StorageDir = "/app/server/storage" }
 		if newCfg.LLMProvider == "" { newCfg.LLMProvider = "generic-openai" }
-		if newCfg.GenericOpenAIBasePath == "" { newCfg.GenericOpenAIBasePath = "http://host.docker.internal:8000/v1" }
-		if newCfg.GenericOpenAIModelPref == "" { newCfg.GenericOpenAIModelPref = "Qwen3-1.7B" }
-		if newCfg.GenericOpenAIKey == "" { newCfg.GenericOpenAIKey = "REPLACE_THIS_WITH_YOUR_ACTUAL_KEY" }
+		if newCfg.GenericOpenAIBasePath == "" { newCfg.GenericOpenAIBasePath = "http://litellm:4000/v1" }
+		if newCfg.GenericOpenAIModelPref == "" { newCfg.GenericOpenAIModelPref = "qwen" }
+		if newCfg.GenericOpenAIKey == "" { 
+			newCfg.GenericOpenAIKey = "sk-any-key" 
+		}
+		// Encrypt key
+		if enc, err := utils.EncryptPassword(newCfg.GenericOpenAIKey); err == nil {
+			newCfg.GenericOpenAIKey = enc
+		}
 		if newCfg.VectorDB == "" { newCfg.VectorDB = "lancedb" }
 
 		for i, node := range utils.DeploymentNodes {
 			if node.NodeIP == nodeIP {
-				newCfg.CreatedAt = time.Now()
-				newCfg.UpdatedAt = time.Now()
-				utils.DeploymentNodes[i].RagAppCfgs = append(utils.DeploymentNodes[i].RagAppCfgs, newCfg)
+				// Check if already exists by name
+				found := false
+				for j, existing := range node.RagAppCfgs {
+					if existing.Name == newCfg.Name {
+						newCfg.CreatedAt = existing.CreatedAt
+						newCfg.UpdatedAt = time.Now()
+						utils.DeploymentNodes[i].RagAppCfgs[j] = newCfg
+						found = true
+						break
+					}
+				}
+				if !found {
+					newCfg.CreatedAt = time.Now()
+					newCfg.UpdatedAt = time.Now()
+					utils.DeploymentNodes[i].RagAppCfgs = append(utils.DeploymentNodes[i].RagAppCfgs, newCfg)
+				}
 				return
 			}
 		}
@@ -232,6 +282,20 @@ func DeployService(c *gin.Context) {
 			// Give agent time to start if it was just deployed
 			time.Sleep(10 * time.Second)
 			
+			// Always trigger LiteLLM start on all target nodes
+			if req.TargetNodes != "" {
+				nodes := strings.Split(req.TargetNodes, "\n")
+				for _, nodeIP := range nodes {
+					nodeIP = strings.TrimSpace(nodeIP)
+					if nodeIP == "" { continue }
+					host, _, err := net.SplitHostPort(nodeIP)
+					if err != nil { host = nodeIP }
+					
+					log.Printf("[AutoStart] Triggering LiteLLM on %s", host)
+					service.ControlContainer("proxy-litellm:litellm", "start", host)
+				}
+			}
+
 			if req.InferenceHost != "" {
 				configMap := map[string]string{
 					"model_name": req.ModelName,
@@ -244,6 +308,12 @@ func DeployService(c *gin.Context) {
 				ragName := "rag-" + baseInstanceName + ":anythingllm"
 				configMap := map[string]string{
 					"port": req.RAGPort,
+				}
+				// Use the provided API Key if available
+				if req.APIKey != "" {
+					configMap["generic_openai_api_key"] = req.APIKey
+				} else {
+					configMap["generic_openai_api_key"] = "sk-any-key"
 				}
 				service.UpdateAnythingLLMConfig(req.RAGHost, ragName, configMap, true)
 			}
@@ -455,12 +525,21 @@ func TestServiceConnection(c *gin.Context) {
 
 	address := fmt.Sprintf("%s:%s", req.Host, req.Port)
 
-	// For vLLM (inference), we might want to check HTTP explicitly
+	// For vLLM (inference) or LiteLLM proxy, we might want to check HTTP explicitly
 	if req.Type == "inference" {
+		// Try vLLM health first
 		url := fmt.Sprintf("http://%s/health", address)
 		resp, err := utils.Get(url, timeout)
 		if err == nil && resp.StatusCode == http.StatusOK {
 			c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Successfully connected to vLLM service"})
+			return
+		}
+
+		// Try LiteLLM proxy health
+		url = fmt.Sprintf("http://%s/health/readiness", address)
+		resp, err = utils.Get(url, timeout)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Successfully connected to LiteLLM Proxy"})
 			return
 		}
 		// Fallback to TCP if HTTP fails or for generic check

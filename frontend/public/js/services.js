@@ -872,6 +872,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const host = formData.get('target_node');
         const port = formData.get('port');
         const serviceType = formData.get('service_type');
+        const mode = formData.get('mode');
 
         if (!host || !port) {
             alert("请选择节点并填写端口");
@@ -888,10 +889,24 @@ document.addEventListener('DOMContentLoaded', () => {
             if (serviceType === 'inference') connType = 'inference';
             else if (serviceType === 'rag') connType = 'rag_app';
 
+            const payload = { type: connType, host, port, mode };
+            
+            if (serviceType === 'inference') {
+                if (mode === 'new_deployment') {
+                    payload.model_name = formData.get('model_name_select');
+                } else {
+                    payload.model_name = formData.get('external_model_name');
+                    const rawKey = formData.get('api_key');
+                    if (rawKey) {
+                        payload.api_key = await encryptValue(rawKey);
+                    }
+                }
+            }
+
             const response = await fetch('/deployment/api/test-connection', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: connType, host, port })
+                body: JSON.stringify(payload)
             });
             const result = await response.json();
             

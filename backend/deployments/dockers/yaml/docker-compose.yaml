@@ -57,7 +57,7 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              device_ids: ['${GPU_DEVICE_ID:-0}']
+              device_ids: ['${LLM_GPU_DEVICE_ID:-0}']
               capabilities: [gpu]
     networks:
       genai-network:
@@ -92,7 +92,7 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              device_ids: ['0']
+              device_ids: ['${MINERU_GPU_DEVICE_ID:-0}']
               capabilities: [gpu]
     networks:
       - genai-network
@@ -139,7 +139,7 @@ services:
       - genai-network
 
   anythingllm:
-    image: ${ANYTHINGLLM_IMAGE:-mintplexlabs/anythingllm:1.8.5}
+    image: ${ANYTHINGLLM_IMAGE:-ktchanhk/anyzearch:1.8.5}
     profiles: ["rag"]
     cap_add:
       - SYS_ADMIN

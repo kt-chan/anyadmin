@@ -41,7 +41,7 @@
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        "${workspaceFolder}/scripts/deploy-agent.ps1"
+        "${workspaceFolder}/scripts/deployment/deploy-agent.ps1"
       ],
       "presentation": {
         "reveal": "always",

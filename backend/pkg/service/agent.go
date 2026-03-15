@@ -124,6 +124,38 @@ func sendAgentRequest(url string, payload interface{}) error {
 	return nil
 }
 
+// UpdateLiteLLMEnv updates the .env-litellm file on a remote node via SSH
+func UpdateLiteLLMEnv(nodeIP string, envMap map[string]string) error {
+	host := nodeIP
+	port := "22"
+	if strings.Contains(nodeIP, ":") {
+		parts := strings.Split(nodeIP, ":")
+		host = parts[0]
+		port = parts[1]
+	}
+
+	client, err := GetSSHClient(host, port)
+	if err != nil {
+		return fmt.Errorf("SSH connection failed: %w", err)
+	}
+	defer client.Close()
+
+	var sb strings.Builder
+	for k, v := range envMap {
+		sb.WriteString(fmt.Sprintf("%s=%s\n", k, v))
+	}
+
+	remotePath := "/home/anyadmin/docker/.env-litellm"
+	// Use heredoc to write the file
+	cmd := fmt.Sprintf("cat <<EOF > %s\n%sEOF", remotePath, sb.String())
+	if _, err := ExecuteCommand(client, cmd); err != nil {
+		return fmt.Errorf("failed to write .env-litellm: %w", err)
+	}
+
+	ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remotePath))
+	return nil
+}
+
 // UpdateVLLMConfig updates the configuration for vLLM on a remote agent
 func UpdateVLLMConfig(nodeIP string, containerName string, config map[string]string, restart bool) error {
 	log.Printf("[Agent] UpdateVLLMConfig on %s for %s", nodeIP, containerName)

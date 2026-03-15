@@ -23,15 +23,15 @@
   "backup_records": null,
   "deployment_nodes": [
     {
-      "node_ip": "172.25.208.100",
-      "hostname": "172.25.208.100",
+      "node_ip": "43.99.88.142",
+      "hostname": "43.99.88.142",
       "agent_config": {
-        "deployment_time": "2026-03-15T17:09:42+08:00",
-        "log_file": "/home/anyadmin/logs/agent.log",
-        "mgmt_host": "172.25.208.1",
-        "mgmt_port": "8080",
-        "node_ip": "172.25.208.100",
-        "node_port": "8082"
+        "deployment_time": "",
+        "log_file": "",
+        "mgmt_host": "",
+        "mgmt_port": "",
+        "node_ip": "",
+        "node_port": ""
       },
       "inference_cfgs": [
         {
@@ -45,7 +45,7 @@
           "engine": "LiteLLM",
           "model_name": "",
           "model_path": "",
-          "ip": "172.25.208.100",
+          "ip": "43.99.88.142",
           "port": "4000",
           "mode": "",
           "gpu_memory_size": 0,
@@ -57,8 +57,8 @@
         },
         {
           "id": 0,
-          "createdAt": "2026-03-14T23:07:45.5664671+08:00",
-          "updatedAt": "2026-03-15T17:09:26.2456165+08:00",
+          "createdAt": "2026-03-15T18:07:00.1967281+08:00",
+          "updatedAt": "2026-03-15T18:07:00.1967281+08:00",
           "deletedAt": null,
           "name": "inf-demo:vllm-llm",
           "model_type": "llm",
@@ -66,7 +66,7 @@
           "engine": "vLLM",
           "model_name": "Qwen3.6-0.8B",
           "model_path": "",
-          "ip": "172.25.208.100",
+          "ip": "43.99.88.142",
           "port": "8000",
           "mode": "balanced",
           "gpu_memory_size": 8,
@@ -80,12 +80,12 @@
       "rag_app_cfgs": [
         {
           "id": 0,
-          "createdAt": "2026-03-14T23:07:45.5683006+08:00",
-          "updatedAt": "2026-03-15T17:09:26.2481885+08:00",
+          "createdAt": "2026-03-15T18:07:00.2020168+08:00",
+          "updatedAt": "2026-03-15T18:07:00.2020168+08:00",
           "deletedAt": null,
           "name": "rag-demo:anythingllm",
           "is_managed": true,
-          "host": "172.25.208.100",
+          "host": "43.99.88.142",
           "port": "3001",
           "storage_dir": "/app/server/storage",
           "llm_provider": "generic-openai",
@@ -93,7 +93,7 @@
           "generic_openai_model_pref": "qwen",
           "generic_openai_model_token_limit": 0,
           "generic_openai_max_tokens": 0,
-          "generic_openai_api_key": "sc5I3oRybIRo4nqMIOpQ30GDyJhcSsTAmhwRdsKxAEfy6R/efMz5aNmG4lTa0Hqt0MVYNFFgnbbniaNPEQVZ78hJ9T1xRWjoGfcV1R7NJWsMk37ExGgRSajfWt4Fq+kHKxUA6DE8WMKLiaU6CdD5IktPVF5sSFXkmvPG0xLz8OHOlPDvh7+vIJ3L2fOzdVPPy+FumoWzd/qFlTermfUcuSv6MC5mRYYrUPmxb8MNmwnwm0p1olspVuBx6APDgxQFTyLap//jVxkanmqotFTWPgaJtqylT+Fk0T73n39ONI1FX6FWNgDhrkHAm25vh3XnWCydrMvBmY41gjCuQdctfw==",
+          "generic_openai_api_key": "Ipv7rcbLOniBkrIHP53IkOK4tgewf/sdg1R9Aqx3U8PHvXmUyUff7IZgxHSP0BYlFdjbN0ohoIRo2b64YNrNQeiD47NmoivyyvAPmQPxz9NL+GgbUG/M2ztxp4TECYF7I/V24ewA7e4WRaFzkuJfg+i5aKxn/R1AiLrKfU1n65Lnu3UY67yZJEezTMkaWw7e/YN07Xpl9XN3bpk4sxVGK3KgAwDJIurcb4v5VB6H4amF69llrXO9ma5Ks25hc+GdmvG+Ywx8LUEoI3VLE3M9msx+ewZHewohScQG4rajsi9bVDsV/gxEJXZHRVGfS5/CywMt8YpZAM+htUUiycbTrA==",
           "vector_db": "lancedb"
         }
       ]

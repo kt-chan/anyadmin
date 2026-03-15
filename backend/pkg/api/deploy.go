@@ -481,9 +481,12 @@ func FetchVLLMModels(c *gin.Context) {
 }
 
 type ConnectionTestRequest struct {
-	Type string `json:"type"`
-	Host string `json:"host"`
-	Port string `json:"port"` // Can be int or string in JSON, but binding as string is safer usually if we convert. Actually let's use string/int interface or just string.
+	Type      string `json:"type"`
+	Host      string `json:"host"`
+	Port      string `json:"port"`
+	Mode      string `json:"mode,omitempty"`
+	ModelName string `json:"model_name,omitempty"`
+	APIKey    string `json:"api_key,omitempty"`
 }
 
 func TestServiceConnection(c *gin.Context) {
@@ -559,6 +562,30 @@ func TestServiceConnection(c *gin.Context) {
 		if err == nil {
 			defer resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
+				// If this is an existing integration, we might need to push ENV keys to .env-litellm
+				if req.Mode == "integrate_existing" && req.ModelName != "" && req.APIKey != "" {
+					decryptedKey := req.APIKey
+					if dec, err := utils.DecryptPassword(req.APIKey); err == nil {
+						decryptedKey = dec
+					}
+
+					// Generate a generic env var name from the model name
+					cleanName := strings.ReplaceAll(strings.ReplaceAll(strings.ToUpper(req.ModelName), "-", "_"), ".", "_")
+					envVarName := cleanName + "_API_KEY"
+
+					envMap := map[string]string{
+						envVarName: decryptedKey,
+					}
+
+					if err := service.UpdateLiteLLMEnv(req.Host, envMap); err != nil {
+						log.Printf("[TestConnection] Failed to update .env-litellm on %s: %v", req.Host, err)
+					} else {
+						log.Printf("[TestConnection] Updated .env-litellm on %s with %s", req.Host, envVarName)
+					}
+					// Also sync litellm_config.yaml to ensure model is registered and uses the env var
+					service.SyncLiteLLMConfig(req.Host)
+				}
+
 				c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Successfully connected to LiteLLM Proxy"})
 				return
 			}

@@ -10,14 +10,14 @@ $KeyFile = "$BackendDir\keys\id_rsa"
 . "$PSScriptRoot\utils.ps1"
 Load-Env -Path "$ProjectRoot\.env"
 
-$RemoteUser = $env:REMOTE_USER -or "root"
-$RemoteHost = $env:REMOTE_HOST -or "172.25.208.100"
-$RemotePort = $env:REMOTE_SSH_PORT -or "22"
-$RemoteAppDir = $env:REMOTE_APP_DIR -or "/home/anyadmin/frontend"
+$RemoteUser = if ($env:REMOTE_USER) { $env:REMOTE_USER } else { "root" }
+$RemoteHost = if ($env:REMOTE_HOST) { $env:REMOTE_HOST } else { "172.25.208.100" }
+$RemotePort = if ($env:REMOTE_SSH_PORT) { $env:REMOTE_SSH_PORT } else { "22" }
+$RemoteAppDir = if ($env:REMOTE_APP_DIR) { $env:REMOTE_APP_DIR } else { "/home/anyadmin/app" }
 
-# Standard SSH/SCP options
-$SshOpts = "-o StrictHostKeyChecking=no -p $RemotePort -i $KeyFile"
-$ScpOpts = "-r -o StrictHostKeyChecking=no -P $RemotePort -i $KeyFile"
+# Standard SSH/SCP options - BatchMode=yes makes it non-interactive
+$CommonSshArgs = @("-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=no", "-p", $RemotePort, "-i", $KeyFile)
+$CommonScpArgs = @("-o", "BatchMode=yes", "-r", "-o", "StrictHostKeyChecking=no", "-P", $RemotePort, "-i", $KeyFile)
 
 Write-Host "Starting Frontend Deployment to $RemoteHost (SSH Port: $RemotePort)..." -ForegroundColor Cyan
 
@@ -37,7 +37,7 @@ finally {
 Write-Host "[2/5] Stopping Remote Frontend..." -ForegroundColor Yellow
 try {
     # Assuming the app is named 'app.js' or started by node
-    ssh $SshOpts "$RemoteUser@$RemoteHost" "pkill -f 'node app.js' || true"
+    ssh @CommonSshArgs "$RemoteUser@$RemoteHost" "pkill -f 'node app.js' || true"
     Write-Host "Remote frontend stopped (if running)." -ForegroundColor Green
 } catch {
     Write-Warning "Failed to stop frontend or connection issue: $_"
@@ -47,7 +47,7 @@ try {
 Write-Host "[3/5] Uploading Frontend files..." -ForegroundColor Yellow
 try {
     # Create remote directory
-    ssh $SshOpts "$RemoteUser@$RemoteHost" "mkdir -p $RemoteAppDir && chown anyadmin:anyadmin $RemoteAppDir"
+    ssh @CommonSshArgs "$RemoteUser@$RemoteHost" "mkdir -p $RemoteAppDir && chown anyadmin:anyadmin $RemoteAppDir"
     
     # Upload files using scp (excluding node_modules)
     $TempStaging = "$ProjectRoot\tmp_frontend_staging"
@@ -58,7 +58,9 @@ try {
     Copy-Item -Path "$FrontendDir\*" -Destination $TempStaging -Recurse -Exclude "node_modules"
     
     # Upload
-    scp $ScpOpts "$TempStaging\*" "$RemoteUser@$RemoteHost`:$RemoteAppDir/"
+    scp @CommonScpArgs "$TempStaging\*" "$RemoteUser@$RemoteHost`:$RemoteAppDir/"
+
+    ssh @CommonSshArgs "$RemoteUser@$RemoteHost" "chown anyadmin:anyadmin $RemoteAppDir"
     
     if ($LASTEXITCODE -ne 0) { throw "SCP failed" }
     Write-Host "Upload successful." -ForegroundColor Green
@@ -70,7 +72,7 @@ finally {
 # 4. Install Dependencies on Remote
 Write-Host "[4/5] Installing Dependencies on Remote..." -ForegroundColor Yellow
 try {
-    ssh $SshOpts "$RemoteUser@$RemoteHost" "runuser -l anyadmin -c 'cd $RemoteAppDir && npm install --production'"
+    ssh @CommonSshArgs "$RemoteUser@$RemoteHost" "runuser -l anyadmin -c 'cd $RemoteAppDir && npm install --production'"
     if ($LASTEXITCODE -ne 0) { throw "Remote npm install failed" }
     Write-Host "Dependencies installed successfully." -ForegroundColor Green
 } catch {
@@ -81,7 +83,7 @@ try {
 Write-Host "[5/5] Starting Remote Frontend..." -ForegroundColor Yellow
 $StartCmd = "runuser -l anyadmin -c 'cd $RemoteAppDir && (nohup node app.js > /home/anyadmin/logs/frontend.log 2>&1 < /dev/null &)'"
 try {
-    ssh $SshOpts "$RemoteUser@$RemoteHost" $StartCmd
+    ssh @CommonSshArgs "$RemoteUser@$RemoteHost" $StartCmd
     if ($LASTEXITCODE -ne 0) { throw "Start command failed" }
     Write-Host "Frontend started successfully." -ForegroundColor Green
 } catch {

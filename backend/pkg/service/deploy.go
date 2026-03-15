@@ -224,6 +224,12 @@ func DeployAgent(nodeIP, mgmtHost, mgmtPort, mode string) {
 			RecordLog(user, "Agent Deployment", fmt.Sprintf("Failed to install Docker: %v", err), "Error")
 			return
 		}
+
+		RecordLog(user, "Agent Deployment", "Installing Node.js...", "Info")
+		if err := installNode(client); err != nil {
+			RecordLog(user, "Agent Deployment", fmt.Sprintf("Failed to install Node.js: %v", err), "Error")
+			return
+		}
 	}
 
 	// 3. Create User 'anyadmin'
@@ -325,7 +331,7 @@ func installGo(client *ssh.Client) error {
 
 	localTarPath := filepath.Join(backendDir, "deployments/tars/os/ubuntu/amd64/jammy/go"+goVersion+".linux-amd64.tar.gz")
 	remoteTarPath := "/tmp/go.tar.gz"
-	remoteGoHome := "/home/anyadmin/bin/go"
+	remoteGoHome := "/home/anyadmin/app/go"
 	remoteInstallDir := fmt.Sprintf("%s/go-%s", remoteGoHome, goVersion)
 	remoteGoBinPath := fmt.Sprintf("%s/go/bin/go", remoteInstallDir)
 
@@ -382,6 +388,32 @@ func installGo(client *ssh.Client) error {
 	return nil
 }
 
+func installNode(client *ssh.Client) error {
+	log.Println("[Deploy] Installing Node.js 20.x on Ubuntu 22.04...")
+
+	// 1. Check if node is already installed
+	_, err := ExecuteCommand(client, "node -v")
+	if err == nil {
+		log.Println("[Deploy] Node.js is already installed, skipping.")
+		return nil
+	}
+
+	commands := []string{
+		"curl -fsSL https://deb.nodesource.com/setup_20.x | bash -",
+		"apt-get install -y nodejs",
+	}
+
+	for _, cmd := range commands {
+		log.Printf("[Deploy] Running: %s", cmd)
+		if _, err := ExecuteCommand(client, cmd); err != nil {
+			return fmt.Errorf("failed to execute command '%s': %w", cmd, err)
+		}
+	}
+
+	log.Println("[Deploy] Node.js installed successfully.")
+	return nil
+}
+
 func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) error {
 
 	nodePort := "8082"
@@ -406,13 +438,13 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	// Self-contained in user home
 
-	remoteBin := "/home/anyadmin/bin/anyadmin-agent"
+	remoteBin := "/home/anyadmin/app/anyadmin-agent"
 
 	remoteData := "/home/anyadmin/data"
 
 	remoteDataAnything := "/home/anyadmin/data/anythingllm"
 
-	remoteConfig := "/home/anyadmin/bin/config.json"
+	remoteConfig := "/home/anyadmin/app/config.json"
 
 	logDir := "/home/anyadmin/logs"
 
@@ -420,7 +452,7 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	log.Println("[Deploy] Preparing directories...")
 
-	prepCmd := fmt.Sprintf("mkdir -p /home/anyadmin/bin %s && chown -R anyadmin:anyadmin /home/anyadmin && chmod 755 %s", logDir, logDir)
+	prepCmd := fmt.Sprintf("mkdir -p /home/anyadmin/app %s && chown -R anyadmin:anyadmin /home/anyadmin && chmod 755 %s", logDir, logDir)
 
 	if _, err := ExecuteCommand(client, prepCmd); err != nil {
 
@@ -547,17 +579,15 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	// The agent now looks for config.json in the same directory by default (or we can specify it)
 
-	// We'll run it from the bin directory using absolute paths for everything
-
-	remoteBinAbs := "/home/anyadmin/bin/anyadmin-agent"
+	// We'll run it from the app directory using absolute paths for everything
+	remoteBinAbs := "/home/anyadmin/app/anyadmin-agent"
 
 	// Wrap in runuser and nohup. Use -c "cd ... && nohup ... > ... < /dev/null &"
-
 	// Redirecting stdin from /dev/null is crucial for nohup via ssh to not hang
-
 	log.Println("[Deploy] Starting agent...")
 
-	fullCmd := fmt.Sprintf("runuser -l anyadmin -c 'cd /home/anyadmin/bin && (nohup %s -config config.json -log /home/anyadmin/logs/agent.log > /home/anyadmin/logs/agent.log 2>&1 < /dev/null &) >/dev/null 2>&1'", remoteBinAbs)
+	fullCmd := fmt.Sprintf("runuser -l anyadmin -c 'cd /home/anyadmin/app && (nohup %s -config config.json -log /home/anyadmin/logs/agent.log > /home/anyadmin/logs/agent.log 2>&1 < /dev/null &) >/dev/null 2>&1'", remoteBinAbs)
+
 
 	if _, err := ExecuteCommand(client, fullCmd); err != nil {
 
@@ -637,7 +667,7 @@ func SyncLiteLLMConfig(nodeIP string) error {
 	utils.ExecuteRead(func() {
 		for _, node := range utils.DeploymentNodes {
 			for _, cfg := range node.InferenceCfgs {
-				if cfg.ModelType != "llm" {
+				if cfg.ModelType == "proxy" || cfg.ModelType == "vectordb" {
 					continue
 				}
 
@@ -651,18 +681,25 @@ func SyncLiteLLMConfig(nodeIP string) error {
 					// External Cloud (OpenAI / DeepSeek / Zhipu etc)
 					sb.WriteString(fmt.Sprintf("  - model_name: %s\n", cfg.ModelName))
 					sb.WriteString("    litellm_params:\n")
-
-					// Use model directly without openai/ prefix as requested
 					sb.WriteString(fmt.Sprintf("      model: %s\n", cfg.ModelName))
 					sb.WriteString(fmt.Sprintf("      api_base: %s\n", cfg.BaseURL))
 					sb.WriteString("      custom_llm_provider: openai\n")
 
-					// Use direct api_key for clarity as requested by user
-					decKey := cfg.APIKey
-					if dec, err := utils.DecryptPassword(cfg.APIKey); err == nil {
-						decKey = dec
+					if cfg.APIKey != "" {
+						// Generic placeholder based on model name
+						cleanName := strings.ReplaceAll(strings.ReplaceAll(strings.ToUpper(cfg.ModelName), "-", "_"), ".", "_")
+						envVarName := cleanName + "_API_KEY"
+
+						sb.WriteString(fmt.Sprintf("      api_key: \"os.environ/%s\"\n", envVarName))
+
+						decKey := cfg.APIKey
+						if dec, err := utils.DecryptPassword(cfg.APIKey); err == nil {
+							decKey = dec
+						}
+						envKeys[envVarName] = decKey
+					} else {
+						sb.WriteString("      api_key: \"not-needed\"\n")
 					}
-					sb.WriteString(fmt.Sprintf("      api_key: \"%s\"\n", decKey))
 				}
 			}
 		}
@@ -701,42 +738,14 @@ func SyncLiteLLMConfig(nodeIP string) error {
 		}
 		ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remotePath))
 
-		// Ensure .env and .env-litellm exist on remote
-		localEnvPath := filepath.Join(backendDir, "deployments/dockers/yaml/.env")
-		remoteEnvPath := "/home/anyadmin/docker/.env"
-		if _, err := os.Stat(localEnvPath); err == nil {
-			CopyFile(client, localEnvPath, remoteEnvPath)
-			ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remoteEnvPath))
-		}
-
-		localEnvLitePath := filepath.Join(backendDir, "deployments/dockers/yaml/.env-litellm")
-		remoteEnvLitePath := "/home/anyadmin/docker/.env-litellm"
-		if _, err := os.Stat(localEnvLitePath); err == nil {
-			CopyFile(client, localEnvLitePath, remoteEnvLitePath)
-			ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remoteEnvLitePath))
-		} else {
-			// Create empty if missing locally
-			ExecuteCommand(client, fmt.Sprintf("touch %s && chown anyadmin:anyadmin %s", remoteEnvLitePath, remoteEnvLitePath))
-		}
-
-		// Also push the latest docker-compose.yaml to ensure env_file is included
-		localComposePath := filepath.Join(backendDir, "deployments/dockers/yaml/docker-compose.yaml")
-		remoteComposePath := "/home/anyadmin/docker/docker-compose.yaml"
-		if err := CopyFile(client, localComposePath, remoteComposePath); err != nil {
-			log.Printf("[SyncLiteLLM] Compose copy failed for %s: %v", ip, err)
-		} else {
-			ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remoteComposePath))
-		}
-
-		// Update .env-litellm via agent and trigger restart
+		// Push .env-litellm if keys exist
 		if len(envKeys) > 0 {
-			// This call handles BOTH writing the env file AND restarting the container correctly
-			UpdateVLLMConfig(host, "litellm:litellm", envKeys, true)
-		} else {
-			// Manual reload only if no keys changed
-			log.Printf("[SyncLiteLLM] Reloading LiteLLM on %s", ip)
-			ExecuteCommand(client, "cd /home/anyadmin/docker && docker compose -p litellm up -d --force-recreate litellm")
+			UpdateLiteLLMEnv(host, envKeys)
 		}
+
+		// Reload LiteLLM
+		log.Printf("[SyncLiteLLM] Reloading LiteLLM on %s", ip)
+		ExecuteCommand(client, "cd /home/anyadmin/docker && docker compose -p litellm up -d --force-recreate litellm")
 	}
 
 	if nodeIP != "" {

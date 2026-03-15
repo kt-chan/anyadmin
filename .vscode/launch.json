@@ -42,11 +42,15 @@
       "name": "Deploy Agent",
       "type": "node",
       "request": "launch",
-      "program": "${workspaceFolder}/frontend/app.js",
-      "preLaunchTask": "deploy-agent",
+      "runtimeExecutable": "powershell",
       "runtimeArgs": [
-        "--version"
-      ]
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/scripts/deployment/deploy-agent.ps1"
+      ],
+      "console": "integratedTerminal"
     }
   ],
   "compounds": [

@@ -271,9 +271,6 @@
   }
 }
 @layer utilities {
-  .collapse {
-    visibility: collapse;
-  }
   .visible {
     visibility: visible;
   }
@@ -482,9 +479,6 @@
   }
   .hidden {
     display: none;
-  }
-  .inline {
-    display: inline;
   }
   .inline-block {
     display: inline-block;
@@ -1619,9 +1613,6 @@
   .outline-none {
     --tw-outline-style: none;
     outline-style: none;
-  }
-  .\[rows\:\%v\] {
-    rows: %v;
   }
   .group-hover\:bg-blue-600 {
     &:is(:where(.group):hover *) {

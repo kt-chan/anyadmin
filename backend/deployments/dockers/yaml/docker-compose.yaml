@@ -19,7 +19,9 @@ services:
     command: ["--config", "/app/config.yaml"]
     networks:
       - genai-network
-    restart: always
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:4000/health/readiness\")'"]
       interval: 30s
@@ -64,6 +66,8 @@ services:
         # Use a predictable alias for LiteLLM routing
         aliases:
           - ${VLLM_NETWORK_ALIAS:-vllm-instance}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   vllm-mineru:
     image: ${VLLM_IMAGE:-vllm/vllm-openai:latest}
@@ -96,6 +100,8 @@ services:
               capabilities: [gpu]
     networks:
       - genai-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   vllm-embedding:
     image: ${VLLM_IMAGE:-vllm/vllm-openai:latest}
@@ -137,6 +143,8 @@ services:
               capabilities: [gpu]
     networks:
       - genai-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   anythingllm:
     image: ${ANYTHINGLLM_IMAGE:-ktchanhk/anyzearch:1.8.5}
@@ -160,6 +168,8 @@ services:
       - "${ANYTHINGLLM_PORT:-3001}:${ANYTHINGLLM_PORT:-3001}"
     networks:
       - genai-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   mineru-api:
     image: mineru-client:2.7.6
@@ -174,3 +184,5 @@ services:
       --port 8000
     networks:
       - genai-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

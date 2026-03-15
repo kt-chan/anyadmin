@@ -13,7 +13,8 @@ Load-Env -Path "$ProjectRoot\.env"
 $RemoteUser = if ($env:REMOTE_USER) { $env:REMOTE_USER } else { "root" }
 $RemoteHost = if ($env:REMOTE_HOST) { $env:REMOTE_HOST } else { "172.25.208.100" }
 $RemotePort = if ($env:REMOTE_SSH_PORT) { $env:REMOTE_SSH_PORT } else { "22" }
-$RemoteBinDir = if ($env:REMOTE_BIN_DIR) { $env:REMOTE_BIN_DIR } else { "/home/anyadmin/app" }
+$RemoteBinDir = if ($env:REMOTE_BIN_DIR) { $env:REMOTE_BIN_DIR } else { "/home/anyadmin/bin" }
+$RemoteSrcDir = if ($env:REMOTE_SRC_DIR) { $env:REMOTE_SRC_DIR } else { "/home/anyadmin/src" }
 
 # Standard SSH/SCP options - BatchMode=yes makes it non-interactive
 $CommonSshArgs = @("-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=no", "-p", $RemotePort, "-i", $KeyFile)
@@ -21,77 +22,62 @@ $CommonScpArgs = @("-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=no", "-P"
 
 Write-Host "Starting Agent Deployment to $RemoteHost (SSH Port: $RemotePort)..." -ForegroundColor Cyan
 
-# 1. Compile Agent
-Write-Host "[1/6] Compiling Agent for Linux/AMD64..." -ForegroundColor Yellow
-Push-Location $BackendDir
-try {
-    $env:GOOS = "linux"
-    $env:GOARCH = "amd64"
-    go build -o "./dist/$AgentName" ./cmd/agent/main.go
-    if ($LASTEXITCODE -ne 0) { throw "Compilation failed" }
-    Write-Host "Compilation successful." -ForegroundColor Green
-}
-finally {
-    Pop-Location
-}
+# 1. Sync Project Source to Remote
+Write-Host "[1/6] Syncing Project Source to Remote..." -ForegroundColor Yellow
+Sync-RemoteSource `
+    -LocalPath $ProjectRoot `
+    -RemotePath $RemoteSrcDir `
+    -ArchiveName "project_src" `
+    -RemoteUser $RemoteUser `
+    -RemoteHost $RemoteHost `
+    -CommonSshArgs $CommonSshArgs `
+    -CommonScpArgs $CommonScpArgs
 
-# 2. Install Node.js (Required for Frontend)
-Write-Host "[2/6] Ensuring Node.js is installed on Remote..." -ForegroundColor Yellow
-$NodeCheckCmd = "node -v || (curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs)"
-try {
-    ssh @CommonSshArgs "$RemoteUser@$RemoteHost" $NodeCheckCmd
-    Write-Host "Node.js is ready." -ForegroundColor Green
-} catch {
-    Write-Warning "Failed to ensure Node.js installation: $_"
-}
+# 2. Build Agent on Remote Host
+Write-Host "[2/6] Building Agent on Remote Host..." -ForegroundColor Yellow
+# Ensure binary directory exists, source Go profile, and build
+$BuildCmd = "source /etc/profile.d/go.sh 2>/dev/null || true; mkdir -p $RemoteBinDir && cd $RemoteSrcDir/backend && go build -o $RemoteBinDir/$AgentName ./cmd/agent/main.go"
+ssh @CommonSshArgs "$RemoteUser@$RemoteHost" "$BuildCmd"
+if ($LASTEXITCODE -ne 0) { throw "Remote compilation failed" }
+Write-Host "Remote compilation successful." -ForegroundColor Green
 
 # 3. Stop Remote Agent
 Write-Host "[3/6] Stopping Remote Agent..." -ForegroundColor Yellow
-try {
-    ssh @CommonSshArgs "$RemoteUser@$RemoteHost" "pkill -9 $AgentName || true"
-    Write-Host "Remote agent stopped (if running)." -ForegroundColor Green
-} catch {
-    Write-Warning "Failed to stop agent or connection issue: $_"
-}
+ssh @CommonSshArgs "$RemoteUser@$RemoteHost" "pkill -9 $AgentName || true"
+Write-Host "Remote agent stopped (if running)." -ForegroundColor Green
 
-# 4. Upload Agent
-Write-Host "[4/6] Uploading Agent Binary..." -ForegroundColor Yellow
-try {
-    scp @CommonScpArgs "$BackendDir\dist\$AgentName" "$RemoteUser@$RemoteHost`:$RemoteBinDir/$AgentName"
-    if ($LASTEXITCODE -ne 0) { throw "SCP failed" }
-    Write-Host "Upload successful." -ForegroundColor Green
-} catch {
-    throw "Upload failed: $_"
-}
-
-# 5 Upload Docker Configurations
-Write-Host "[5/6] Uploading Docker Configurations..." -ForegroundColor Yellow
+# 4. Upload Docker Configurations
+Write-Host "[4/6] Uploading Docker Configurations and Config..." -ForegroundColor Yellow
 $LocalDockerDir = "$BackendDir\deployments\dockers\yaml"
 $RemoteDockerDir = "/home/anyadmin/docker"
-try {
-    # Ensure directory exists on remote
-    ssh @CommonSshArgs "$RemoteUser@$RemoteHost" "mkdir -p $RemoteDockerDir && chown anyadmin:anyadmin $RemoteDockerDir"
-    
-    # Upload files
-    scp @CommonScpArgs "$LocalDockerDir\*" "$LocalDockerDir\.[!.]*" "$RemoteUser@$RemoteHost`:$RemoteDockerDir/" 
-    
-    # Set ownership for uploaded files
-    ssh @CommonSshArgs "$RemoteUser@$RemoteHost" "chown -R anyadmin:anyadmin $RemoteDockerDir"
-    
-    Write-Host "Docker configurations uploaded successfully." -ForegroundColor Green
-} catch {
-    Write-Warning "Failed to upload Docker configurations: $_"
-}
+# Ensure directory exists and upload
+ssh @CommonSshArgs "$RemoteUser@$RemoteHost" "mkdir -p $RemoteDockerDir $RemoteBinDir && chown anyadmin:anyadmin $RemoteDockerDir $RemoteBinDir"
+scp @CommonScpArgs "$LocalDockerDir\*" "$LocalDockerDir\.[!.]*" "$RemoteUser@$RemoteHost`:$RemoteDockerDir/" 
 
-# 6. Start Remote Agent
-Write-Host "[6/6] Starting Remote Agent..." -ForegroundColor Yellow
-$StartCmd = "chmod +x $RemoteBinDir/$AgentName && runuser -l anyadmin -c 'cd $RemoteBinDir && (nohup ./$AgentName -config config.json -log /home/anyadmin/logs/agent.log > /home/anyadmin/logs/agent.log 2>&1 < /dev/null &)'"
-try {
-    ssh @CommonSshArgs "$RemoteUser@$RemoteHost" $StartCmd
-    if ($LASTEXITCODE -ne 0) { throw "Start command failed" }
-    Write-Host "Agent started successfully." -ForegroundColor Green
-} catch {
-    throw "Failed to start agent: $_"
-}
+# Generate config.json for the agent pointing BACK to the server (RemoteHost)
+# In this deployment, the agent is on the same host as the server, or the server IP is RemoteHost
+$AgentConfig = @{
+    mgmt_host       = $RemoteHost
+    mgmt_port       = "8080"
+    node_ip         = $RemoteHost
+    node_port       = "8082"
+    deployment_time = Get-Date -Format "yyyy-MM-ddTHH:mm:ssK"
+    log_file        = "/home/anyadmin/logs/agent.log"
+} | ConvertTo-Json
+
+$TempConfigPath = Join-Path $env:TEMP "agent_config.json"
+$AgentConfig | Out-File -FilePath $TempConfigPath -Encoding utf8
+scp @CommonScpArgs $TempConfigPath "$RemoteUser@$RemoteHost`:$RemoteBinDir/config.json"
+Remove-Item $TempConfigPath
+
+ssh @CommonSshArgs "$RemoteUser@$RemoteHost" "chown -R anyadmin:anyadmin $RemoteDockerDir $RemoteBinDir"
+Write-Host "Configurations uploaded successfully." -ForegroundColor Green
+
+# 5. Start Remote Agent
+Write-Host "[5/6] Starting Remote Agent..." -ForegroundColor Yellow
+$StartCmd = "ls -l $RemoteBinDir/$AgentName && chmod +x $RemoteBinDir/$AgentName && runuser -l anyadmin -c 'cd $RemoteBinDir && (nohup ./$AgentName -config config.json -log /home/anyadmin/logs/agent.log > /home/anyadmin/logs/agent.log 2>&1 < /dev/null &)'"
+ssh @CommonSshArgs "$RemoteUser@$RemoteHost" "$StartCmd"
+if ($LASTEXITCODE -ne 0) { throw "Start command failed" }
+Write-Host "Agent started successfully." -ForegroundColor Green
 
 Write-Host "Deployment Complete!" -ForegroundColor Cyan

@@ -6,7 +6,7 @@
       "updatedAt": "0001-01-01T00:00:00Z",
       "deletedAt": null,
       "username": "admin",
-      "password": "BrlTl3ZxUyeylWcaZf+mE5JKTIOW0f64V9rPEvk77UaSVFhsn72jx4hNwGNKOsDjLkvWlbNeUmkQTRLQQi6Ym9qn1VXcl7LcsgW4PPsjQL5oACtuFOJG1jqllVC/rFm0s92RJbojYRbsHV4ffD4u7bO3lnW9jjFKryMAA533DNpK9Z1WcU03TFEoedYPfHIjthzdVsBwlYXyNhW7WmOVJXIcO+EyQLD2RNN7J5LknaTe1en3JP5oi5/evRbdAHDIjPfymx30JNF4mGDZNu+2U3gCxmY25P1JqWE+rIzLlTdrfYPpiPMu3jhRLkha3i/9OpRrYQE9iD4XqCv/n0L/3w==",
+      "password": "HYCqObdpdjFKNJBbGqvKfTxzEYmbfPFlxQFulds2oJcwaXStNQ+WTUDzVkHML870MNN7N0VUX7G7EY84C0F1ug+7HZJ8Y0kyv3ISnUnvz2tK4vedvlRCZu63B4XwJat2zgcaU4OPIfJNkd4dzGzFmyHnGDB5cM4t7Acrg0cw0whiOUCPtxfQLGLyM8SWT+yyWrRnKVYMRZGBhUcb0j/vAt0HXaGfyeaaWlv/0DEYPXGoIptoc0i6Ah7S5LftkxqNTgw5dfY+g8zPfLA7mBE7xFxxR3wA+yY9OWmzATuDsdEJH5n/RlN6oRMXLLepagYIi4X1x/xAsZ/NU5yEkwqkpA==",
       "role": "admin"
     },
     {
@@ -15,90 +15,13 @@
       "updatedAt": "0001-01-01T00:00:00Z",
       "deletedAt": null,
       "username": "operator_01",
-      "password": "kWmcpSE2RUY6DhixgVbtZtZkFyLyGRprNGF6P8CuqWXdrlagNXz4C4rLnCM6EXcuirm/tk+iLpl/7YP1UVoo6Xcee93m36LPtpniV2q2MK966QZ5oDtjppTdbHrkbAN9GxceHgC9hpwMlUtgy1jGcuOjOLY3zWLp5dr5zk+xuDQELIjDbz77pvzJtfU5esgQDqyJr/GhD2OBB2gxcXaUnLCr9kybv+oxfp/G+Sf3cdNNgvcvZyJ+Wz2hV24jgTjYxdW/i/2VQPQ9Q/5IUu/Uxmk5pvAm52cOunizd7L+MU5Wrrb6cWooSTqzlrY0uh+HXmOQCPfOSXzOR4sZ/z8Qfw==",
+      "password": "YPcwEtWEEY5x8GuvtTqd3Oe5/afYr/F2FOmRdXOkfsRESD3AlRdsvYJKh35/W7t5FmdLkplobuLw9XzhdI5nlzc9RVFFFO86SHGRWh85BMIXdKbl30Ir4S+OYfTAZSBsfVFNaKihh8QR4BDxi1Im1kwBDDX7xfHQ4EITu+B2m7130ObSPds1fyFuJoSYpqL3aniC3URv11ORKFgCj9wzgeEi2peQJN5nZMUjawZdABoXBlJAg3tIuLMdwBQl53xF0Pztqyo8Gv5MaZePwpggyE2Si/3xrQLMjA3Coc5NTohXfGS5+2KmiN+Vo16PYltcTTkDCLl4Ay5bQtvTNGYGOw==",
       "role": "operator"
     }
   ],
   "import_tasks": null,
   "backup_records": null,
-  "deployment_nodes": [
-    {
-      "node_ip": "43.99.88.142",
-      "hostname": "43.99.88.142",
-      "agent_config": {
-        "deployment_time": "",
-        "log_file": "",
-        "mgmt_host": "",
-        "mgmt_port": "",
-        "node_ip": "",
-        "node_port": ""
-      },
-      "inference_cfgs": [
-        {
-          "id": 0,
-          "createdAt": "0001-01-01T00:00:00Z",
-          "updatedAt": "0001-01-01T00:00:00Z",
-          "deletedAt": null,
-          "name": "litellm:litellm",
-          "model_type": "proxy",
-          "is_managed": true,
-          "engine": "LiteLLM",
-          "model_name": "",
-          "model_path": "",
-          "ip": "43.99.88.142",
-          "port": "4000",
-          "mode": "",
-          "gpu_memory_size": 0,
-          "gpu_utilization": 0,
-          "max_model_len": 0,
-          "max_num_seqs": 0,
-          "max_num_batched_tokens": 0,
-          "gpu_memory_utilization": 0
-        },
-        {
-          "id": 0,
-          "createdAt": "2026-03-15T18:07:00.1967281+08:00",
-          "updatedAt": "2026-03-15T18:07:00.1967281+08:00",
-          "deletedAt": null,
-          "name": "inf-demo:vllm-llm",
-          "model_type": "llm",
-          "is_managed": true,
-          "engine": "vLLM",
-          "model_name": "Qwen3.6-0.8B",
-          "model_path": "",
-          "ip": "43.99.88.142",
-          "port": "8000",
-          "mode": "balanced",
-          "gpu_memory_size": 8,
-          "gpu_utilization": 0.85,
-          "max_model_len": 4096,
-          "max_num_seqs": 8,
-          "max_num_batched_tokens": 8192,
-          "gpu_memory_utilization": 0.85
-        }
-      ],
-      "rag_app_cfgs": [
-        {
-          "id": 0,
-          "createdAt": "2026-03-15T18:07:00.2020168+08:00",
-          "updatedAt": "2026-03-15T18:07:00.2020168+08:00",
-          "deletedAt": null,
-          "name": "rag-demo:anythingllm",
-          "is_managed": true,
-          "host": "43.99.88.142",
-          "port": "3001",
-          "storage_dir": "/app/server/storage",
-          "llm_provider": "generic-openai",
-          "generic_openai_base_path": "http://litellm:4000/v1",
-          "generic_openai_model_pref": "qwen",
-          "generic_openai_model_token_limit": 0,
-          "generic_openai_max_tokens": 0,
-          "generic_openai_api_key": "Ipv7rcbLOniBkrIHP53IkOK4tgewf/sdg1R9Aqx3U8PHvXmUyUff7IZgxHSP0BYlFdjbN0ohoIRo2b64YNrNQeiD47NmoivyyvAPmQPxz9NL+GgbUG/M2ztxp4TECYF7I/V24ewA7e4WRaFzkuJfg+i5aKxn/R1AiLrKfU1n65Lnu3UY67yZJEezTMkaWw7e/YN07Xpl9XN3bpk4sxVGK3KgAwDJIurcb4v5VB6H4amF69llrXO9ma5Ks25hc+GdmvG+Ywx8LUEoI3VLE3M9msx+ewZHewohScQG4rajsi9bVDsV/gxEJXZHRVGfS5/CywMt8YpZAM+htUUiycbTrA==",
-          "vector_db": "lancedb"
-        }
-      ]
-    }
-  ],
+  "deployment_nodes": null,
   "model_types": [
     "llm",
     "vlm",
@@ -108,17 +31,7 @@
     "embedding",
     "reranker"
   ],
-  "models": [
-    {
-      "id": 0,
-      "createdAt": "2026-03-14T22:13:48.040341+08:00",
-      "updatedAt": "2026-03-14T22:13:48.040341+08:00",
-      "deletedAt": null,
-      "name": "Qwen3.6-0.8B",
-      "model_type": "llm",
-      "size": 1770011060
-    }
-  ],
-  "mgmt_host": "172.25.208.1",
+  "models": null,
+  "mgmt_host": "172.20.0.1",
   "mgmt_port": "8080"
 }

@@ -389,16 +389,21 @@ func installGo(client *ssh.Client) error {
 }
 
 func installNode(client *ssh.Client) error {
-	log.Println("[Deploy] Installing Node.js 20.x on Ubuntu 22.04...")
+	log.Println("[Deploy] Ensuring Node.js 20.x is installed on Ubuntu 22.04...")
 
-	// 1. Check if node is already installed
-	_, err := ExecuteCommand(client, "node -v")
+	// 1. Check current version
+	output, err := ExecuteCommand(client, "node -v")
 	if err == nil {
-		log.Println("[Deploy] Node.js is already installed, skipping.")
-		return nil
+		version := strings.TrimSpace(output)
+		if strings.HasPrefix(version, "v20.") || strings.HasPrefix(version, "v22.") || strings.HasPrefix(version, "v18.") {
+			log.Printf("[Deploy] Node.js %s already installed, skipping.", version)
+			return nil
+		}
+		log.Printf("[Deploy] Found old Node.js version %s, upgrading to 20.x...", version)
 	}
 
 	commands := []string{
+		"apt-get remove -y nodejs npm",
 		"curl -fsSL https://deb.nodesource.com/setup_20.x | bash -",
 		"apt-get install -y nodejs",
 	}

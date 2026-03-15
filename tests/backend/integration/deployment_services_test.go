@@ -21,13 +21,13 @@ func TestMain(m *testing.M) {
 	utils.ExecuteWrite(func() {
 		utils.DeploymentNodes = []global.DeploymentNode{
 			{
-				NodeIP:   "172.20.0.10",
+				NodeIP:   "172.25.208.100",
 				Hostname: "TestNode",
 				InferenceCfgs: []global.InferenceConfig{
 					{Name: "vllm", Engine: "vLLM", ModelName: "Qwen3-Test"},
 				},
 				RagAppCfgs: []global.RagAppConfig{
-					{Name: "anythingllm", Host: "172.20.0.10"},
+					{Name: "anythingllm", Host: "172.25.208.100"},
 				},
 				AgentConfig: global.AgentConfig{},
 			},
@@ -35,7 +35,7 @@ func TestMain(m *testing.M) {
 		utils.MgmtHost = "172.20.0.1"
 		utils.MgmtPort = "8080"
 	}, true)
-	
+
 	os.Exit(m.Run())
 }
 
@@ -49,27 +49,27 @@ func TestDeploymentViewContainerControl(t *testing.T) {
 	})
 
 	// Target the real remote host
-	targetIP := "172.20.0.10"
+	targetIP := "172.25.208.100"
 	targetService := "vllm" // Use a known service
 
 	// 1. Test Restart Action (mirrors the new button in Deployment view)
 	t.Run("RestartVLLMFromDeploymentView", func(t *testing.T) {
 		controlPayload := map[string]interface{}{
-			"name":           targetService,
-			"action":         "restart",
-			"node_ip":        targetIP,
+			"name":    targetService,
+			"action":  "restart",
+			"node_ip": targetIP,
 		}
 		body, _ := json.Marshal(controlPayload)
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", "/api/v1/container/control", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
-		
+
 		router.ServeHTTP(w, req)
 
 		// We expect 200 OK because the agent is reachable
 		// If the agent is not reachable, this might fail (500), which is a valid test failure
 		assert.Equal(t, http.StatusOK, w.Code, "Restart request to remote agent should return 200 OK")
-		
+
 		var response map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NotNil(t, response["message"], "Response should contain a message")
@@ -77,19 +77,19 @@ func TestDeploymentViewContainerControl(t *testing.T) {
 	})
 
 	// 2. Test Stop Action (mirrors the new button in Deployment view)
-	// We'll skip actually stopping it to avoid disruption, or use a dummy name which will return 200 (task triggered) 
+	// We'll skip actually stopping it to avoid disruption, or use a dummy name which will return 200 (task triggered)
 	// but might fail in background logging. The agent returns 200 if the command starts.
 	t.Run("StopServiceFromDeploymentView", func(t *testing.T) {
 		controlPayload := map[string]interface{}{
-			"name":           "test_dummy_service",
-			"action":         "stop",
-			"node_ip":        targetIP,
+			"name":    "test_dummy_service",
+			"action":  "stop",
+			"node_ip": targetIP,
 		}
 		body, _ := json.Marshal(controlPayload)
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", "/api/v1/container/control", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
-		
+
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code, "Stop request should be accepted")
@@ -104,7 +104,7 @@ func TestCheckAgentStatusMerging(t *testing.T) {
 	router := gin.New()
 	router.GET("/api/v1/deploy/status", api.CheckAgentStatus)
 
-	targetIP := "172.20.0.10"
+	targetIP := "172.25.208.100"
 
 	t.Run("OfflineAgentReturnsConfiguredServices", func(t *testing.T) {
 		w := httptest.NewRecorder()
@@ -112,17 +112,17 @@ func TestCheckAgentStatusMerging(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		
+
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Equal(t, true, resp["success"])
-		
+
 		data := resp["data"].(map[string]interface{})
 		services := data["services"].([]interface{})
-		
+
 		// Based on data.json provided in context, we expect vllm and anythingllm
 		assert.GreaterOrEqual(t, len(services), 2, "Should return at least 2 configured services")
-		
+
 		foundVllm := false
 		for _, s := range services {
 			svc := s.(map[string]interface{})
@@ -152,24 +152,24 @@ func TestConfigSaveAndRestartFlow(t *testing.T) {
 		api.ControlContainer(c)
 	})
 
-	targetIP := "172.20.0.10"
+	targetIP := "172.25.208.100"
 
 	t.Run("SaveConfigAndRestartVLLM", func(t *testing.T) {
 		// 1. Save Config
 		configPayload := global.InferenceConfig{
-			Name: "vllm",
-			IP:   targetIP, // This matches the node IP in TestMain
-			ModelName: "Qwen3-Test",
+			Name:        "vllm",
+			IP:          targetIP, // This matches the node IP in TestMain
+			ModelName:   "Qwen3-Test",
 			MaxModelLen: 4096,
 		}
 		body, _ := json.Marshal(configPayload)
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", "/api/v1/configs/inference", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
-		
+
 		router.ServeHTTP(w, req)
 		assert.Equal(t, http.StatusOK, w.Code, "Save config should return 200")
-		
+
 		// Verify response contains updated value
 		var savedConfig global.InferenceConfig
 		json.Unmarshal(w.Body.Bytes(), &savedConfig)
@@ -177,15 +177,15 @@ func TestConfigSaveAndRestartFlow(t *testing.T) {
 
 		// 2. Explicit Restart (simulating frontend logic)
 		controlPayload := map[string]interface{}{
-			"name":           "vllm",
-			"action":         "restart",
-			"node_ip":        targetIP,
+			"name":    "vllm",
+			"action":  "restart",
+			"node_ip": targetIP,
 		}
 		bodyRestart, _ := json.Marshal(controlPayload)
 		wRestart := httptest.NewRecorder()
 		reqRestart, _ := http.NewRequest("POST", "/api/v1/container/control", bytes.NewBuffer(bodyRestart))
 		reqRestart.Header.Set("Content-Type", "application/json")
-		
+
 		router.ServeHTTP(wRestart, reqRestart)
 		assert.Equal(t, http.StatusOK, wRestart.Code, "Restart should return 200")
 	})
@@ -193,29 +193,29 @@ func TestConfigSaveAndRestartFlow(t *testing.T) {
 	t.Run("SaveConfigAndRestartAnythingLLM", func(t *testing.T) {
 		// 1. Save Config for AnythingLLM
 		configPayload := global.RagAppConfig{
-			Name: "anythingllm",
-			Host: targetIP,
+			Name:        "anythingllm",
+			Host:        targetIP,
 			LLMProvider: "generic-openai-updated",
 		}
 		body, _ := json.Marshal(configPayload)
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", "/api/v1/configs/rag", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
-		
+
 		router.ServeHTTP(w, req)
 		assert.Equal(t, http.StatusOK, w.Code, "Save RAG config should return 200")
-		
+
 		// 2. Explicit Restart
 		controlPayload := map[string]interface{}{
-			"name":           "anythingllm",
-			"action":         "restart",
-			"node_ip":        targetIP,
+			"name":    "anythingllm",
+			"action":  "restart",
+			"node_ip": targetIP,
 		}
 		bodyRestart, _ := json.Marshal(controlPayload)
 		wRestart := httptest.NewRecorder()
 		reqRestart, _ := http.NewRequest("POST", "/api/v1/container/control", bytes.NewBuffer(bodyRestart))
 		reqRestart.Header.Set("Content-Type", "application/json")
-		
+
 		router.ServeHTTP(wRestart, reqRestart)
 		assert.Equal(t, http.StatusOK, wRestart.Code, "Restart AnythingLLM should return 200")
 	})
@@ -236,7 +236,7 @@ func TestAgentConfigSync(t *testing.T) {
 		api.ControlAgent(c)
 	})
 
-	targetIP := "172.20.0.10"
+	targetIP := "172.25.208.100"
 
 	t.Run("RestartAgentUpdatesConfig", func(t *testing.T) {
 		// Reset config first
@@ -260,7 +260,7 @@ func TestAgentConfigSync(t *testing.T) {
 		// Since we are running against real host, 10 seconds might be enough if network is fast?
 		// Or maybe we just check if it eventually updates.
 		// NOTE: This test depends on the real SSH connection and deployment succeeding.
-		
+
 		maxRetries := 20
 		success := false
 		for i := 0; i < maxRetries; i++ {
@@ -269,7 +269,7 @@ func TestAgentConfigSync(t *testing.T) {
 			utils.ExecuteRead(func() {
 				cfg = utils.DeploymentNodes[0].AgentConfig
 			})
-			
+
 			if cfg.MgmtHost != "" {
 				success = true
 				assert.Equal(t, "172.20.0.1", cfg.MgmtHost)
@@ -278,12 +278,12 @@ func TestAgentConfigSync(t *testing.T) {
 				break
 			}
 		}
-		
+
 		if !success {
 			t.Log("AgentConfig was not updated within timeout. Check if SSH/Deployment worked.")
-			// We don't fail hard here because network might be flaky in test environment, 
+			// We don't fail hard here because network might be flaky in test environment,
 			// but we log it. In a strict CI we would fail.
-			// assert.Fail(t, "AgentConfig not updated") 
+			// assert.Fail(t, "AgentConfig not updated")
 		} else {
 			t.Log("AgentConfig successfully updated.")
 		}

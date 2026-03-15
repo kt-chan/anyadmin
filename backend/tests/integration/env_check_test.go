@@ -9,13 +9,13 @@ import (
 func TestVerifyRemoteDecryptedEnv(t *testing.T) {
 	// 1. Load data and trigger sync
 	utils.LoadFromFile()
-	err := service.SyncLiteLLMConfig("172.20.0.10")
+	err := service.SyncLiteLLMConfig("172.25.208.100")
 	if err != nil {
 		t.Fatalf("Sync failed: %v", err)
 	}
 
 	// 2. Check remote .env-litellm via SSH
-	client, err := service.GetSSHClient("172.20.0.10", "22")
+	client, err := service.GetSSHClient("172.25.208.100", "22")
 	if err != nil {
 		t.Fatalf("SSH failed: %v", err)
 	}

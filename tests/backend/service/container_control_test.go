@@ -14,7 +14,7 @@ type ContainerControlRequest struct {
 }
 
 func TestContainerControl(t *testing.T) {
-	agentURL := "http://172.20.0.10:8082/container/control"
+	agentURL := "http://172.25.208.100:8082/container/control"
 
 	// Test Stop vLLM
 	t.Log("Testing STOP vllm")

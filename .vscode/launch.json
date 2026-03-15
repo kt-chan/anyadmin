@@ -12,7 +12,7 @@
         "BACKEND_API_URL": "http://127.0.0.1:8080"
       },
       "console": "integratedTerminal",
-      "preLaunchTask": "wait-for-backend"
+      "preLaunchTask": "full-stack-prepare"
     },
     {
       "name": "Run Backend (Go)",
@@ -22,7 +22,8 @@
       "program": "${workspaceFolder}/backend/cmd/server/main.go",
       "cwd": "${workspaceFolder}/backend",
       "env": {},
-      "console": "integratedTerminal"
+      "console": "integratedTerminal",
+      "preLaunchTask": "stop-pids"
     },
     {
       "type": "node",

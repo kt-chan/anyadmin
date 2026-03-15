@@ -6,7 +6,7 @@ import (
 )
 
 func TestRedeployAgent(t *testing.T) {
-	nodeIP := "172.20.0.10"
+	nodeIP := "172.25.208.100"
 	mgmtHost := "172.20.0.1"
 	mgmtPort := "8080"
 	mode := "integrate_existing"

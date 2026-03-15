@@ -1,6 +1,7 @@
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const routes = require('./routes');
 const appConfig = require('./config/app.config');
 const sessionConfig = require('./config/session.config');

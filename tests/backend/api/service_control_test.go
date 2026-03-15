@@ -19,10 +19,10 @@ func TestRemoteServiceControlAndHealth(t *testing.T) {
 	utils.ExecuteWrite(func() {
 		utils.DeploymentNodes = []global.DeploymentNode{
 			{
-				NodeIP: "172.20.0.10",
+				NodeIP: "172.25.208.100",
 				InferenceCfgs: []global.InferenceConfig{
-					{Name: "vllm", IP: "172.20.0.10", Engine: "vLLM"},
-					{Name: "anythingllm", IP: "172.20.0.10", Engine: "RAG App"},
+					{Name: "vllm", IP: "172.25.208.100", Engine: "vLLM"},
+					{Name: "anythingllm", IP: "172.25.208.100", Engine: "RAG App"},
 				},
 			},
 		}
@@ -37,9 +37,9 @@ func TestRemoteServiceControlAndHealth(t *testing.T) {
 		api.ControlContainer(c)
 	})
 
-	// 1. Simulate Heartbeat from the known remote target 172.20.0.10
+	// 1. Simulate Heartbeat from the known remote target 172.25.208.100
 	heartbeat := map[string]interface{}{
-		"node_ip":         "172.20.0.10",
+		"node_ip":         "172.25.208.100",
 		"hostname":        "DESKTOP-OSLI7Q7",
 		"status":          "online",
 		"cpu_usage":       5.0,
@@ -74,12 +74,12 @@ func TestRemoteServiceControlAndHealth(t *testing.T) {
 	foundAnythingLLM := false
 	for _, s := range services {
 		svc := s.(map[string]interface{})
-		if svc["name"] == "vllm" && svc["node_ip"] == "172.20.0.10" {
+		if svc["name"] == "vllm" && svc["node_ip"] == "172.25.208.100" {
 			foundVllm = true
 			assert.Equal(t, "Running", svc["status"])
 			assert.Equal(t, "Healthy", svc["health"])
 		}
-		if svc["name"] == "anythingllm" && svc["node_ip"] == "172.20.0.10" {
+		if svc["name"] == "anythingllm" && svc["node_ip"] == "172.25.208.100" {
 			foundAnythingLLM = true
 			assert.Equal(t, "Running", svc["status"])
 		}
@@ -91,7 +91,7 @@ func TestRemoteServiceControlAndHealth(t *testing.T) {
 	control := map[string]interface{}{
 		"name":    "vllm",
 		"action":  "restart",
-		"node_ip": "172.20.0.10",
+		"node_ip": "172.25.208.100",
 	}
 	cBody, _ := json.Marshal(control)
 	w3 := httptest.NewRecorder()
@@ -110,7 +110,7 @@ func TestRemoteServiceControlAndHealth(t *testing.T) {
 	restartReq := map[string]interface{}{
 		"name":    "vllm",
 		"type":    "Container",
-		"node_ip": "172.20.0.10",
+		"node_ip": "172.25.208.100",
 	}
 	rBody, _ := json.Marshal(restartReq)
 	w4 := httptest.NewRecorder()
@@ -133,7 +133,7 @@ func TestAnythingLLMControl(t *testing.T) {
 		control := map[string]interface{}{
 			"name":    "AnythingLLM", // Mixed case to test standardization
 			"action":  "stop",
-			"node_ip": "172.20.0.10",
+			"node_ip": "172.25.208.100",
 		}
 		cBody, _ := json.Marshal(control)
 		w := httptest.NewRecorder()
@@ -149,7 +149,7 @@ func TestAnythingLLMControl(t *testing.T) {
 		control := map[string]interface{}{
 			"name":    "AnythingLLM",
 			"action":  "start",
-			"node_ip": "172.20.0.10",
+			"node_ip": "172.25.208.100",
 		}
 		cBody, _ := json.Marshal(control)
 		w := httptest.NewRecorder()
@@ -165,7 +165,7 @@ func TestAnythingLLMControl(t *testing.T) {
 		control := map[string]interface{}{
 			"name":    "AnythingLLM",
 			"action":  "rm", // Corresponds to docker rm
-			"node_ip": "172.20.0.10",
+			"node_ip": "172.25.208.100",
 		}
 		cBody, _ := json.Marshal(control)
 		w := httptest.NewRecorder()

@@ -4,9 +4,9 @@ networks:
     external: true
 
 services:
-  # LiteLLM Proxy Gateway: Unified entry point for all models
+  # LiteLLM Proxy Gateway: Unified entry point for all models, image: ghcr.io/berriai/litellm:1.81.14
   litellm:
-    image: ghcr.io/berriai/litellm:1.81.14
+    image: ghcr.io/berriai/litellm:main-latest
     ports:
       - "4000:4000"
     volumes:

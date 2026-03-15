@@ -3,7 +3,9 @@ const appConfig = {
   env: process.env.NODE_ENV || 'development',
   appName: '知识库管理平台',
   version: '1.0.0',
-  backendApiUrl: process.env.BACKEND_API_URL || 'http://127.0.0.1:8080'
+  backendApiUrl: process.env.BACKEND_API_URL || 'http://127.0.0.1:8080',
+  mgmtHost: process.env.MGMT_HOST || '172.20.0.1',
+  mgmtPort: process.env.MGMT_PORT || '8080'
 };
 
 module.exports = appConfig;

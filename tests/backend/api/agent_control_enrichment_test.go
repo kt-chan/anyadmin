@@ -19,7 +19,7 @@ func TestAgentControlEndpoint(t *testing.T) {
 
 	t.Run("StopAgent", func(t *testing.T) {
 		reqBody := map[string]string{
-			"ip":     "172.20.0.10",
+			"ip":     "172.25.208.100",
 			"action": "stop",
 		}
 		body, _ := json.Marshal(reqBody)
@@ -36,7 +36,7 @@ func TestAgentControlEndpoint(t *testing.T) {
 
 	t.Run("RestartAgent", func(t *testing.T) {
 		reqBody := map[string]string{
-			"ip":     "172.20.0.10",
+			"ip":     "172.25.208.100",
 			"action": "restart",
 		}
 		body, _ := json.Marshal(reqBody)
@@ -53,10 +53,10 @@ func TestAgentControlEndpoint(t *testing.T) {
 }
 
 func TestNodeRemovalGone(t *testing.T) {
-	// Verify that RemoveNode is indeed removed from api package if possible, 
+	// Verify that RemoveNode is indeed removed from api package if possible,
 	// or at least verify the router change in a separate integration test.
 	// Since we can't easily check "absence" of a function in a package at runtime in Go without reflection/ast,
 	// we'll just check that it's gone from the router.
-	
+
 	// This is more of an integration test for router.go
 }

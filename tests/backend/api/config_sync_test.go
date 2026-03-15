@@ -11,6 +11,7 @@ import (
 	"anyadmin-backend/pkg/api"
 	"anyadmin-backend/pkg/global"
 	"anyadmin-backend/pkg/utils"
+
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
@@ -36,11 +37,11 @@ func TestUpdateVLLMConfigPersistence(t *testing.T) {
 	utils.DataFile = tmpFile.Name()
 	utils.DeploymentNodes = []global.DeploymentNode{
 		{
-			NodeIP: "172.20.0.10",
+			NodeIP: "172.25.208.100",
 			InferenceCfgs: []global.InferenceConfig{
 				{
 					Name:                 "vllm",
-					IP:                   "172.20.0.10",
+					IP:                   "172.25.208.100",
 					MaxModelLen:          2048,
 					GpuMemoryUtilization: 0.8,
 					MaxNumSeqs:           128,
@@ -57,7 +58,7 @@ func TestUpdateVLLMConfigPersistence(t *testing.T) {
 
 	// Prepare request
 	payload := map[string]interface{}{
-		"node_ip": "172.20.0.10",
+		"node_ip": "172.25.208.100",
 		"config": map[string]string{
 			"VLLM_MAX_MODEL_LEN":          "4096",
 			"VLLM_GPU_MEMORY_UTILIZATION": "0.95",
@@ -82,11 +83,11 @@ func TestUpdateVLLMConfigPersistence(t *testing.T) {
 	// Verify File Persistence
 	content, err := os.ReadFile(tmpFile.Name())
 	assert.NoError(t, err)
-	
+
 	var data utils.DataStore
 	err = json.Unmarshal(content, &data)
 	assert.NoError(t, err)
-	
+
 	found := false
 	for _, node := range data.DeploymentNodes {
 		for _, cfg := range node.InferenceCfgs {

@@ -3,8 +3,8 @@ package service_test
 import (
 	"anyadmin-backend/pkg/service"
 	"anyadmin-backend/pkg/utils"
-	"testing"
 	"os"
+	"testing"
 )
 
 func TestAgentEnrichment(t *testing.T) {
@@ -14,8 +14,8 @@ func TestAgentEnrichment(t *testing.T) {
 	utils.MgmtPort = "8080"
 	utils.SaveToFile()
 
-	targetIP := "172.20.0.10"
-	
+	targetIP := "172.25.208.100"
+
 	t.Run("RebuildAgent", func(t *testing.T) {
 		err := service.RebuildAgent()
 		if err != nil {
@@ -42,8 +42,8 @@ func TestAgentEnrichment(t *testing.T) {
 			t.Errorf("ControlAgent Stop failed: %v", err)
 		}
 	})
-    
-    t.Run("ControlAgent_Restart", func(t *testing.T) {
+
+	t.Run("ControlAgent_Restart", func(t *testing.T) {
 		err := service.ControlAgent(targetIP, "restart")
 		if err != nil {
 			t.Errorf("ControlAgent Restart failed: %v", err)

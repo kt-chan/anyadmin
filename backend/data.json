@@ -6,7 +6,7 @@
       "updatedAt": "0001-01-01T00:00:00Z",
       "deletedAt": null,
       "username": "admin",
-      "password": "qzxIkbxKurlKcOXSE1UB2JfmEO0lJh/salLNJhoDthldhpc6+b5voTs/ZcQz8DDseD/RBBF2BNEWmN1ijkaLr1aJD7/Bq8PcfCGNEWux+tZAgLrd6SBXrFxA2TwneFEotDR/GGJAISnjZ6jyLuifgg8Vq4hXvyjReWxt2ZO/USa72AlBOWz2+r1oLvpMIN2U/de6yFMXfpMLm0j541Y7QwAmT816ZBpQ/wQsvJB0gQDbhXi3S69hZxMwTANCFrYkmk5a48sY/B2ylYH/c15iJpeYANgQKPn/LH0tlcrJLzt3wpRkES2B8X3HQYdBJCzDV3s+3HNHteyRrGdR1gCAmZtLGJvjvEejAeQY5wrmU7NUWzn2TnJ1+oAhxaCs+gxKogKlN9oQtqwRHKyg8DTeeR+NhLXaGzJ/8d2TjFuTcYt8nVdI/1/K3lWdqpWRJyR6AaLj8zQFCs/LkMS/J96Sox0ybMQ7wDKZRKS+Vqk2biPniqA8a7m4g3tTXYxWa/MmKRBCrBVsgfeAsYtd65mbt+3Wrt4CEdBv+ST4/7CmWCJ13lFMWdxqQJ02UlEgSvDC073H7Fvm6jZAiAlWqsQAfKAD+RF1xR93EgU2uFYv5exN6H3QZHDrtGW+clkSE4/QXTQ81DryvU04+tnMtRKWVIouhIjteqDj10BkRPH1bc8=",
+      "password": "BrlTl3ZxUyeylWcaZf+mE5JKTIOW0f64V9rPEvk77UaSVFhsn72jx4hNwGNKOsDjLkvWlbNeUmkQTRLQQi6Ym9qn1VXcl7LcsgW4PPsjQL5oACtuFOJG1jqllVC/rFm0s92RJbojYRbsHV4ffD4u7bO3lnW9jjFKryMAA533DNpK9Z1WcU03TFEoedYPfHIjthzdVsBwlYXyNhW7WmOVJXIcO+EyQLD2RNN7J5LknaTe1en3JP5oi5/evRbdAHDIjPfymx30JNF4mGDZNu+2U3gCxmY25P1JqWE+rIzLlTdrfYPpiPMu3jhRLkha3i/9OpRrYQE9iD4XqCv/n0L/3w==",
       "role": "admin"
     },
     {
@@ -15,7 +15,7 @@
       "updatedAt": "0001-01-01T00:00:00Z",
       "deletedAt": null,
       "username": "operator_01",
-      "password": "Q6QtHb5Cc2LG4AEl0AT40b8bnNag1EJDdyalZffMU4fmhBwpfRMsKYcloe84XmSuwQOn/eNxHLYnY7MJR2jUStUBEaKHNnIlZe0KEvQ5rqiwWt/f17sK0fq8Q67YRMaPgZM9SmhC6maEFeU2ftg6aCQA9ylIX3Dy+gcH1b9q24bJcAOArD+uJtoxSZPcSt8FdKvCCO2ibXy6PlHg0cHXnj1yUXwO44+iDah1D8fPxY2qBAv/oW297ifK8tGkg2Mo4J4B3d/y0WNC/FDV98hQXySTqrjTF11kpN4/EEpSklxUrTTJBAau0rkd1+DW4+5bsoqhk3NvSnQLQhl48w6j/2Pca9O4QlY3JAspv8f5/6+/afIp1QNMjb6c8ytOh0tTKnDF+66h3G5SEuQIZC5K8IHDtOvIsp4Wgz8dqrw24ZqcrNhmoQr2MUVK2pkJKUp0Pskmhg4uoNSZn1DoQgZIw2gLoAnQlM52PE7OJsiteYnx6Qnq7sDr3fpCFaVBSYj3/xQWgkKk9/k8JIg5/8ntA420/KAx1aWyTJDq75m6/UOVIXR0eb+735Fbe8uYCIUdBFQTkBI97dnOCo18wm9AUKIJ6dqwyPGqBwGgRGKLrsTb+4BMs3JE4XL9qFRhklPShhej2r9hg+zZUqe1edbFYbYS+Bh9qbCQ85I9RYDO8c0=",
+      "password": "kWmcpSE2RUY6DhixgVbtZtZkFyLyGRprNGF6P8CuqWXdrlagNXz4C4rLnCM6EXcuirm/tk+iLpl/7YP1UVoo6Xcee93m36LPtpniV2q2MK966QZ5oDtjppTdbHrkbAN9GxceHgC9hpwMlUtgy1jGcuOjOLY3zWLp5dr5zk+xuDQELIjDbz77pvzJtfU5esgQDqyJr/GhD2OBB2gxcXaUnLCr9kybv+oxfp/G+Sf3cdNNgvcvZyJ+Wz2hV24jgTjYxdW/i/2VQPQ9Q/5IUu/Uxmk5pvAm52cOunizd7L+MU5Wrrb6cWooSTqzlrY0uh+HXmOQCPfOSXzOR4sZ/z8Qfw==",
       "role": "operator"
     }
   ],
@@ -23,14 +23,14 @@
   "backup_records": null,
   "deployment_nodes": [
     {
-      "node_ip": "172.20.0.10",
-      "hostname": "172.20.0.10",
+      "node_ip": "172.25.208.100",
+      "hostname": "172.25.208.100",
       "agent_config": {
-        "deployment_time": "2026-02-27T15:31:59+08:00",
+        "deployment_time": "2026-03-15T17:09:42+08:00",
         "log_file": "/home/anyadmin/logs/agent.log",
-        "mgmt_host": "172.20.0.1",
+        "mgmt_host": "172.25.208.1",
         "mgmt_port": "8080",
-        "node_ip": "172.20.0.10",
+        "node_ip": "172.25.208.100",
         "node_port": "8082"
       },
       "inference_cfgs": [
@@ -39,13 +39,13 @@
           "createdAt": "0001-01-01T00:00:00Z",
           "updatedAt": "0001-01-01T00:00:00Z",
           "deletedAt": null,
-          "name": "proxy-litellm:litellm",
+          "name": "litellm:litellm",
           "model_type": "proxy",
           "is_managed": true,
           "engine": "LiteLLM",
           "model_name": "",
           "model_path": "",
-          "ip": "172.20.0.10",
+          "ip": "172.25.208.100",
           "port": "4000",
           "mode": "",
           "gpu_memory_size": 0,
@@ -57,66 +57,43 @@
         },
         {
           "id": 0,
-          "createdAt": "2026-02-27T15:00:26.0118864+08:00",
-          "updatedAt": "2026-02-27T16:36:57.2104664+08:00",
+          "createdAt": "2026-03-14T23:07:45.5664671+08:00",
+          "updatedAt": "2026-03-15T17:09:26.2456165+08:00",
           "deletedAt": null,
           "name": "inf-demo:vllm-llm",
           "model_type": "llm",
           "is_managed": true,
           "engine": "vLLM",
-          "model_name": "Qwen3-1.7B",
+          "model_name": "Qwen3.6-0.8B",
           "model_path": "",
-          "ip": "172.20.0.10",
+          "ip": "172.25.208.100",
           "port": "8000",
           "mode": "balanced",
           "gpu_memory_size": 8,
           "gpu_utilization": 0.85,
           "max_model_len": 4096,
-          "max_num_seqs": 3,
+          "max_num_seqs": 8,
           "max_num_batched_tokens": 8192,
-          "gpu_memory_utilization": 0.85
-        },
-        {
-          "id": 0,
-          "createdAt": "2026-02-27T15:31:52.502413+08:00",
-          "updatedAt": "2026-02-27T18:34:18.0180928+08:00",
-          "deletedAt": null,
-          "name": "inf-remote-glm-4-flash",
-          "model_type": "llm",
-          "is_managed": false,
-          "api_key": "c1wwXNx/TlG+XsyrlW3RWxVn3lFHzGfilG7F1Ex6bvZGIFWIvkI4C5TKDL9tTVQy7bwiFTpCMTz0xuYxbAIhOULBoU6G7VczQLHwXB+GOjpCDmCdy+QtOpszNqau9mnyhl9/8lZWjJ26VSCP7He8vbMZABnAIQIyHgGCefQDFylcpR87krtdCZdlAdudA57xJ61LEqp1EatxV8YK93VnWSuhsFi3CKUvZOrHbh7kfPJZiN4mgCay+stDF5TH6/wHJDTlQzYUVP7uguIjKROGofbfxmJh5CZinyCpkpSLCcic3Z+dW+fz+vBI6zEZjTZOS+MmPhgAOu51ZrbULF6Ca08T3jPH4JPjKyPTCaUuFXf1YuVZ1gpzJxKIdqfoEtSNt4eI/uhlC2qXcWvqKNW8MYISh5qkBuVdMaswfwMGiSb/nE0Zrx4dDse6qFdMsj48+o+MNN7j6qqO5JfxBzjOHQooHSiuJ7MHL2F7sstVCW/pmw7KGx8/6w+t72bFmEToE+Ip+lgT3owC4Cp6IR5Q76MgzuTvwWKZzfSOyxBOHgURyqUDz6n+/ic+e/P3btSByvl1ut37evtAFnRPuVotDWtgeVUk7JnuKKXXJ/K0MkTdm+I6JnZ6AoiO8ELKFZgP2f6Vyed7VU3OQvO6z26SfEiG31PvHc3aB4E9gQaAy0s=",
-          "base_url": "https://open.bigmodel.cn/api/paas/v4",
-          "engine": "External",
-          "model_name": "glm-4-flash",
-          "model_path": "",
-          "ip": "172.20.0.10",
-          "port": "4000",
-          "mode": "balanced",
-          "gpu_memory_size": 8,
-          "gpu_utilization": 0.85,
-          "max_model_len": 1536,
-          "max_num_seqs": 2,
-          "max_num_batched_tokens": 1706,
           "gpu_memory_utilization": 0.85
         }
       ],
       "rag_app_cfgs": [
         {
           "id": 0,
-          "createdAt": "2026-02-27T15:00:26.011993+08:00",
-          "updatedAt": "2026-02-27T16:50:03.6729196+08:00",
+          "createdAt": "2026-03-14T23:07:45.5683006+08:00",
+          "updatedAt": "2026-03-15T17:09:26.2481885+08:00",
           "deletedAt": null,
           "name": "rag-demo:anythingllm",
           "is_managed": true,
-          "host": "172.20.0.10",
+          "host": "172.25.208.100",
           "port": "3001",
           "storage_dir": "/app/server/storage",
           "llm_provider": "generic-openai",
           "generic_openai_base_path": "http://litellm:4000/v1",
-          "generic_openai_model_pref": "glm-4-flash",
-          "generic_openai_model_token_limit": 4096,
-          "generic_openai_max_tokens": 2048,
-          "generic_openai_api_key": "UfT1kMrdEbzsKsIBWcwrGbGJ/IetS0vtDi/92Cbk3y6siwpEypRnF5d1Y6U2ItuPsMJhOaoAp9USOxHyQ+QKHDREJMRWrd9RzDPg5IbJdQuVq0NW7/MFaHu/VKlD7296aCSGFgevkQC0vXoYRv5oL2MqCtz4wuXneuwRWn/RqY8pnBOijZQJF8RUXNIlziX4HT2sfU70DiH6FioOuiWoU20XrM92GqQKWiK12M8xbeVC4j68wPNGIivueIN222F6O85XJODz+aCgT4ib0SpuTogf62Fm7Ie09LxMnu0aqu87Axrrfmigv/fV+9Qw35C6XpHgNmmM9pEm5z5ydh8H3/AhgPn06uNzs+e17oEUA7OLorxwocan9uLmA1HkSif72rj73UjPclJe01bRS0FA0fNBnfm83pXSFXukTx9Eggi5Hbz8ZnyFFw8Ob57jzr2Xo4VEWn7nqCNmmL/F8WhdKCtLpC4C084R3WsAM7grWL6nGi1CumagwjXXbeyoqlC3H8RQTFmTqpBKd8/XD9Is0wnKF8gXCM5q3xaJEWzrt6kHwhiEkXbG4qaSVeDffATcP3Thd65w2yVllPnmWyZ3mRZb5CxPnXMsBEZhhCTtjpQJGMLL5Qi5EVfVn+WlEgwPnuVzKyLJpacBPn8QVE0MZR8BZJ2YhZUAsHWw+GlDm+s=",
+          "generic_openai_model_pref": "qwen",
+          "generic_openai_model_token_limit": 0,
+          "generic_openai_max_tokens": 0,
+          "generic_openai_api_key": "sc5I3oRybIRo4nqMIOpQ30GDyJhcSsTAmhwRdsKxAEfy6R/efMz5aNmG4lTa0Hqt0MVYNFFgnbbniaNPEQVZ78hJ9T1xRWjoGfcV1R7NJWsMk37ExGgRSajfWt4Fq+kHKxUA6DE8WMKLiaU6CdD5IktPVF5sSFXkmvPG0xLz8OHOlPDvh7+vIJ3L2fOzdVPPy+FumoWzd/qFlTermfUcuSv6MC5mRYYrUPmxb8MNmwnwm0p1olspVuBx6APDgxQFTyLap//jVxkanmqotFTWPgaJtqylT+Fk0T73n39ONI1FX6FWNgDhrkHAm25vh3XnWCydrMvBmY41gjCuQdctfw==",
           "vector_db": "lancedb"
         }
       ]
@@ -134,50 +111,14 @@
   "models": [
     {
       "id": 0,
-      "createdAt": "2026-02-26T16:29:52.464861+08:00",
-      "updatedAt": "2026-02-26T16:29:52.464861+08:00",
+      "createdAt": "2026-03-14T22:13:48.040341+08:00",
+      "updatedAt": "2026-03-14T22:13:48.040341+08:00",
       "deletedAt": null,
-      "name": "MinerU-2.5",
-      "model_type": "ocr",
-      "size": 2323675923
-    },
-    {
-      "id": 0,
-      "createdAt": "2026-02-26T17:37:00.8861147+08:00",
-      "updatedAt": "2026-02-26T17:37:00.8861147+08:00",
-      "deletedAt": null,
-      "name": "Qwen3-1.7B",
+      "name": "Qwen3.6-0.8B",
       "model_type": "llm",
-      "size": 4079477551
-    },
-    {
-      "id": 0,
-      "createdAt": "2026-02-26T16:36:09.2041541+08:00",
-      "updatedAt": "2026-02-26T16:36:09.2041541+08:00",
-      "deletedAt": null,
-      "name": "bge-large-zh",
-      "model_type": "embedding",
-      "size": 1302804254
-    },
-    {
-      "id": 0,
-      "createdAt": "2026-02-26T16:42:10.1916208+08:00",
-      "updatedAt": "2026-02-26T16:42:10.1916208+08:00",
-      "deletedAt": null,
-      "name": "bge-reranker-large",
-      "model_type": "reranker",
-      "size": 6741726079
-    },
-    {
-      "id": 0,
-      "createdAt": "2026-02-26T16:30:03.1666241+08:00",
-      "updatedAt": "2026-02-26T16:30:03.1666241+08:00",
-      "deletedAt": null,
-      "name": "llama-3.2-1B-Instruct",
-      "model_type": "llm",
-      "size": 4954734534
+      "size": 1770011060
     }
   ],
-  "mgmt_host": "172.20.0.1",
+  "mgmt_host": "172.25.208.1",
   "mgmt_port": "8080"
 }

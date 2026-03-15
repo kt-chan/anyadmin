@@ -1,16 +1,17 @@
 package service_test
 
 import (
+	"log"
 	"testing"
 	"time"
-	"log"
 
 	"anyadmin-backend/pkg/service"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAgentContainerControl(t *testing.T) {
-	nodeIP := "172.20.0.10"
+	nodeIP := "172.25.208.100"
 	containerName := "vllm" // Assumes vllm container exists or we can try with a non-existent one to see error handling
 
 	// 1. Test Stop
@@ -21,7 +22,7 @@ func TestAgentContainerControl(t *testing.T) {
 	} else {
 		t.Log("Stop command sent successfully")
 	}
-	
+
 	// Wait a bit
 	time.Sleep(2 * time.Second)
 

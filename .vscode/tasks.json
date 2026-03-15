@@ -2,6 +2,21 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "stop-pids",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/scripts/stop-pids.ps1"
+      ],
+      "presentation": {
+        "reveal": "silent"
+      }
+    },
+    {
       "label": "wait-for-backend",
       "type": "shell",
       "command": "powershell",
@@ -32,6 +47,14 @@
         "reveal": "always",
         "panel": "shared"
       }
+    },
+    {
+      "label": "full-stack-prepare",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "stop-pids",
+        "wait-for-backend"
+      ]
     }
   ]
 }

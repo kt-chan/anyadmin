@@ -696,7 +696,14 @@ func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	
 	if req.Restart {
 		workDir := DockerDir
-		args := []string{"compose", "-p", projectName, "--env-file", DockerDir + ".env", "--env-file", envPath, "up", "-d", "--force-recreate", serviceName}
+		
+		// Ensure global .env exists to prevent docker compose failure
+		globalEnv := DockerDir + ".env"
+		if _, err := os.Stat(globalEnv); os.IsNotExist(err) {
+			os.WriteFile(globalEnv, []byte("# Global environment variables\n"), 0644)
+		}
+
+		args := []string{"compose", "-p", projectName, "--env-file", globalEnv, "--env-file", envPath, "up", "-d", "--force-recreate", serviceName}
 		cmdStr := "docker " + strings.Join(args, " ")
 		log.Printf("Restarting service with command: %s", cmdStr)
 		

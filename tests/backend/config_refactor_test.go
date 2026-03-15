@@ -18,17 +18,17 @@ func TestSaveInferenceConfig_Refactor(t *testing.T) {
 	// Setup utils Data
 	utils.DeploymentNodes = []global.DeploymentNode{
 		{
-			NodeIP: "172.20.0.10",
+			NodeIP: "172.25.208.100",
 			InferenceCfgs: []global.InferenceConfig{
 				{
 					Name: "old_model",
-					IP:   "172.20.0.10",
+					IP:   "172.25.208.100",
 					Port: "8000",
 				},
 			},
 		},
 	}
-	
+
 	// Setup Gin
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -41,7 +41,7 @@ func TestSaveInferenceConfig_Refactor(t *testing.T) {
 	// Test Case 1: Update existing config
 	newConfig := global.InferenceConfig{
 		Name:      "old_model", // Match by name
-		IP:        "172.20.0.10",
+		IP:        "172.25.208.100",
 		ModelName: "NewModel-v1",
 		Engine:    "vLLM",
 	}
@@ -52,7 +52,7 @@ func TestSaveInferenceConfig_Refactor(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	
+
 	// Verify update in nested structure
 	assert.Equal(t, "NewModel-v1", utils.DeploymentNodes[0].InferenceCfgs[0].ModelName)
 	assert.Equal(t, "vLLM", utils.DeploymentNodes[0].InferenceCfgs[0].Engine)
@@ -60,7 +60,7 @@ func TestSaveInferenceConfig_Refactor(t *testing.T) {
 	// Test Case 2: Add new config to existing node
 	addConfig := global.InferenceConfig{
 		Name: "new_service",
-		IP:   "172.20.0.10", // Should match existing node
+		IP:   "172.25.208.100", // Should match existing node
 		Port: "8001",
 	}
 	body, _ = json.Marshal(addConfig)

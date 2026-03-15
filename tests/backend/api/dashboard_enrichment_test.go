@@ -32,9 +32,9 @@ func TestDashboardEnrichment(t *testing.T) {
 	utils.ExecuteWrite(func() {
 		utils.DeploymentNodes = []global.DeploymentNode{
 			{
-				NodeIP: "172.20.0.10",
+				NodeIP: "172.25.208.100",
 				InferenceCfgs: []global.InferenceConfig{
-					{Name: "vllm", IP: "172.20.0.10", Engine: "vLLM"},
+					{Name: "vllm", IP: "172.25.208.100", Engine: "vLLM"},
 				},
 			},
 		}
@@ -44,7 +44,7 @@ func TestDashboardEnrichment(t *testing.T) {
 
 	// 1. Send Heartbeat with enriched info
 	heartbeat := map[string]interface{}{
-		"node_ip":         "172.20.0.10",
+		"node_ip":         "172.25.208.100",
 		"hostname":        "node-gpu-01",
 		"status":          "online",
 		"cpu_usage":       15.5,
@@ -102,13 +102,13 @@ func TestDashboardEnrichment(t *testing.T) {
 	assert.True(t, foundContainer, "Container service should be in health list")
 
 	// 3. Test Container Control (Mocked SSH for remote)
-	// Since it's remote node (172.20.0.10), it will try SSH.
+	// Since it's remote node (172.25.208.100), it will try SSH.
 	// To avoid real SSH in unit test, we can check logs or just ensure it reaches the service.
 
 	control := map[string]interface{}{
 		"name":    "vllm",
 		"action":  "restart",
-		"node_ip": "172.20.0.10",
+		"node_ip": "172.25.208.100",
 	}
 	cBody, _ := json.Marshal(control)
 	w3 := httptest.NewRecorder()

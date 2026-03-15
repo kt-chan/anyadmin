@@ -513,7 +513,7 @@ window.fetchNodesAndPopulate = async function() {
         sel.innerHTML = '<option value="">Select Target Node</option>';
         nodes.forEach(node => {
             const opt = document.createElement('option');
-            // Strip port for service selection (e.g. "172.20.0.10:22" -> "172.20.0.10")
+            // Strip port for service selection (e.g. "172.25.208.100:22" -> "172.25.208.100")
             const ipOnly = node.split(':')[0];
             opt.value = ipOnly;
             opt.textContent = ipOnly;

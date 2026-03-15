@@ -12,7 +12,7 @@ import (
 
 func TestModelClassificationFlow(t *testing.T) {
 	baseURL := "http://localhost:8080/api/v1"
-	
+
 	// 1. Login to get token
 	loginPayload := map[string]string{
 		"username": "admin",
@@ -24,7 +24,7 @@ func TestModelClassificationFlow(t *testing.T) {
 		t.Fatalf("Failed to login: %v", err)
 	}
 	defer resp.Body.Close()
-	
+
 	var loginRes struct {
 		Token string `json:"token"`
 	}
@@ -85,11 +85,11 @@ func TestModelClassificationFlow(t *testing.T) {
 	deployConfig := global.DeploymentConfig{
 		MgmtHost:      "172.20.0.1",
 		MgmtPort:      "8080",
-		TargetNodes:   "172.20.0.10:22",
+		TargetNodes:   "172.25.208.100:22",
 		Mode:          "new_deployment",
 		Platform:      "nvidia",
 		ModelType:     "llm",
-		InferenceHost: "172.20.0.10",
+		InferenceHost: "172.25.208.100",
 		InferencePort: "8000",
 		ModelName:     "llama-3.2-1B-Instruct",
 	}
@@ -110,10 +110,10 @@ func TestModelClassificationFlow(t *testing.T) {
 		Nodes []global.DeploymentNode `json:"nodes"`
 	}
 	json.NewDecoder(resp.Body).Decode(&svcConfig)
-	
+
 	foundSvc := false
 	for _, node := range svcConfig.Nodes {
-		if node.NodeIP == "172.20.0.10" {
+		if node.NodeIP == "172.25.208.100" {
 			for _, cfg := range node.InferenceCfgs {
 				if cfg.ModelType == "llm" {
 					foundSvc = true

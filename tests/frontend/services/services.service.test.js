@@ -45,10 +45,10 @@ describe('Services Service', () => {
     it('should restart container service successfully', async () => {
       apiClient.post.mockResolvedValue({ data: { message: 'ok' } });
 
-      const result = await servicesService.restartService('vllm', '172.20.0.10', token, 'Container');
+      const result = await servicesService.restartService('vllm', '172.25.208.100', token, 'Container');
 
       expect(apiClient.post).toHaveBeenCalledWith('/api/v1/container/control', 
-        { name: 'vllm', action: 'restart', node_ip: '172.20.0.10' },
+        { name: 'vllm', action: 'restart', node_ip: '172.25.208.100' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       expect(result).toBe(true);
@@ -57,10 +57,10 @@ describe('Services Service', () => {
     it('should restart agent successfully', async () => {
       apiClient.post.mockResolvedValue({ data: { message: 'ok' } });
 
-      const result = await servicesService.restartService('Agent (node1)', '172.20.0.10', token, 'Agent');
+      const result = await servicesService.restartService('Agent (node1)', '172.25.208.100', token, 'Agent');
 
       expect(apiClient.post).toHaveBeenCalledWith('/api/v1/deploy/agent/control', 
-        { ip: '172.20.0.10', action: 'restart' },
+        { ip: '172.25.208.100', action: 'restart' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       expect(result).toBe(true);
@@ -71,10 +71,10 @@ describe('Services Service', () => {
     it('should stop container service successfully', async () => {
       apiClient.post.mockResolvedValue({ data: { message: 'ok' } });
 
-      const result = await servicesService.stopService('vllm', '172.20.0.10', token, 'Container');
+      const result = await servicesService.stopService('vllm', '172.25.208.100', token, 'Container');
 
       expect(apiClient.post).toHaveBeenCalledWith('/api/v1/container/control', 
-        { name: 'vllm', action: 'stop', node_ip: '172.20.0.10' },
+        { name: 'vllm', action: 'stop', node_ip: '172.25.208.100' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       expect(result).toBe(true);
@@ -83,10 +83,10 @@ describe('Services Service', () => {
     it('should stop agent successfully', async () => {
       apiClient.post.mockResolvedValue({ data: { message: 'ok' } });
 
-      const result = await servicesService.stopService('Agent (node1)', '172.20.0.10', token, 'Agent');
+      const result = await servicesService.stopService('Agent (node1)', '172.25.208.100', token, 'Agent');
 
       expect(apiClient.post).toHaveBeenCalledWith('/api/v1/deploy/agent/control', 
-        { ip: '172.20.0.10', action: 'stop' },
+        { ip: '172.25.208.100', action: 'stop' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       expect(result).toBe(true);

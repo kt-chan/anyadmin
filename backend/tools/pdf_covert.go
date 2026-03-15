@@ -30,7 +30,7 @@ type FileData struct {
 func main() {
 	pdfPath := "docs/知识库管理界面需求.pdf"
 	outputDir := "docs"
-	serverURL := "http://172.20.0.10:8010"
+	serverURL := "http://172.25.208.100:8010"
 
 	if len(os.Args) > 1 {
 		pdfPath = os.Args[1]

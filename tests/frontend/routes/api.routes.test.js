@@ -47,36 +47,36 @@ describe('API Routes (Service Operations)', () => {
   });
 
   it('POST /api/service/restart should call servicesService.restartService', async () => {
-    const payload = { name: 'vllm', node_ip: '172.20.0.10', type: 'Container' };
+    const payload = { name: 'vllm', node_ip: '172.25.208.100', type: 'Container' };
     const res = await request(app)
       .post('/api/service/restart')
       .send(payload);
     
     expect(res.statusCode).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(servicesService.restartService).toHaveBeenCalledWith('vllm', '172.20.0.10', 'fake-token', 'Container');
+    expect(servicesService.restartService).toHaveBeenCalledWith('vllm', '172.25.208.100', 'fake-token', 'Container');
   });
 
   it('POST /api/service/stop should call servicesService.stopService', async () => {
-    const payload = { name: 'vllm', node_ip: '172.20.0.10', type: 'Container' };
+    const payload = { name: 'vllm', node_ip: '172.25.208.100', type: 'Container' };
     const res = await request(app)
       .post('/api/service/stop')
       .send(payload);
     
     expect(res.statusCode).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(servicesService.stopService).toHaveBeenCalledWith('vllm', '172.20.0.10', 'fake-token', 'Container');
+    expect(servicesService.stopService).toHaveBeenCalledWith('vllm', '172.25.208.100', 'fake-token', 'Container');
   });
 
   it('POST /api/agent/control should call servicesService.controlAgent', async () => {
-    const payload = { ip: '172.20.0.10', action: 'stop' };
+    const payload = { ip: '172.25.208.100', action: 'stop' };
     const res = await request(app)
       .post('/api/agent/control')
       .send(payload);
     
     expect(res.statusCode).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(servicesService.controlAgent).toHaveBeenCalledWith('172.20.0.10', 'stop', 'fake-token');
+    expect(servicesService.controlAgent).toHaveBeenCalledWith('172.25.208.100', 'stop', 'fake-token');
   });
 
   it('POST /api/config/save should call dashboardService.saveConfig', async () => {

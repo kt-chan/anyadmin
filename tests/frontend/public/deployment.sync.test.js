@@ -45,7 +45,7 @@ describe('Deployment Wizard Sync and Population', () => {
         global.fetch.mockImplementation((url) => {
             if (url === '/deployment/api/nodes') {
                 return Promise.resolve({
-                    json: () => Promise.resolve({ success: true, data: ['172.20.0.10'] })
+                    json: () => Promise.resolve({ success: true, data: ['172.25.208.100'] })
                 });
             }
             return Promise.resolve({
@@ -65,7 +65,7 @@ describe('Deployment Wizard Sync and Population', () => {
         selectors.forEach(sel => {
             const options = Array.from(sel.options).map(opt => opt.value);
             // From API
-            expect(options).toContain('172.20.0.10');
+            expect(options).toContain('172.25.208.100');
             // From textarea
             expect(options).toContain('192.168.1.100');
             expect(options).toContain('192.168.1.101');

@@ -11,7 +11,7 @@ func TestPDFConvertTool(t *testing.T) {
 	// Paths relative to tests/backend/utils directory
 	pdfPath := filepath.Join("..", "..", "..", "docs", "知识库管理界面需求.pdf")
 	outputDir := filepath.Join("..", "..", "..", "docs")
-	serverURL := "http://172.20.0.10:8010"
+	serverURL := "http://172.25.208.100:8010"
 	toolPath := filepath.Join("..", "..", "..", "backend", "tools", "pdf_covert.go")
 
 	// Ensure PDF exists
@@ -25,7 +25,7 @@ func TestPDFConvertTool(t *testing.T) {
 	cmd.Stderr = os.Stderr
 
 	// Note: This test will attempt to connect to the real serverURL.
-	// In a CI environment, we might want to mock this, but the objective 
+	// In a CI environment, we might want to mock this, but the objective
 	// asks to run it against the specified serverURL.
 	err := cmd.Run()
 	if err != nil {

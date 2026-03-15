@@ -1,5 +1,6 @@
 const deploymentService = require('../services/deployment.service');
 const logger = require('../utils/logger');
+const appConfig = require('../config/app.config');
 
 const deploymentController = {
   // Render Deployment Page
@@ -7,7 +8,9 @@ const deploymentController = {
     try {
       res.render('deployment', {
         user: req.session.user,
-        page: 'deployment'
+        page: 'deployment',
+        mgmtHost: appConfig.mgmtHost,
+        mgmtPort: appConfig.mgmtPort
       });
     } catch (error) {
       logger.error('Error rendering deployment page:', error);

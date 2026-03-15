@@ -134,13 +134,26 @@ func DeployModels(client *ssh.Client) error {
 		// Extract tar file
 		log.Printf("Extracting %s to %s...", tarName, remoteExtractDir)
 
-		// Extract
-		if _, err := ExecuteCommand(client, fmt.Sprintf("tar -xf %s -C %s", remoteTarPath, remoteModelHomePath)); err != nil {
+		// Ensure remoteExtractDir exists
+		if _, err := ExecuteCommand(client, fmt.Sprintf("mkdir -p %s", remoteExtractDir)); err != nil {
+			return fmt.Errorf("failed to create remote extract directory %s: %w", remoteExtractDir, err)
+		}
+
+		// Extract into remoteExtractDir.
+		// We use --strip-components=1 if we suspect the tar already has the folder,
+		// but if we don't know, it's safer to extract and then check.
+		// However, most model tars contain files directly or in a subfolder.
+		// Let's try to extract into remoteExtractDir.
+		if _, err := ExecuteCommand(client, fmt.Sprintf("tar -xf %s -C %s", remoteTarPath, remoteExtractDir)); err != nil {
 			// Clean up on extraction failure
 			ExecuteCommand(client, fmt.Sprintf("rm -rf %s", remoteExtractDir))
 			ExecuteCommand(client, fmt.Sprintf("rm -f %s", remoteTarPath))
 			return fmt.Errorf("failed to extract %s: %w", tarName, err)
 		}
+
+		// Handle potential nested directory: if we extracted and found only one directory inside with the same name
+		// (e.g. /home/anyadmin/data/model/Qwen/Qwen/...)
+		// we might want to move it up, but for now let's just ensure permissions.
 
 		// Set ownership recursively
 		if _, err := ExecuteCommand(client, fmt.Sprintf("chown -R anyadmin:anyadmin %s && chmod -R 755 %s", remoteExtractDir, remoteExtractDir)); err != nil {
@@ -204,14 +217,23 @@ func DeployAgent(nodeIP, mgmtHost, mgmtPort, mode string) {
 	}
 	defer client.Close()
 
-	// 2. Create User 'anyadmin'
+	// 2. Install Docker (Only for new_deployment)
+	if mode == "new_deployment" {
+		RecordLog(user, "Agent Deployment", "Installing Docker...", "Info")
+		if err := installDocker(client); err != nil {
+			RecordLog(user, "Agent Deployment", fmt.Sprintf("Failed to install Docker: %v", err), "Error")
+			return
+		}
+	}
+
+	// 3. Create User 'anyadmin'
 	RecordLog(user, "Agent Deployment", "Ensuring 'anyadmin' user exists...", "Info")
 	if err := ensureUser(client); err != nil {
 		RecordLog(user, "Agent Deployment", fmt.Sprintf("Failed to create user: %v", err), "Error")
 		return
 	}
 
-	// 3. Install Go (Only for new_deployment)
+	// 4. Install Go (Only for new_deployment)
 	if mode == "new_deployment" {
 		RecordLog(user, "Agent Deployment", "Installing Go...", "Info")
 		if err := installGo(client); err != nil {
@@ -222,7 +244,7 @@ func DeployAgent(nodeIP, mgmtHost, mgmtPort, mode string) {
 		RecordLog(user, "Agent Deployment", "Skipping Go installation (Integrate Existing Mode)", "Info")
 	}
 
-	// 4. Deploy and Run Agent
+	// 5. Deploy and Run Agent
 	RecordLog(user, "Agent Deployment", "Deploying Agent...", "Info")
 	if err := deployAndRunAgent(client, nodeHost, mgmtHost, mgmtPort); err != nil {
 		RecordLog(user, "Agent Deployment", fmt.Sprintf("Failed to deploy agent: %v", err), "Error")
@@ -257,6 +279,40 @@ func ensureUser(client *ssh.Client) error {
 		return fmt.Errorf("failed to configure sudoers: %w", err)
 	}
 
+	return nil
+}
+
+func installDocker(client *ssh.Client) error {
+	log.Println("[Deploy] Installing Docker on Ubuntu 22.04...")
+
+	// 1. Check if docker is already installed
+	_, err := ExecuteCommand(client, "docker --version")
+	if err == nil {
+		log.Println("[Deploy] Docker is already installed, skipping.")
+		return nil
+	}
+
+	commands := []string{
+		"apt-get update",
+		"apt-get install -y ca-certificates curl gnupg",
+		"install -m 0755 -d /etc/apt/keyrings",
+		"curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg",
+		"chmod a+r /etc/apt/keyrings/docker.gpg",
+		"echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo \\\"$VERSION_CODENAME\\\") stable\" | tee /etc/apt/sources.list.d/docker.list > /dev/null",
+		"apt-get update",
+		"apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin",
+		"systemctl start docker",
+		"systemctl enable docker",
+	}
+
+	for _, cmd := range commands {
+		log.Printf("[Deploy] Running: %s", cmd)
+		if _, err := ExecuteCommand(client, cmd); err != nil {
+			return fmt.Errorf("failed to execute command '%s': %w", cmd, err)
+		}
+	}
+
+	log.Println("[Deploy] Docker installed successfully.")
 	return nil
 }
 
@@ -485,6 +541,7 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	ExecuteCommand(client, fmt.Sprintf("mkdir -p %s", remoteDataAnything))
 	ExecuteCommand(client, fmt.Sprintf("chown 1000:1000 -R %s", remoteDataAnything))
+	ExecuteCommand(client, fmt.Sprintf("chmod 777 -R %s", remoteDataAnything))
 
 	// 4. Run Agent
 
@@ -592,25 +649,20 @@ func SyncLiteLLMConfig(nodeIP string) error {
 					sb.WriteString("      api_key: \"not-needed\"\n")
 				} else if !cfg.IsManaged && cfg.Engine == "External" {
 					// External Cloud (OpenAI / DeepSeek / Zhipu etc)
-					envVarName := strings.ToUpper(strings.ReplaceAll(cfg.ModelName, "-", "_")) + "_API_KEY"
 					sb.WriteString(fmt.Sprintf("  - model_name: %s\n", cfg.ModelName))
 					sb.WriteString("    litellm_params:\n")
-					
-					// Use openai driver with explicit base for maximum compatibility with Zhipu
-					sb.WriteString(fmt.Sprintf("      model: openai/%s\n", cfg.ModelName))
+
+					// Use model directly without openai/ prefix as requested
+					sb.WriteString(fmt.Sprintf("      model: %s\n", cfg.ModelName))
 					sb.WriteString(fmt.Sprintf("      api_base: %s\n", cfg.BaseURL))
 					sb.WriteString("      custom_llm_provider: openai\n")
-					
-					// Use 'os.environ/' which is the most robust way for LiteLLM to resolve internal variables
-					sb.WriteString(fmt.Sprintf("      api_key: \"os.environ/%s\"\n", envVarName))
 
-					// Decrypt key for .env storage
+					// Use direct api_key for clarity as requested by user
+					decKey := cfg.APIKey
 					if dec, err := utils.DecryptPassword(cfg.APIKey); err == nil {
-						envKeys[envVarName] = dec
-					} else {
-						log.Printf("[SyncLiteLLM] DecryptPassword failed for %s: %v", cfg.ModelName, err)
-						envKeys[envVarName] = cfg.APIKey
+						decKey = dec
 					}
+					sb.WriteString(fmt.Sprintf("      api_key: \"%s\"\n", decKey))
 				}
 			}
 		}
@@ -649,6 +701,24 @@ func SyncLiteLLMConfig(nodeIP string) error {
 		}
 		ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remotePath))
 
+		// Ensure .env and .env-litellm exist on remote
+		localEnvPath := filepath.Join(backendDir, "deployments/dockers/yaml/.env")
+		remoteEnvPath := "/home/anyadmin/docker/.env"
+		if _, err := os.Stat(localEnvPath); err == nil {
+			CopyFile(client, localEnvPath, remoteEnvPath)
+			ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remoteEnvPath))
+		}
+
+		localEnvLitePath := filepath.Join(backendDir, "deployments/dockers/yaml/.env-litellm")
+		remoteEnvLitePath := "/home/anyadmin/docker/.env-litellm"
+		if _, err := os.Stat(localEnvLitePath); err == nil {
+			CopyFile(client, localEnvLitePath, remoteEnvLitePath)
+			ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remoteEnvLitePath))
+		} else {
+			// Create empty if missing locally
+			ExecuteCommand(client, fmt.Sprintf("touch %s && chown anyadmin:anyadmin %s", remoteEnvLitePath, remoteEnvLitePath))
+		}
+
 		// Also push the latest docker-compose.yaml to ensure env_file is included
 		localComposePath := filepath.Join(backendDir, "deployments/dockers/yaml/docker-compose.yaml")
 		remoteComposePath := "/home/anyadmin/docker/docker-compose.yaml"
@@ -657,7 +727,7 @@ func SyncLiteLLMConfig(nodeIP string) error {
 		} else {
 			ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remoteComposePath))
 		}
-		
+
 		// Update .env-litellm via agent and trigger restart
 		if len(envKeys) > 0 {
 			// This call handles BOTH writing the env file AND restarting the container correctly

@@ -493,7 +493,7 @@ func TestServiceConnection(c *gin.Context) {
 		return
 	}
 
-	timeout := 5 * time.Second
+	timeout := 3 * time.Second
 
 	// Handle SSH (Multiple nodes from textarea)
 	if req.Type == "ssh" {
@@ -538,41 +538,63 @@ func TestServiceConnection(c *gin.Context) {
 		return
 	}
 
-	address := fmt.Sprintf("%s:%s", req.Host, req.Port)
+	address := net.JoinHostPort(req.Host, req.Port)
 
 	// For vLLM (inference) or LiteLLM proxy, we might want to check HTTP explicitly
 	if req.Type == "inference" {
 		// Try vLLM health first
 		url := fmt.Sprintf("http://%s/health", address)
 		resp, err := utils.Get(url, timeout)
-		if err == nil && resp.StatusCode == http.StatusOK {
-			c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Successfully connected to vLLM service"})
-			return
+		if err == nil {
+			defer resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Successfully connected to vLLM service"})
+				return
+			}
 		}
 
 		// Try LiteLLM proxy health
 		url = fmt.Sprintf("http://%s/health/readiness", address)
 		resp, err = utils.Get(url, timeout)
-		if err == nil && resp.StatusCode == http.StatusOK {
-			c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Successfully connected to LiteLLM Proxy"})
-			return
+		if err == nil {
+			defer resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Successfully connected to LiteLLM Proxy"})
+				return
+			}
 		}
 		// Fallback to TCP if HTTP fails or for generic check
 	}
 
-	// For AnythingLLM (RAG App), check HTTP root
+	// For AnythingLLM (RAG App), check HTTP root or health endpoint
 	if req.Type == "rag_app" {
-		url := fmt.Sprintf("http://%s", address)
+		// Try AnythingLLM system check
+		url := fmt.Sprintf("http://%s/api/system/check-integration", address)
 		resp, err := utils.Get(url, timeout)
-		if err == nil && resp.StatusCode < 500 {
-			c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Successfully connected to AnythingLLM service"})
-			return
+		if err == nil {
+			defer resp.Body.Close()
+			if resp.StatusCode < 500 {
+				c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Successfully connected to AnythingLLM service"})
+				return
+			}
+		}
+
+		// Fallback to root check
+		url = fmt.Sprintf("http://%s", address)
+		resp, err = utils.Get(url, timeout)
+		if err == nil {
+			defer resp.Body.Close()
+			if resp.StatusCode < 500 {
+				c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Successfully connected to AnythingLLM service (Root)"})
+				return
+			}
 		}
 	}
 
 	conn, err := net.DialTimeout("tcp", address, timeout)
 	if err != nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "error", "message": "Connection failed: " + err.Error()})
+		// Return 200 with error status so the frontend shows the message instead of a generic 503 error
+		c.JSON(http.StatusOK, gin.H{"status": "error", "message": "Connection failed: " + err.Error()})
 		return
 	}
 	conn.Close()

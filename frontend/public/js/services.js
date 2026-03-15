@@ -759,7 +759,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 1. Set Service Metadata (Hidden but used for anchoring to LiteLLM)
         if (serviceTypeSelect) serviceTypeSelect.value = 'inference';
         if (typeSelect) typeSelect.value = 'llm';
-        if (nodeSelect) nodeSelect.value = '172.20.0.10';
+        if (nodeSelect) nodeSelect.value = '172.25.208.100';
         if (portInput) portInput.value = '4000';
 
         // 2. Set Remote Routing logic

@@ -23,7 +23,7 @@
   "backup_records": null,
   "deployment_nodes": [
     {
-      "node_ip": "172.20.0.10",
+      "node_ip": "172.25.208.100",
       "hostname": "",
       "agent_config": {
         "deployment_time": "",
@@ -43,7 +43,7 @@
           "engine": "vLLM",
           "model_name": "",
           "model_path": "",
-          "ip": "172.20.0.10",
+          "ip": "172.25.208.100",
           "port": "",
           "mode": "",
           "gpu_memory_size": 0,
@@ -62,7 +62,7 @@
           "engine": "RAG App",
           "model_name": "",
           "model_path": "",
-          "ip": "172.20.0.10",
+          "ip": "172.25.208.100",
           "port": "",
           "mode": "",
           "gpu_memory_size": 0,

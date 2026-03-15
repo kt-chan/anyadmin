@@ -37,7 +37,7 @@ func TestNodeOperations(t *testing.T) {
 	// 1. Initial nodes
 	utils.ExecuteWrite(func() {
 		utils.DeploymentNodes = []global.DeploymentNode{
-			{NodeIP: "172.20.0.10", Hostname: "172.20.0.10"},
+			{NodeIP: "172.25.208.100", Hostname: "172.25.208.100"},
 		}
 	}, true)
 
@@ -49,11 +49,11 @@ func TestNodeOperations(t *testing.T) {
 
 	var resp map[string][]string
 	json.Unmarshal(w.Body.Bytes(), &resp)
-	assert.Contains(t, resp["nodes"], "172.20.0.10")
+	assert.Contains(t, resp["nodes"], "172.25.208.100")
 
 	// 4. Test SaveNodes
 	w = httptest.NewRecorder()
-	payload := map[string][]string{"nodes": {"172.20.0.10:22"}}
+	payload := map[string][]string{"nodes": {"172.25.208.100:22"}}
 	body, _ := json.Marshal(payload)
 	req, _ = http.NewRequest("POST", "/api/v1/deploy/nodes", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -64,7 +64,7 @@ func TestNodeOperations(t *testing.T) {
 	utils.ExecuteRead(func() {
 		found := false
 		for _, n := range utils.DeploymentNodes {
-			if n.NodeIP == "172.20.0.10" {
+			if n.NodeIP == "172.25.208.100" {
 				found = true
 				break
 			}
@@ -77,10 +77,10 @@ func TestAgentControlAPI(t *testing.T) {
 
 	router := setupNodeRouter()
 
-	// Use remote target host 172.20.0.10
+	// Use remote target host 172.25.208.100
 
 	payload := map[string]string{
-		"ip":     "172.20.0.10",
+		"ip":     "172.25.208.100",
 		"action": "stop",
 	}
 

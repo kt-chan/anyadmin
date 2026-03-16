@@ -14,6 +14,7 @@ import (
 	"anyadmin-backend/pkg/utils"
 
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 )
 
 func DeployService(c *gin.Context) {
@@ -68,7 +69,7 @@ func DeployService(c *gin.Context) {
 	// For managed services, we use the "project:service" convention
 	if req.Mode == "new_deployment" {
 		inferenceConfig.Engine = "vLLM"
-		// The Name stored in DB will be "instance:compose_service" 
+		// The Name stored in DB will be "instance:compose_service"
 		// so agent knows what to do
 		inferenceConfig.Name = instanceName + ":" + composeService
 	} else {
@@ -76,12 +77,12 @@ func DeployService(c *gin.Context) {
 	}
 
 	// ... (Calculation logic remains similar, but ensure it uses inferenceConfig.Name where appropriate)
-	var gpuMem float64 = 8.0 
+	var gpuMem float64 = 8.0
 	calcParams := utils.CalculateConfigParams{
 		ModelNameOrPath: req.ModelName,
 		GPUMemoryGB:     gpuMem,
 		Mode:            "balanced",
-		GPUUtilization:  0.85,
+		GPUUtilization:  viper.GetFloat64("VLLM_GPU_MEMORY_UTILIZATION"),
 	}
 
 	vllmCfg, _, err := utils.CalculateVLLMConfig(calcParams)
@@ -94,10 +95,10 @@ func DeployService(c *gin.Context) {
 		inferenceConfig.MaxNumBatchedTokens = vllmCfg.MaxNumBatchedTokens
 		inferenceConfig.GpuMemoryUtilization = vllmCfg.GPUMemoryUtil
 	} else {
-		inferenceConfig.MaxModelLen = 4096
-		inferenceConfig.MaxNumSeqs = 20
-		inferenceConfig.MaxNumBatchedTokens = 8192
-		inferenceConfig.GpuMemoryUtilization = 0.85
+		inferenceConfig.MaxModelLen = viper.GetInt("VLLM_MAX_MODEL_LEN")
+		inferenceConfig.MaxNumSeqs = viper.GetInt("VLLM_MAX_NUM_SEQS")
+		inferenceConfig.MaxNumBatchedTokens = viper.GetInt("VLLM_MAX_NUM_BATCHED_TOKENS")
+		inferenceConfig.GpuMemoryUtilization = viper.GetFloat64("VLLM_GPU_MEMORY_UTILIZATION")
 	}
 
 	utils.ExecuteWrite(func() {
@@ -112,9 +113,13 @@ func DeployService(c *gin.Context) {
 			var updatedNodes []global.DeploymentNode
 			for _, nodeIP := range nodes {
 				nodeIP = strings.TrimSpace(nodeIP)
-				if nodeIP == "" { continue }
+				if nodeIP == "" {
+					continue
+				}
 				host, _, err := net.SplitHostPort(nodeIP)
-				if err != nil { host = nodeIP }
+				if err != nil {
+					host = nodeIP
+				}
 
 				// Async deployment of agent
 				go service.DeployAgent(host, req.MgmtHost, req.MgmtPort, req.Mode)
@@ -188,12 +193,20 @@ func DeployService(c *gin.Context) {
 
 	addRagCfg := func(nodeIP string, newCfg global.RagAppConfig) {
 		// ... (Default settings)
-		if newCfg.StorageDir == "" { newCfg.StorageDir = "/app/server/storage" }
-		if newCfg.LLMProvider == "" { newCfg.LLMProvider = "generic-openai" }
-		if newCfg.GenericOpenAIBasePath == "" { newCfg.GenericOpenAIBasePath = "http://litellm:4000/v1" }
-		if newCfg.GenericOpenAIModelPref == "" { newCfg.GenericOpenAIModelPref = "qwen" }
-		if newCfg.GenericOpenAIKey == "" { 
-			newCfg.GenericOpenAIKey = "sk-any-key" 
+		if newCfg.StorageDir == "" {
+			newCfg.StorageDir = "/app/server/storage"
+		}
+		if newCfg.LLMProvider == "" {
+			newCfg.LLMProvider = "generic-openai"
+		}
+		if newCfg.GenericOpenAIBasePath == "" {
+			newCfg.GenericOpenAIBasePath = "http://litellm:4000/v1"
+		}
+		if newCfg.GenericOpenAIModelPref == "" {
+			newCfg.GenericOpenAIModelPref = "qwen"
+		}
+		if newCfg.GenericOpenAIKey == "" {
+			newCfg.GenericOpenAIKey = "sk-any-key"
 		}
 		// Encrypt key if not already encrypted
 		if len(newCfg.GenericOpenAIKey) < 100 {
@@ -201,7 +214,9 @@ func DeployService(c *gin.Context) {
 				newCfg.GenericOpenAIKey = enc
 			}
 		}
-		if newCfg.VectorDB == "" { newCfg.VectorDB = "lancedb" }
+		if newCfg.VectorDB == "" {
+			newCfg.VectorDB = "lancedb"
+		}
 
 		for i, node := range utils.DeploymentNodes {
 			if node.NodeIP == nodeIP {
@@ -290,16 +305,20 @@ func DeployService(c *gin.Context) {
 		go func() {
 			// Give agent time to start if it was just deployed
 			time.Sleep(10 * time.Second)
-			
+
 			// Always trigger LiteLLM start on all target nodes
 			if req.TargetNodes != "" {
 				nodes := strings.Split(req.TargetNodes, "\n")
 				for _, nodeIP := range nodes {
 					nodeIP = strings.TrimSpace(nodeIP)
-					if nodeIP == "" { continue }
+					if nodeIP == "" {
+						continue
+					}
 					host, _, err := net.SplitHostPort(nodeIP)
-					if err != nil { host = nodeIP }
-					
+					if err != nil {
+						host = nodeIP
+					}
+
 					log.Printf("[AutoStart] Triggering LiteLLM on %s", host)
 					service.ControlContainer("litellm:litellm", "start", host)
 				}

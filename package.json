@@ -6,7 +6,7 @@
     "install:frontend": "cd frontend && npm install",
     "install:backend": "cd backend && go mod download",
     "install:all": "npm install && npm run install:backend && npm run install:frontend",
-    "build:frontend:css": "tailwindcss -i frontend/public/css/src.css -o frontend/public/css/tailwind.css",
+    "build:frontend:css": "cd frontend && npm run build",
     "build:frontend": "npm run build:frontend:css",
     "build:backend:agent": "cd backend && go build -o dist/anyadmin-agent cmd/agent/main.go",
     "build:backend:server": "cd backend && go build -o dist/anyadmin-server cmd/server/main.go",
@@ -39,6 +39,7 @@
     "nodemon": "^3.1.11",
     "npm-run-all": "^4.1.5",
     "pug-lint": "^2.7.0",
-    "supertest": "^7.2.2"
+    "supertest": "^7.2.2",
+    "vite": "^6.2.0"
   }
 }

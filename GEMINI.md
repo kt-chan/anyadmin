@@ -20,4 +20,4 @@
 
 ## Environment
 * **Execution Environment**: This is powershell, windows 11.
-* **Remote Agent Environment**: The remote host is up and running at 172.25.208.100 on port 22 at path /home/anyadmin/bin, and you have to run ssh with passwordless id_rsa key at @backend\keys with root user to remote host. 
+* **Remote Agent Environment**: The remote host is up and running at 172.20.0.10 on port 22 at path /home/anyadmin/bin, and you have to run ssh with passwordless id_rsa key at @backend\keys with root user to remote host. 

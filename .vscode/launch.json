@@ -7,12 +7,11 @@
       "name": "Run Frontend",
       "program": "${workspaceFolder}/frontend/app.js",
       "cwd": "${workspaceFolder}/frontend",
+      "envFile": "${workspaceFolder}/.env",
       "env": {
-        "NODE_ENV": "development",
-        "BACKEND_API_URL": "http://127.0.0.1:8080"
+        "NODE_ENV": "development"
       },
-      "console": "integratedTerminal",
-      "preLaunchTask": "full-stack-prepare"
+      "console": "integratedTerminal"
     },
     {
       "name": "Run Backend (Go)",
@@ -21,35 +20,7 @@
       "mode": "debug",
       "program": "${workspaceFolder}/backend/cmd/server/main.go",
       "cwd": "${workspaceFolder}/backend",
-      "env": {},
-      "console": "integratedTerminal",
-      "preLaunchTask": "stop-pids"
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Debug Frontend Tests (Jest)",
-      "program": "${workspaceFolder}/node_modules/jest/bin/jest.js",
-      "args": [
-        "--runInBand",
-        "--config=${workspaceFolder}/jest.config.js"
-      ],
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen"
-    },
-    {
-      "name": "Deploy Agent",
-      "type": "node",
-      "request": "launch",
-      "runtimeExecutable": "powershell",
-      "runtimeArgs": [
-        "-NoProfile",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        "${workspaceFolder}/scripts/deployment/deploy-agent.ps1"
-      ],
+      "envFile": "${workspaceFolder}/.env",
       "console": "integratedTerminal"
     }
   ],
@@ -59,7 +30,8 @@
       "configurations": [
         "Run Backend (Go)",
         "Run Frontend"
-      ]
+      ],
+      "preLaunchTask": "stop-pids"
     }
   ]
 }

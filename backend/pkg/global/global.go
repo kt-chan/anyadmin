@@ -2,6 +2,8 @@ package global
 
 import (
 	"log"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/spf13/viper"
@@ -172,22 +174,80 @@ type Model struct {
 }
 
 func InitConfig() {
+	// 1. Try to load .env file
+	// We prefer the project root .env first, then fallback to relative locations
+	cwd, _ := os.Getwd()
+	
+	// List of potential .env paths in order of preference
+	// 1. Project Root (assuming we are in anyadmin/backend or anyadmin/backend/cmd/server)
+	// 2. Current directory
+	envPaths := []string{
+		filepath.Join(cwd, "..", ".env"),       // if in backend/
+		filepath.Join(cwd, "..", "..", ".env"), // if in backend/cmd/server/
+		filepath.Join(cwd, ".env"),             // if in root/
+	}
+
+	envLoaded := false
+	for _, p := range envPaths {
+		if _, err := os.Stat(p); err == nil {
+			viper.SetConfigFile(p)
+			if err := viper.MergeInConfig(); err == nil {
+				log.Printf("[Config] Loaded .env from: %s", p)
+				envLoaded = true
+				break
+			}
+		}
+	}
+
+	if !envLoaded {
+		log.Println("[Config] No .env file found, relying on system environment and defaults")
+	}
+
+	// 2. Load config.yaml if exists
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
+	if err := viper.MergeInConfig(); err != nil {
+		// Ignore if config.yaml missing
+	}
+
 	viper.SetEnvPrefix("")
 	viper.AutomaticEnv()
-	viper.BindEnv("server.port", "SERVER_PORT")
-	viper.SetDefault("server.port", "8080")
-	
+
+	// 3. Bind all environment variables from .env
+	envVars := []string{
+		"MgmtHost", "MgmtPort", "ADMIN_USERNAME", "ADMIN_PASSWORD",
+		"REMOTE_USER", "REMOTE_HOST", "REMOTE_SSH_PORT", "REMOTE_BIN_DIR", "REMOTE_SRC_DIR",
+		"VLLM_MODEL_PATH", "OPEN_API_KEY", "DEEPSEEK_API_KEY", "ZHIPU_API_KEY",
+		"UID", "GID", "ANYTHINGLLM_STORAGE_DIR", "LLM_PROVIDER",
+		"GENERIC_OPEN_AI_BASE_PATH", "GENERIC_OPEN_AI_MODEL_PREF",
+		"GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT", "GENERIC_OPEN_AI_MAX_TOKENS",
+		"GENERIC_OPEN_AI_API_KEY", "VECTOR_DB", "DISABLE_TELEMETRY",
+		"VLLM_IMAGE", "VLLM_LLM_PORT", "LLM_GPU_DEVICE_ID",
+		"VLLM_GPU_MEMORY_UTILIZATION", "VLLM_MAX_MODEL_LEN",
+		"VLLM_MAX_NUM_SEQS", "VLLM_MAX_NUM_BATCHED_TOKENS",
+	}
+	for _, v := range envVars {
+		viper.BindEnv(v)
+	}
+
+	// Legacy bindings
+	viper.BindEnv("server.port", "MgmtPort")
 	viper.BindEnv("admin.username", "ADMIN_USERNAME")
 	viper.BindEnv("admin.password", "ADMIN_PASSWORD")
-	viper.SetDefault("admin.username", "admin")
-	viper.SetDefault("admin.password", "password")
+	viper.BindEnv("mgmt.host", "MgmtHost")
+	viper.BindEnv("mgmt.port", "MgmtPort")
 
-	if err := viper.ReadInConfig(); err != nil {
-		log.Println("No config file found, using defaults")
-	}
-	ServerPort = viper.GetString("server.port")
+	// Set defaults
+	viper.SetDefault("MgmtHost", "172.20.0.1")
+	viper.SetDefault("MgmtPort", "8080")
+	viper.SetDefault("ADMIN_USERNAME", "admin")
+	viper.SetDefault("ADMIN_PASSWORD", "password")
+	viper.SetDefault("VLLM_MAX_MODEL_LEN", 4096)
+	viper.SetDefault("VLLM_MAX_NUM_SEQS", 8)
+	viper.SetDefault("VLLM_MAX_NUM_BATCHED_TOKENS", 8192)
+	viper.SetDefault("VLLM_GPU_MEMORY_UTILIZATION", 0.85)
+
+	ServerPort = viper.GetString("MgmtPort")
 	log.Printf("[Config] 端口配置: %s, 绑定地址: 0.0.0.0", ServerPort)
 }

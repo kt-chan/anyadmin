@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/viper"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -75,7 +76,10 @@ func DeployModels(client *ssh.Client) error {
 	for _, localTarPath := range tarFiles {
 		tarName := filepath.Base(localTarPath)
 		baseName := strings.TrimSuffix(tarName, ".tar")
-		remoteModelHomePath := "/home/anyadmin/data/model"
+		remoteModelHomePath := viper.GetString("VLLM_MODEL_PATH")
+		if remoteModelHomePath == "" {
+			remoteModelHomePath = "/home/anyadmin/data/model"
+		}
 		remoteExtractDir := remoteModelHomePath + "/" + baseName + "/"
 
 		// Check if model already exists on remote
@@ -226,7 +230,7 @@ func DeployAgent(nodeIP, mgmtHost, mgmtPort, mode string) {
 		}
 
 		RecordLog(user, "Agent Deployment", "Installing Node.js...", "Info")
-		if err := installNode(client); err != nil {
+		if err := installNodeNpm(client); err != nil {
 			RecordLog(user, "Agent Deployment", fmt.Sprintf("Failed to install Node.js: %v", err), "Error")
 			return
 		}
@@ -288,6 +292,42 @@ func ensureUser(client *ssh.Client) error {
 	return nil
 }
 
+// installNodeNpm installs node and npm if it does not exist in target host.
+func installNodeNpm(client *ssh.Client) error {
+	log.Println("[Deploy] Installing Node and NPM on Ubuntu 22.04...")
+	const nodeVersion = "v22.19.0"
+
+	// 1. Check current version
+	output, err := ExecuteCommand(client, "node -v")
+	if err == nil {
+		version := strings.TrimSpace(output)
+		if strings.HasPrefix(version, "v22.") {
+			log.Printf("[Deploy] Node.js %s already installed, skipping.", version)
+			return nil
+		}
+		log.Printf("[Deploy] Found old Node.js version %s, upgrading to %s...", version, nodeVersion)
+	}
+
+	commands := []string{
+		"apt-get update",
+		"apt-get remove -y nodejs npm",
+		"curl -fsSL https://deb.nodesource.com/setup_22.x | bash -",
+		"apt-get install -y nodejs",
+		"node -v",
+		"npm -v",
+	}
+
+	for _, cmd := range commands {
+		log.Printf("[Deploy] Running: %s", cmd)
+		if _, err := ExecuteCommand(client, cmd); err != nil {
+			return fmt.Errorf("failed to execute command '%s': %w", cmd, err)
+		}
+	}
+
+	log.Printf("[Deploy] Node.js %s and NPM installed successfully.", nodeVersion)
+	return nil
+}
+
 func installDocker(client *ssh.Client) error {
 	log.Println("[Deploy] Installing Docker on Ubuntu 22.04...")
 
@@ -331,7 +371,7 @@ func installGo(client *ssh.Client) error {
 
 	localTarPath := filepath.Join(backendDir, "deployments/tars/os/ubuntu/amd64/jammy/go"+goVersion+".linux-amd64.tar.gz")
 	remoteTarPath := "/tmp/go.tar.gz"
-	remoteGoHome := "/home/anyadmin/app/go"
+	remoteGoHome := "/home/anyadmin/bin/go"
 	remoteInstallDir := fmt.Sprintf("%s/go-%s", remoteGoHome, goVersion)
 	remoteGoBinPath := fmt.Sprintf("%s/go/bin/go", remoteInstallDir)
 
@@ -388,37 +428,6 @@ func installGo(client *ssh.Client) error {
 	return nil
 }
 
-func installNode(client *ssh.Client) error {
-	log.Println("[Deploy] Ensuring Node.js 20.x is installed on Ubuntu 22.04...")
-
-	// 1. Check current version
-	output, err := ExecuteCommand(client, "node -v")
-	if err == nil {
-		version := strings.TrimSpace(output)
-		if strings.HasPrefix(version, "v20.") || strings.HasPrefix(version, "v22.") || strings.HasPrefix(version, "v18.") {
-			log.Printf("[Deploy] Node.js %s already installed, skipping.", version)
-			return nil
-		}
-		log.Printf("[Deploy] Found old Node.js version %s, upgrading to 20.x...", version)
-	}
-
-	commands := []string{
-		"apt-get remove -y nodejs npm",
-		"curl -fsSL https://deb.nodesource.com/setup_20.x | bash -",
-		"apt-get install -y nodejs",
-	}
-
-	for _, cmd := range commands {
-		log.Printf("[Deploy] Running: %s", cmd)
-		if _, err := ExecuteCommand(client, cmd); err != nil {
-			return fmt.Errorf("failed to execute command '%s': %w", cmd, err)
-		}
-	}
-
-	log.Println("[Deploy] Node.js installed successfully.")
-	return nil
-}
-
 func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) error {
 
 	nodePort := "8082"
@@ -441,23 +450,20 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	localPath := filepath.Join(backendDir, "dist/anyadmin-agent")
 
-	// Self-contained in user home
+	remoteBinDir := viper.GetString("REMOTE_BIN_DIR")
+	if remoteBinDir == "" {
+		remoteBinDir = "/home/anyadmin/bin"
+	}
 
-	remoteBin := "/home/anyadmin/app/anyadmin-agent"
-
+	remoteBin := remoteBinDir + "/anyadmin-agent"
 	remoteData := "/home/anyadmin/data"
-
 	remoteDataAnything := "/home/anyadmin/data/anythingllm"
-
-	remoteConfig := "/home/anyadmin/app/config.json"
-
+	remoteConfig := remoteBinDir + "/config.json"
 	logDir := "/home/anyadmin/logs"
 
 	// 1. Prepare Directories
-
 	log.Println("[Deploy] Preparing directories...")
-
-	prepCmd := fmt.Sprintf("mkdir -p /home/anyadmin/app %s && chown -R anyadmin:anyadmin /home/anyadmin && chmod 755 %s", logDir, logDir)
+	prepCmd := fmt.Sprintf("mkdir -p %s %s && chown -R anyadmin:anyadmin /home/anyadmin && chmod 755 %s", remoteBinDir, logDir, logDir)
 
 	if _, err := ExecuteCommand(client, prepCmd); err != nil {
 
@@ -585,14 +591,13 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 	// The agent now looks for config.json in the same directory by default (or we can specify it)
 
 	// We'll run it from the app directory using absolute paths for everything
-	remoteBinAbs := "/home/anyadmin/app/anyadmin-agent"
+	remoteBinAbs := remoteBinDir + "/anyadmin-agent"
 
 	// Wrap in runuser and nohup. Use -c "cd ... && nohup ... > ... < /dev/null &"
 	// Redirecting stdin from /dev/null is crucial for nohup via ssh to not hang
 	log.Println("[Deploy] Starting agent...")
 
-	fullCmd := fmt.Sprintf("runuser -l anyadmin -c 'cd /home/anyadmin/app && (nohup %s -config config.json -log /home/anyadmin/logs/agent.log > /home/anyadmin/logs/agent.log 2>&1 < /dev/null &) >/dev/null 2>&1'", remoteBinAbs)
-
+	fullCmd := fmt.Sprintf("runuser -l anyadmin -c 'cd %s && (nohup %s -config config.json -log /home/anyadmin/logs/agent.log > /home/anyadmin/logs/agent.log 2>&1 < /dev/null &) >/dev/null 2>&1'", remoteBinDir, remoteBinAbs)
 
 	if _, err := ExecuteCommand(client, fullCmd); err != nil {
 

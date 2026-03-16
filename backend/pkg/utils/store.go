@@ -144,10 +144,10 @@ func InitData() {
 
 		// Initialize MgmtHost and MgmtPort if empty
 		if MgmtHost == "" {
-			MgmtHost = "172.20.0.1"
+			MgmtHost = viper.GetString("MgmtHost")
 		}
 		if MgmtPort == "" {
-			MgmtPort = "8080"
+			MgmtPort = viper.GetString("MgmtPort")
 		}
 
 		// Initialize ModelTypes if empty

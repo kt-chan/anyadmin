@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/pkg/sftp"
+	"github.com/spf13/viper"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -138,8 +139,13 @@ func GetSSHClient(host string, port string) (*ssh.Client, error) {
 		return nil, fmt.Errorf("unable to parse private key: %w", err)
 	}
 
+	user := viper.GetString("REMOTE_USER")
+	if user == "" {
+		user = "root"
+	}
+
 	config := &ssh.ClientConfig{
-		User: "root", // Default to root
+		User: user,
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeys(signer),
 			ssh.Password("password"), // Fallback to default password

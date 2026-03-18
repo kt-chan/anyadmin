@@ -24,17 +24,6 @@ func DeployService(c *gin.Context) {
 		return
 	}
 
-	// Standardize name based on ModelType and unique identifier
-	// If ServiceName is provided, use it, otherwise generate one
-	baseInstanceName := req.ServiceName
-	if baseInstanceName == "" {
-		baseInstanceName = fmt.Sprintf("%s-%s", strings.ToLower(req.ModelType), time.Now().Format("01021504"))
-	}
-	baseInstanceName = strings.ToLower(baseInstanceName)
-
-	// Prefix with type to avoid port/env conflicts
-	instanceName := "inf-" + baseInstanceName
-
 	// Encrypt API Key if provided
 	encryptedAPIKey := req.APIKey
 	if req.APIKey != "" {
@@ -45,7 +34,6 @@ func DeployService(c *gin.Context) {
 
 	// Map DeploymentConfig to InferenceConfig for compatibility
 	inferenceConfig := global.InferenceConfig{
-		Name:      instanceName, // This is the unique Instance/Project Name
 		ModelType: req.ModelType,
 		IsManaged: req.Mode == "new_deployment",
 		APIKey:    encryptedAPIKey,
@@ -65,15 +53,17 @@ func DeployService(c *gin.Context) {
 	case "ocr", "vlm":
 		composeService = "vllm-mineru"
 	}
+	
+	inferenceConfig.Name = composeService
 
-	// For managed services, we use the "project:service" convention
+	// For managed services, we use the compose service name directly
 	if req.Mode == "new_deployment" {
 		inferenceConfig.Engine = "vLLM"
-		// The Name stored in DB will be "instance:compose_service"
-		// so agent knows what to do
-		inferenceConfig.Name = instanceName + ":" + composeService
 	} else {
 		inferenceConfig.Engine = "External"
+		if req.ServiceName != "" {
+			inferenceConfig.Name = req.ServiceName
+		}
 	}
 
 	// ... (Calculation logic remains similar, but ensure it uses inferenceConfig.Name where appropriate)
@@ -136,7 +126,7 @@ func DeployService(c *gin.Context) {
 					}
 					// Always add LiteLLM as core proxy for new nodes
 					newNode.InferenceCfgs = append(newNode.InferenceCfgs, global.InferenceConfig{
-						Name:      "litellm:litellm",
+						Name:      "litellm",
 						ModelType: "proxy",
 						IsManaged: true,
 						Engine:    "LiteLLM",
@@ -154,9 +144,9 @@ func DeployService(c *gin.Context) {
 
 	// Mode specific logging
 	if req.Mode == "new_deployment" {
-		log.Printf("[全新部署] 正在初始化节点并拉起新服务: %s (%s)", instanceName, req.ModelName)
+		log.Printf("[全新部署] 正在初始化节点并拉起新服务: %s (%s)", inferenceConfig.Name, req.ModelName)
 	} else {
-		log.Printf("[接入服务] 正在登记现有服务: %s (%s:%s)", instanceName, req.InferenceHost, req.InferencePort)
+		log.Printf("[接入服务] 正在登记现有服务: %s (%s:%s)", inferenceConfig.Name, req.InferenceHost, req.InferencePort)
 	}
 
 	// Helper to add config (Upsert logic)
@@ -246,9 +236,8 @@ func DeployService(c *gin.Context) {
 			addInferenceCfg(req.InferenceHost, inferenceConfig)
 		}
 		if req.EnableRAG && req.RAGHost != "" {
-			ragInstanceName := "rag-" + baseInstanceName
 			addRagCfg(req.RAGHost, global.RagAppConfig{
-				Name:      ragInstanceName + ":anythingllm", // Unique project name
+				Name:      "anythingllm",
 				IsManaged: req.Mode == "new_deployment",
 				Host:      req.RAGHost,
 				Port:      req.RAGPort,
@@ -258,13 +247,8 @@ func DeployService(c *gin.Context) {
 
 		if req.EnableVectorDB && req.VectorDBHost != "" {
 			vdbName := strings.ToLower(req.VectorDBType)
-			vdbInstanceName := "vdb-" + baseInstanceName
-			name := vdbInstanceName + "-" + vdbName
-			if req.Mode == "new_deployment" {
-				name = vdbInstanceName + ":" + vdbName
-			}
 			addInferenceCfg(req.VectorDBHost, global.InferenceConfig{
-				Name:      name,
+				Name:      vdbName,
 				ModelType: "vectordb",
 				IsManaged: req.Mode == "new_deployment",
 				Engine:    "Vector DB",
@@ -274,98 +258,16 @@ func DeployService(c *gin.Context) {
 		}
 
 		if req.EnableParser && req.ParserHost != "" {
-			parserType := req.ModelType
-			if parserType == "" {
-				parserType = "ocr" // Fallback
-			}
-			psrInstanceName := parserType + "-" + baseInstanceName
-			name := psrInstanceName + "-parser"
-			if req.Mode == "new_deployment" {
-				name = psrInstanceName + ":mineru-api"
-			}
-
-			engine := "vLLM"
-			if req.Platform == "ascend" {
-				engine = "MindIE"
-			}
-
 			addInferenceCfg(req.ParserHost, global.InferenceConfig{
-				Name:      name,
-				ModelType: parserType,
+				Name:      "mineru-api",
+				ModelType: "ocr",
 				IsManaged: req.Mode == "new_deployment",
-				Engine:    engine,
+				Engine:    "vLLM",
 				IP:        req.ParserHost,
 				Port:      req.ParserPort,
 			})
 		}
 	}, true)
-
-	// Trigger immediate start if managed
-	if req.Mode == "new_deployment" {
-		go func() {
-			// Give agent time to start if it was just deployed
-			time.Sleep(10 * time.Second)
-
-			// Always trigger LiteLLM start on all target nodes
-			if req.TargetNodes != "" {
-				nodes := strings.Split(req.TargetNodes, "\n")
-				for _, nodeIP := range nodes {
-					nodeIP = strings.TrimSpace(nodeIP)
-					if nodeIP == "" {
-						continue
-					}
-					host, _, err := net.SplitHostPort(nodeIP)
-					if err != nil {
-						host = nodeIP
-					}
-
-					log.Printf("[AutoStart] Triggering LiteLLM on %s", host)
-					service.ControlContainer("litellm:litellm", "start", host)
-				}
-			}
-
-			if req.InferenceHost != "" {
-				configMap := map[string]string{
-					"model_name": req.ModelName,
-					"port":       req.InferencePort,
-				}
-				service.UpdateVLLMConfig(req.InferenceHost, inferenceConfig.Name, configMap, true)
-			}
-
-			if req.EnableRAG && req.RAGHost != "" {
-				ragName := "rag-" + baseInstanceName + ":anythingllm"
-				configMap := map[string]string{
-					"port": req.RAGPort,
-				}
-				// Use the provided API Key if available
-				if req.APIKey != "" {
-					decryptedKey := req.APIKey
-					if dec, err := utils.DecryptPassword(req.APIKey); err == nil {
-						decryptedKey = dec
-					} else {
-						log.Printf("[Deploy] DecryptPassword failed for RAG API Key: %v", err)
-					}
-					configMap["generic_openai_api_key"] = decryptedKey
-				} else {
-					configMap["generic_openai_api_key"] = "sk-any-key"
-				}
-				service.UpdateAnythingLLMConfig(req.RAGHost, ragName, configMap, true)
-			}
-
-			if req.EnableVectorDB && req.VectorDBHost != "" {
-				vdbName := strings.ToLower(req.VectorDBType)
-				service.ControlContainer("vdb-"+baseInstanceName+":"+vdbName, "start", req.VectorDBHost)
-			}
-
-			if req.EnableParser && req.ParserHost != "" {
-				parserType := req.ModelType
-				if parserType == "" {
-					parserType = "ocr"
-				}
-				service.ControlContainer(parserType+"-"+baseInstanceName+":mineru-api", "start", req.ParserHost)
-			}
-		}()
-	}
 
 	// 记录审计日志
 	action := "服务部署"

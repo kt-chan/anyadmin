@@ -21,7 +21,84 @@
   ],
   "import_tasks": null,
   "backup_records": null,
-  "deployment_nodes": null,
+  "deployment_nodes": [
+    {
+      "node_ip": "172.20.0.10",
+      "hostname": "172.20.0.10",
+      "agent_config": {
+        "deployment_time": "2026-03-18T14:40:20+08:00",
+        "log_file": "/home/anyadmin/logs/agent.log",
+        "mgmt_host": "172.20.0.1",
+        "mgmt_port": "8080",
+        "node_ip": "172.20.0.10",
+        "node_port": "8082"
+      },
+      "inference_cfgs": [
+        {
+          "id": 0,
+          "createdAt": "0001-01-01T00:00:00Z",
+          "updatedAt": "0001-01-01T00:00:00Z",
+          "deletedAt": null,
+          "name": "litellm",
+          "model_type": "proxy",
+          "is_managed": true,
+          "engine": "LiteLLM",
+          "model_name": "",
+          "model_path": "",
+          "ip": "172.20.0.10",
+          "port": "4000",
+          "mode": "",
+          "gpu_memory_size": 0,
+          "gpu_utilization": 0,
+          "max_model_len": 0,
+          "max_num_seqs": 0,
+          "max_num_batched_tokens": 0,
+          "gpu_memory_utilization": 0
+        },
+        {
+          "id": 0,
+          "createdAt": "2026-03-18T14:40:03.566209+08:00",
+          "updatedAt": "2026-03-18T14:40:03.566209+08:00",
+          "deletedAt": null,
+          "name": "vllm-llm",
+          "model_type": "llm",
+          "is_managed": true,
+          "engine": "vLLM",
+          "model_name": "Qwen3-1.7B",
+          "model_path": "",
+          "ip": "172.20.0.10",
+          "port": "8000",
+          "mode": "balanced",
+          "gpu_memory_size": 8,
+          "gpu_utilization": 0.85,
+          "max_model_len": 4096,
+          "max_num_seqs": 3,
+          "max_num_batched_tokens": 8192,
+          "gpu_memory_utilization": 0.85
+        }
+      ],
+      "rag_app_cfgs": [
+        {
+          "id": 0,
+          "createdAt": "2026-03-18T14:40:03.5700287+08:00",
+          "updatedAt": "2026-03-18T14:40:03.5700287+08:00",
+          "deletedAt": null,
+          "name": "anythingllm",
+          "is_managed": true,
+          "host": "172.20.0.10",
+          "port": "3001",
+          "storage_dir": "/app/server/storage",
+          "llm_provider": "generic-openai",
+          "generic_openai_base_path": "http://litellm:4000/v1",
+          "generic_openai_model_pref": "qwen",
+          "generic_openai_model_token_limit": 0,
+          "generic_openai_max_tokens": 0,
+          "generic_openai_api_key": "IiXZmExQIwdFgEeBZipLEDUC6hAFZyOKpi6wVMEFebtHz6Mxuv42gvERpNMKSUVtSIbehuuIz8yPfWvaqOFA5lgKGiu/3erQzL8N64IV5/cwCFR2qmA9/WFNg38thfHa36PNGXUk0YS/LIX24dRDlhg9bfxpvf3OWFM1wEqqapYR7BDt7V6jq6NhENukcVUPB2IzcCxKb3CoSyyaw595J9s5XJUwZAfgnDUe1DSLcCiAmIJ8N4xK4VSd44pn8ohCmFidWK8DPSMMxxQMROmBTjsGZw1fonPu9kAhJGt8DAdyCvuodiP/elSKaPEskdVjO2IKqw1/ZpiqPyMZUXN9ZrrNTjP1bdIb3W3QXL6w1se/RcpgtGujc2kjIVRqpc6uuP9mA3NJB8OVzgF/IIe6pcFDapPtsDRDn9yrQoa/eC8mTM8Dd1oyLmIqwJCA+gzlaLuDh+eJQGd+nCOwESHuuQCLsdd8Uw0a9qjGq8Ym0vzgKMXM+AouobjYGHomEINGeFDWcWmmrBEihzf7W7Tt3a+kpweeegpCfPJDpDPJ3PhUdh+nAwOnRMlRsbY8r43Re5NRMElfbpsBxClPC7QKA+KZ/rt2Kt2tKAU4dtRe/D6jzAh879uDxC5oe/xXRh3eEShWaKNpxwmgl3eUsHSoCJeUiNK9xSwdmIRCMczwlYI=",
+          "vector_db": "lancedb"
+        }
+      ]
+    }
+  ],
   "model_types": [
     "llm",
     "vlm",
@@ -31,7 +108,53 @@
     "embedding",
     "reranker"
   ],
-  "models": null,
+  "models": [
+    {
+      "id": 0,
+      "createdAt": "2026-02-26T16:29:52.464861+08:00",
+      "updatedAt": "2026-02-26T16:29:52.464861+08:00",
+      "deletedAt": null,
+      "name": "MinerU-2.5",
+      "model_type": "ocr",
+      "size": 2323675923
+    },
+    {
+      "id": 0,
+      "createdAt": "2026-02-26T17:37:00.8861147+08:00",
+      "updatedAt": "2026-02-26T17:37:00.8861147+08:00",
+      "deletedAt": null,
+      "name": "Qwen3-1.7B",
+      "model_type": "llm",
+      "size": 4079477551
+    },
+    {
+      "id": 0,
+      "createdAt": "2026-02-26T16:36:09.2041541+08:00",
+      "updatedAt": "2026-02-26T16:36:09.2041541+08:00",
+      "deletedAt": null,
+      "name": "bge-large-zh",
+      "model_type": "embedding",
+      "size": 1302804254
+    },
+    {
+      "id": 0,
+      "createdAt": "2026-02-26T16:42:10.1916208+08:00",
+      "updatedAt": "2026-02-26T16:42:10.1916208+08:00",
+      "deletedAt": null,
+      "name": "bge-reranker-large",
+      "model_type": "reranker",
+      "size": 6741726079
+    },
+    {
+      "id": 0,
+      "createdAt": "2026-02-26T16:30:03.1666241+08:00",
+      "updatedAt": "2026-02-26T16:30:03.1666241+08:00",
+      "deletedAt": null,
+      "name": "llama-3.2-1B-Instruct",
+      "model_type": "llm",
+      "size": 4954734534
+    }
+  ],
   "mgmt_host": "172.20.0.1",
   "mgmt_port": "8080"
 }

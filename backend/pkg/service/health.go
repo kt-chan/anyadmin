@@ -180,18 +180,14 @@ func GetServicesHealth() []ServiceStatus {
 					
 					lcCfgName := strings.ToLower(cfg.Name)
 					lcEngine := strings.ToLower(cfg.Engine)
-					// Handle projectName:serviceName format by converting to common docker styles
-					dockerBase := strings.ReplaceAll(lcCfgName, ":", "-")
-					dockerAlt := strings.ReplaceAll(dockerBase, ".", "_")
 
 					for _, dockerSvc := range agent.Services {
 						lcDockerName := strings.ToLower(dockerSvc.Name)
 
-						// Match if names are equal OR if docker name matches sanitized config name
+						// Match if names are equal OR if docker name contains/is contained by config name
 						isMatch := lcDockerName == lcCfgName || 
-								   strings.Contains(lcDockerName, dockerBase) || 
-								   strings.Contains(lcDockerName, dockerAlt) ||
-								   strings.Contains(dockerBase, lcDockerName) ||
+								   strings.Contains(lcDockerName, lcCfgName) || 
+								   strings.Contains(lcCfgName, lcDockerName) ||
 								   (strings.Contains(lcCfgName, "litellm") && strings.Contains(lcDockerName, "litellm"))
 						
 						// Special case: if engine is vLLM, it might be named just "vllm"

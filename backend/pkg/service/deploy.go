@@ -642,7 +642,81 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 		}
 	}, true)
 
+	// Trigger starting all registered containers
+	go StartNodeServices(nodeIP)
+
 	return nil
+}
+
+// StartNodeServices triggers all managed containers on a node to start
+func StartNodeServices(nodeIP string) {
+	var node global.DeploymentNode
+	utils.ExecuteRead(func() {
+		for _, n := range utils.DeploymentNodes {
+			if n.NodeIP == nodeIP {
+				node = n
+				break
+			}
+		}
+	})
+
+	if node.NodeIP == "" {
+		log.Printf("[Deploy] No registered services found for node %s in utils.DeploymentNodes", nodeIP)
+		return
+	}
+
+	log.Printf("[Deploy] Starting all registered services for node %s", nodeIP)
+
+	// Wait a bit for agent to be fully up and listening
+	time.Sleep(5 * time.Second)
+
+	// 1. Sync LiteLLM Config first (ensure proxy has the latest routes)
+	if err := SyncLiteLLMConfig(nodeIP); err != nil {
+		log.Printf("[Deploy] Warning: failed to sync LiteLLM config on %s: %v", nodeIP, err)
+	}
+
+	// 2. Inference Services
+	for _, cfg := range node.InferenceCfgs {
+		if cfg.IsManaged {
+			// Proxy LiteLLM is already handled by SyncLiteLLMConfig
+			if cfg.Name == "litellm" {
+				continue
+			}
+
+			log.Printf("[Deploy] Starting inference service: %s on %s", cfg.Name, nodeIP)
+			if cfg.Engine == "vLLM" {
+				configMap := map[string]string{
+					"model_name": cfg.ModelName,
+					"port":       cfg.Port,
+				}
+				UpdateVLLMConfig(nodeIP, cfg.Name, configMap, true)
+			} else {
+				ControlContainer(cfg.Name, "start", nodeIP)
+			}
+		}
+	}
+
+	// 3. RAG App Services
+	for _, cfg := range node.RagAppCfgs {
+		if cfg.IsManaged {
+			log.Printf("[Deploy] Starting RAG service: %s on %s", cfg.Name, nodeIP)
+			if cfg.Name == "anythingllm" {
+				configMap := map[string]string{
+					"port": cfg.Port,
+				}
+				if cfg.GenericOpenAIKey != "" {
+					if dec, err := utils.DecryptPassword(cfg.GenericOpenAIKey); err == nil {
+						configMap["generic_openai_api_key"] = dec
+					} else {
+						configMap["generic_openai_api_key"] = cfg.GenericOpenAIKey
+					}
+				}
+				UpdateAnythingLLMConfig(nodeIP, cfg.Name, configMap, true)
+			} else {
+				ControlContainer(cfg.Name, "start", nodeIP)
+			}
+		}
+	}
 }
 
 func calculateHash(filePath string) (string, error) {

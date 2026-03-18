@@ -347,23 +347,6 @@ func ParseDockerPsOutput(output string) []DockerServiceStatus {
 	return services
 }
 
-func sanitizeProjectName(name string) string {
-	// Docker project names must consist only of lowercase alphanumeric characters,
-	// hyphens, and underscores as well as start with a letter or number.
-	name = strings.ToLower(name)
-	re := regexp.MustCompile(`[^a-z0-9_-]`)
-	sanitized := re.ReplaceAllString(name, "_")
-
-	// Ensure it starts with a letter or number
-	if len(sanitized) > 0 {
-		first := sanitized[0]
-		if !((first >= 'a' && first <= 'z') || (first >= '0' && first <= '9')) {
-			sanitized = "p" + sanitized
-		}
-	}
-	return sanitized
-}
-
 // --- Server / Control Logic ---
 
 type ContainerControlRequest struct {
@@ -415,10 +398,6 @@ func HandleSyncLiteLLM(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Received LiteLLM sync request for node: %s", req.NodeIP)
 
-	// In this implementation, the backend already pushed the file via SCP during deployment.
-	// This endpoint can be used to trigger a proxy reload if needed.
-	// LiteLLM supports hot-reloading when the config file changes, but we can force it.
-	
 	workDir := DockerDir
 	cmdStr := "docker compose up -d --force-recreate litellm"
 	
@@ -501,35 +480,25 @@ func handleContainerControl(w http.ResponseWriter, r *http.Request) {
 
 	workDir := DockerDir
 
-	// Support dynamic project names via "project:service" format
-	projectName := req.ContainerName
+	// Simple service name from request
 	serviceName := req.ContainerName
-	if parts := strings.Split(req.ContainerName, ":"); len(parts) == 2 {
-		projectName = parts[0]
-		serviceName = parts[1]
-	}
-	projectName = sanitizeProjectName(projectName)
-
+	
 	var args []string
-	// The instance-specific env file is named after the project/instance name
-	containerEnv := DockerDir + ".env-" + projectName
+	
+	// Determine environment file
+	containerEnv := DockerDir + ".env-" + serviceName
 	
 	// Force LiteLLM to use a fixed env file name
 	if serviceName == "litellm" {
 		containerEnv = DockerDir + ".env-litellm"
-	} else {
-		// Check if instance-specific env exists, if not, try service-specific env
-		if _, err := os.Stat(containerEnv); os.IsNotExist(err) {
-			containerEnv = DockerDir + ".env-" + serviceName
-		}
 	}
 
-	args = append(args, "compose", "-p", projectName)
+	args = append(args, "compose")
 
 	// 1. Always load the base .env
 	args = append(args, "--env-file", DockerDir+".env")
 
-	// 2. Load service-specific or instance-specific env files
+	// 2. Load service-specific env file
 	if _, err := os.Stat(containerEnv); err == nil {
 		args = append(args, "--env-file", containerEnv)
 	}
@@ -603,16 +572,10 @@ func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	projectName := req.ContainerName
 	serviceName := req.ContainerName
-	if parts := strings.Split(req.ContainerName, ":"); len(parts) == 2 {
-		projectName = parts[0]
-		serviceName = parts[1]
-	}
-	projectName = sanitizeProjectName(projectName)
 	
-	// Use project-specific env file
-	envPath := DockerDir + ".env-" + projectName
+	// Use service-specific env file
+	envPath := DockerDir + ".env-" + serviceName
 	
 	// Force LiteLLM to use a fixed env file name
 	if serviceName == "litellm" {
@@ -623,13 +586,7 @@ func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	content, err := os.ReadFile(envPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			// If project env doesn't exist, try reading from service env as a template
-			serviceEnvPath := DockerDir + ".env-" + serviceName
-			if templateContent, err := os.ReadFile(serviceEnvPath); err == nil {
-				content = templateContent
-			} else {
-				content = []byte("")
-			}
+			content = []byte("")
 		} else {
 			http.Error(w, "Failed to read config file", http.StatusInternalServerError)
 			return
@@ -703,7 +660,7 @@ func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 			os.WriteFile(globalEnv, []byte("# Global environment variables\n"), 0644)
 		}
 
-		args := []string{"compose", "-p", projectName, "--env-file", globalEnv, "--env-file", envPath, "up", "-d", "--force-recreate", serviceName}
+		args := []string{"compose", "--env-file", globalEnv, "--env-file", envPath, "up", "-d", "--force-recreate", serviceName}
 		cmdStr := "docker " + strings.Join(args, " ")
 		log.Printf("Restarting service with command: %s", cmdStr)
 		

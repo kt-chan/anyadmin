@@ -68,11 +68,6 @@ block content
                     label.block.text-sm.font-medium.text-slate-700.mb-1 管理面板 Port
                     input(type="number", name="mgmt_port", value=mgmtPort, class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
                 
-                .mt-4
-                  label.block.text-sm.font-medium.text-slate-700.mb-1 部署项目名称 (Deployment Name)
-                  input(type="text", name="service_name", placeholder="Optional: e.g. my-llm-deployment", class="w-full rounded-lg border-2 border-slate-300 focus:ring-blue-500 focus:border-blue-500")
-                  p(class="text-[10px] text-slate-500 mt-1") 系统将自动根据此名称生成独立的环境变量文件（如 .env-inf-xxx, .env-rag-xxx），防止端口冲突。
-
                 //- LiteLLM Gateway Info
                 .mt-6.p-4.bg-purple-50.rounded-xl.border.border-purple-100
                   h4.font-bold.text-sm.text-purple-800.mb-2 

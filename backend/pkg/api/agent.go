@@ -106,18 +106,14 @@ func CheckAgentStatus(c *gin.Context) {
 	for _, cfgSvc := range configuredServices {
 		found := false
 		lcCfgName := strings.ToLower(cfgSvc.Name)
-		// Handle projectName:serviceName format by converting to common docker styles
-		dockerBase := strings.ReplaceAll(lcCfgName, ":", "-")
-		dockerAlt := strings.ReplaceAll(dockerBase, ".", "_")
 
 		for i, hbSvc := range status.Services {
 			lcHbName := strings.ToLower(hbSvc.Name)
 
-			// Match if names are equal OR if heartbeat name contains/is contained by sanitized config name
+			// Match if names are equal OR if heartbeat name contains/is contained by config name
 			if lcHbName == lcCfgName ||
-				strings.Contains(lcHbName, dockerBase) ||
-				strings.Contains(lcHbName, dockerAlt) ||
-				strings.Contains(dockerBase, lcHbName) ||
+				strings.Contains(lcHbName, lcCfgName) ||
+				strings.Contains(lcCfgName, lcHbName) ||
 				(strings.Contains(lcCfgName, "litellm") && strings.Contains(lcHbName, "litellm")) {
 				found = true
 				// Ensure it's marked as managed if it matches config

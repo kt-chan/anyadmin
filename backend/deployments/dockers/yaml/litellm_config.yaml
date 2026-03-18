@@ -2,7 +2,7 @@ model_list:
   - model_name: Qwen3.6-0.8B
     litellm_params:
       model: openai/model
-      api_base: http://172.25.208.100:8000/v1
+      api_base: http://vllm-llm-{VLLM_MODEL_NAME}:8000/v1
       api_key: "not-needed"
 
 litellm_settings:

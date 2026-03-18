@@ -879,7 +879,6 @@ function updateSummary() {
   summaryList.innerHTML = '';
 
   const summaryData = [
-    { label: '部署名称', value: formData.get('service_name') || '(自动生成)' },
     { label: '部署模式', value: formData.get('mode') === 'new_deployment' ? '全新部署' : '对接现有' },
     { label: '硬件平台', value: formData.get('platform') === 'nvidia' ? 'NVIDIA GPU' : '华为昇腾' },
     { label: '模型类型', value: formData.get('model_type') || '未设置' },

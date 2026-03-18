@@ -13,6 +13,7 @@
 * **logging**: all the loggging should be put under /logs folder
 * **ssh key**: scan this directory for ssh key @backend\keys
 * **Complie**: - You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.
+* **deploy**: check @scripts directory powershell scripts, use it for stop process or deployment
 * **Code Execution**: 
 - Launch the apps / processes with seperate process and redirect the output to logs under /logs folder for debugging, such that you avoids single-threaded debug mode and prevents getting stuck at waiting feedbacks.
 - Avoid using `taskkill` broadly, as it may terminate the CLI itself. Instead, use  powershell scripts under @scripts folder to terminate proccess on port 3000 and 8080 or redeploym agents

@@ -654,6 +654,8 @@ func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 		keyMap["port"] = "ANYTHINGLLM_PORT"
 		keyMap["model_name"] = "GENERIC_OPEN_AI_MODEL_PREF"
 		keyMap["generic_open_ai_api_key"] = "GENERIC_OPEN_AI_API_KEY"
+		keyMap["generic_open_ai_model_token_limit"] = "GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT"
+		keyMap["generic_open_ai_max_tokens"] = "GENERIC_OPEN_AI_MAX_TOKENS"
 	} else if strings.Contains(lowerService, "llm") {
 		keyMap["port"] = "VLLM_LLM_PORT"
 		if strings.Contains(lowerService, "mineru") {

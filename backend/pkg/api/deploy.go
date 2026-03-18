@@ -205,6 +205,12 @@ func DeployService(c *gin.Context) {
 		if newCfg.GenericOpenAIKey == "" {
 			newCfg.GenericOpenAIKey = "sk-any-key"
 		}
+		if newCfg.GenericOpenAIModelTokenLimit == 0 {
+			newCfg.GenericOpenAIModelTokenLimit = 4096
+		}
+		if newCfg.GenericOpenAIMaxTokens == 0 {
+			newCfg.GenericOpenAIMaxTokens = 2048
+		}
 		// Encrypt key if not already encrypted
 		if len(newCfg.GenericOpenAIKey) < 100 {
 			if enc, err := utils.EncryptPassword(newCfg.GenericOpenAIKey); err == nil {

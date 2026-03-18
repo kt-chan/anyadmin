@@ -392,6 +392,12 @@ func SaveRagAppConfig(c *gin.Context) {
 			if cfg.LLMProvider != "" { agentConfig["LLM_PROVIDER"] = cfg.LLMProvider }
 			if cfg.GenericOpenAIBasePath != "" { agentConfig["GENERIC_OPEN_AI_BASE_PATH"] = cfg.GenericOpenAIBasePath }
 			if cfg.GenericOpenAIModelPref != "" { agentConfig["GENERIC_OPEN_AI_MODEL_PREF"] = cfg.GenericOpenAIModelPref }
+			if cfg.GenericOpenAIModelTokenLimit > 0 {
+				agentConfig["GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT"] = fmt.Sprintf("%d", cfg.GenericOpenAIModelTokenLimit)
+			}
+			if cfg.GenericOpenAIMaxTokens > 0 {
+				agentConfig["GENERIC_OPEN_AI_MAX_TOKENS"] = fmt.Sprintf("%d", cfg.GenericOpenAIMaxTokens)
+			}
 			if cfg.GenericOpenAIKey != "" {
 				decryptedKey := cfg.GenericOpenAIKey
 				if dec, err := utils.DecryptPassword(cfg.GenericOpenAIKey); err == nil {

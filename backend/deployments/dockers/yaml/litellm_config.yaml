@@ -4,5 +4,13 @@ model_list:
       model: openai/model
       api_base: http://vllm-llm-qwen3-1-7b:8000/v1
       api_key: "not-needed"
+  - model_name: glm-4.6v-flash
+    litellm_params:
+      model: glm-4.6v-flash
+      api_base: https://open.bigmodel.cn/api/paas/v4
+      custom_llm_provider: openai
+      api_key: "os.environ/GLM_4_6V_FLASH_API_KEY"
+
+litellm_settings:
   drop_params: true
   set_verbose: true

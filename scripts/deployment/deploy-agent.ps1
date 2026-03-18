@@ -69,7 +69,7 @@ $AgentConfig = @{
 } | ConvertTo-Json
 
 $TempConfigPath = Join-Path $env:TEMP "agent_config.json"
-$AgentConfig | Out-File -FilePath $TempConfigPath -Encoding utf8
+[System.IO.File]::WriteAllText($TempConfigPath, $AgentConfig)
 scp @CommonScpArgs $TempConfigPath "$RemoteUser@$RemoteHost`:$RemoteBinDir/config.json"
 Remove-Item $TempConfigPath
 

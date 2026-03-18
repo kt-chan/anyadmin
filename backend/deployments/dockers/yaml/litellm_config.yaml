@@ -4,6 +4,5 @@ model_list:
       model: openai/model
       api_base: http://vllm-llm-qwen3-1-7b:8000/v1
       api_key: "not-needed"
-litellm_settings:
   drop_params: true
   set_verbose: true

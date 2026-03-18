@@ -27,7 +27,6 @@
       "name": "Deploy Agent",
       "type": "node",
       "request": "launch",
-      "name": "Deploy Agent",
       "preLaunchTask": "deploy-agent"
     }
   ],

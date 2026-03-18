@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -400,7 +401,7 @@ func HandleSyncLiteLLM(w http.ResponseWriter, r *http.Request) {
 
 	workDir := DockerDir
 	cmdStr := "docker compose up -d --force-recreate litellm"
-	
+
 	go func() {
 		cmd := exec.Command("bash", "-c", "cd "+workDir+" && "+cmdStr)
 		output, err := cmd.CombinedOutput()
@@ -482,12 +483,45 @@ func handleContainerControl(w http.ResponseWriter, r *http.Request) {
 
 	// Simple service name from request
 	serviceName := req.ContainerName
-	
+
+	// Handle dynamic service names (e.g., vllm-llm-qwen3-1-7b)
+	// We need to check if the requested service exists in docker-compose.yaml
+	// If it doesn't, it might be a template service like vllm-llm-{VLLM_MODEL_NAME}
+
+	if strings.HasPrefix(serviceName, "vllm-") {
+		// Try to identify the base service and the model part
+		// Format: base-service-model-name
+		parts := strings.Split(serviceName, "-")
+		if len(parts) >= 3 {
+			baseService := parts[0] + "-" + parts[1] // e.g., vllm-llm
+
+			// Replace placeholder in docker-compose.yaml temporarily or handle it via a project name
+			// Given the mandate, we should probably "materialize" the service name in the file or use environment variables.
+			// However, since the service name in yaml is literally vllm-llm-{VLLM_MODEL_NAME},
+			// we can replace it in the string before executing or use a workaround.
+
+			// Let's replace it in the docker-compose.yaml content if needed,
+			// but a safer way for concurrent deployments is to use project names.
+			// But the user specifically asked to "update service name with model name".
+
+			yamlPath := filepath.Join(workDir, "docker-compose.yaml")
+			yamlContent, err := os.ReadFile(yamlPath)
+			if err == nil {
+				contentStr := string(yamlContent)
+				placeholder := baseService + "-{VLLM_MODEL_NAME}"
+				if strings.Contains(contentStr, placeholder) {
+					newContent := strings.ReplaceAll(contentStr, placeholder, serviceName)
+					os.WriteFile(yamlPath, []byte(newContent), 0644)
+				}
+			}
+		}
+	}
+
 	var args []string
-	
+
 	// Determine environment file
 	containerEnv := DockerDir + ".env-" + serviceName
-	
+
 	// Force LiteLLM to use a fixed env file name
 	if serviceName == "litellm" {
 		containerEnv = DockerDir + ".env-litellm"
@@ -528,6 +562,11 @@ func handleContainerControl(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		// Ensure shared network exists
 		exec.Command("docker", "network", "create", "genai-network").Run()
+
+		if req.Action == "restart" {
+			log.Printf("Cleaning up service %s before restart", serviceName)
+			exec.Command("bash", "-c", "cd "+workDir+" && docker compose stop "+serviceName+" && docker compose rm -f "+serviceName).Run()
+		}
 
 		// Use bash -c to execute the full command string for better compatibility and clear logging
 		cmd := exec.Command("bash", "-c", "cd "+workDir+" && "+cmdStr)
@@ -573,10 +612,10 @@ func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	serviceName := req.ContainerName
-	
+
 	// Use service-specific env file
 	envPath := DockerDir + ".env-" + serviceName
-	
+
 	// Force LiteLLM to use a fixed env file name
 	if serviceName == "litellm" {
 		envPath = DockerDir + ".env-litellm"
@@ -608,13 +647,13 @@ func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 		"mode":                   "VLLM_MODE",
 		"gpu_memory_size":        "VLLM_GPU_MEMORY_SIZE",
 	}
-	
+
 	// Determine port variable based on service name
 	lowerService := strings.ToLower(serviceName)
 	if strings.Contains(lowerService, "anythingllm") {
 		keyMap["port"] = "ANYTHINGLLM_PORT"
 		keyMap["model_name"] = "GENERIC_OPEN_AI_MODEL_PREF"
-		keyMap["generic_openai_api_key"] = "GENERIC_OPEN_AI_API_KEY"
+		keyMap["generic_open_ai_api_key"] = "GENERIC_OPEN_AI_API_KEY"
 	} else if strings.Contains(lowerService, "llm") {
 		keyMap["port"] = "VLLM_LLM_PORT"
 		if strings.Contains(lowerService, "mineru") {
@@ -624,7 +663,7 @@ func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	} else if strings.Contains(lowerService, "embed") {
 		keyMap["port"] = "MINERU_PORT"
 	}
-	
+
 	// Update keys
 	for key, value := range req.Config {
 		targetKey := key
@@ -650,10 +689,10 @@ func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	msg := "Configuration updated."
-	
+
 	if req.Restart {
 		workDir := DockerDir
-		
+
 		// Ensure global .env exists to prevent docker compose failure
 		globalEnv := DockerDir + ".env"
 		if _, err := os.Stat(globalEnv); os.IsNotExist(err) {
@@ -663,10 +702,14 @@ func HandleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 		args := []string{"compose", "--env-file", globalEnv, "--env-file", envPath, "up", "-d", "--force-recreate", serviceName}
 		cmdStr := "docker " + strings.Join(args, " ")
 		log.Printf("Restarting service with command: %s", cmdStr)
-		
+
 		go func() {
 			// Ensure shared network exists
 			exec.Command("docker", "network", "create", "genai-network").Run()
+
+			// Pre-emptive cleanup to avoid name conflicts
+			log.Printf("Cleaning up service %s before restart", serviceName)
+			exec.Command("bash", "-c", "cd "+workDir+" && docker compose stop "+serviceName+" && docker compose rm -f "+serviceName).Run()
 
 			cmd := exec.Command("bash", "-c", "cd "+workDir+" && "+cmdStr)
 			output, err := cmd.CombinedOutput()

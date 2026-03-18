@@ -9,7 +9,7 @@
 
 
 ## Coding Guide
-* **Unit Test**: make all your unit test under @tests\ directory, Write unit tests to verify any update systematically by accessing the frontend app and backend services code changes. Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. You should use the remote host on this ip 172.25.208.100 with port 8082 for agent interaction 
+* **Test**: make all your unit test and integration test under @tests\ directory, Write unit tests to verify any update systematically by accessing the frontend app and backend services code changes. Make sure you pass all the unit tests. if failed any unit test, you should fix it or retry another approach. You should use the remote host on this ip 172.25.208.100 with port 8082 for agent interaction 
 * **logging**: all the loggging should be put under /logs folder
 * **ssh key**: scan this directory for ssh key @backend\keys
 * **Complie**: - You have to recompile the agent to @backend/dist/anyadmin-agent, and then redeploy to the target machine if any changes made on agent related code. restart the frontend and backend processes if needed.

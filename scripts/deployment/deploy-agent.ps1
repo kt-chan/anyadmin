@@ -54,11 +54,14 @@ $RemoteDockerDir = "/home/anyadmin/docker"
 ssh @CommonSshArgs "$RemoteUser@$RemoteHost" "mkdir -p $RemoteDockerDir $RemoteBinDir && chown anyadmin:anyadmin $RemoteDockerDir $RemoteBinDir"
 scp @CommonScpArgs "$LocalDockerDir\*" "$LocalDockerDir\.[!.]*" "$RemoteUser@$RemoteHost`:$RemoteDockerDir/" 
 
-# Generate config.json for the agent pointing BACK to the server (RemoteHost)
-# In this deployment, the agent is on the same host as the server, or the server IP is RemoteHost
+# Generate config.json for the agent pointing BACK to the server
+# In this deployment, the agent's mgmt_host should point to the MgmtHost from .env
+$MgmtHost = if ($env:MgmtHost) { $env:MgmtHost } else { $RemoteHost }
+$MgmtPort = if ($env:MgmtPort) { $env:MgmtPort } else { "8080" }
+
 $AgentConfig = @{
-    mgmt_host       = $RemoteHost
-    mgmt_port       = "8080"
+    mgmt_host       = $MgmtHost
+    mgmt_port       = $MgmtPort
     node_ip         = $RemoteHost
     node_port       = "8082"
     deployment_time = Get-Date -Format "yyyy-MM-ddTHH:mm:ssK"

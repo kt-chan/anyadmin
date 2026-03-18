@@ -37,7 +37,7 @@ function Sync-RemoteSource {
         [string]$RemoteHost,
         [array]$CommonSshArgs,
         [array]$CommonScpArgs,
-        [array]$Excludes = @("dist", "bin", "node_modules", ".git", "logs", "*.tar.gz")
+        [array]$Excludes = @("dist", "bin", "node_modules", ".git", "logs", "*.tar","*.tar.gz")
     )
 
     $TempArchive = Join-Path $env:TEMP "$ArchiveName.tar.gz"

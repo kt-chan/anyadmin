@@ -71,7 +71,7 @@ func main() {
 			logFile = cfg.LogFile
 		}
 	} else {
-		log.Printf("Config file %s not found or invalid, using flags or defaults", configFile)
+		log.Printf("Config file %s not found or invalid: %v, using flags or defaults", configFile, err)
 	}
 
 	// Setup logging if logFile is provided

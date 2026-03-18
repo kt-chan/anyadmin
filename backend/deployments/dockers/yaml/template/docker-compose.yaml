@@ -31,7 +31,7 @@ services:
 
   # Generic vLLM service for dynamic deployment
   # Reused for all LLM instances via Docker Compose projects (-p)
-  vllm-llm-qwen3-1-7b:
+  vllm-llm-template:
     image: ${VLLM_IMAGE:-vllm/vllm-openai:latest}
     profiles: ["llm"]
     shm_size: '4gb'

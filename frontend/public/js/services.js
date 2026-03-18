@@ -349,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (ragModelSelect) {
         ragModelSelect.addEventListener('change', function() {
             const form = document.getElementById('ragConfigForm');
-            const modelNameInput = form.querySelector('[name="generic_openai_model_pref"]');
+            const modelNameInput = form.querySelector('[name="generic_open_ai_model_pref"]');
             if (modelNameInput) modelNameInput.value = this.value;
         });
     }
@@ -422,16 +422,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const map = {
             'storage_dir': 'storage_dir',
             'llm_provider': 'llm_provider',
-            'generic_openai_base_path': 'generic_openai_base_path',
-            'generic_openai_model_pref': 'generic_openai_model_pref',
-            'generic_openai_model_token_limit': 'generic_openai_model_token_limit',
-            'generic_openai_max_tokens': 'generic_openai_max_tokens',
-            'generic_openai_api_key': 'generic_openai_api_key',
+            'generic_open_ai_base_path': 'generic_open_ai_base_path',
+            'generic_open_ai_model_pref': 'generic_open_ai_model_pref',
+            'generic_open_ai_model_token_limit': 'generic_open_ai_model_token_limit',
+            'generic_open_ai_max_tokens': 'generic_open_ai_max_tokens',
+            'generic_open_ai_api_key': 'generic_open_ai_api_key',
             'vector_db': 'vector_db'
         };
 
         const keyGroup = document.getElementById('rag-api-key-group');
-        const basePath = config.generic_openai_base_path || '';
+        const basePath = config.generic_open_ai_base_path || '';
         const isUsingLiteLLM = basePath.includes('litellm') || basePath.includes(':4000');
 
         if (isUsingLiteLLM && keyGroup) {
@@ -449,7 +449,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     value = '';
                 }
 
-                if (key === 'generic_openai_api_key') {
+                if (key === 'generic_open_ai_api_key') {
                     if (value) {
                         input.value = DUMMY_KEY;
                         input.dataset.original = value;
@@ -467,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        refreshRagModels(config.generic_openai_model_pref);
+        refreshRagModels(config.generic_open_ai_model_pref);
         showModal('ragConfigModal');
     }
 
@@ -486,10 +486,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Handle API Key encryption for RAG
                 if (formId === 'ragConfigForm') {
-                    if (data.generic_openai_api_key === DUMMY_KEY) {
-                        data.generic_openai_api_key = form.querySelector('[name="generic_openai_api_key"]').dataset.original;
-                    } else if (data.generic_openai_api_key) {
-                        data.generic_openai_api_key = await encryptValue(data.generic_openai_api_key);
+                    if (data.generic_open_ai_api_key === DUMMY_KEY) {
+                        data.generic_open_ai_api_key = form.querySelector('[name="generic_open_ai_api_key"]').dataset.original;
+                    } else if (data.generic_open_ai_api_key) {
+                        data.generic_open_ai_api_key = await encryptValue(data.generic_open_ai_api_key);
                     }
                 }
             } catch (err) {
@@ -566,8 +566,8 @@ document.addEventListener('DOMContentLoaded', () => {
         '/api/v1/configs/rag',
         (rawData) => ({
             ...rawData,
-            generic_openai_model_token_limit: parseInt(rawData.generic_openai_model_token_limit) || 0,
-            generic_openai_max_tokens: parseInt(rawData.generic_openai_max_tokens) || 0
+            generic_open_ai_model_token_limit: parseInt(rawData.generic_open_ai_model_token_limit) || 4000,
+            generic_open_ai_max_tokens: parseInt(rawData.generic_open_ai_max_tokens) || 2000
         }),
         'ragConfigModal',
         'RAG'

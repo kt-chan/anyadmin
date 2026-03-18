@@ -15,13 +15,12 @@ func TestMain(m *testing.M) {
 	// Get absolute path to data.json in the backend directory
 	cwd, _ := os.Getwd()
 	
-	// We need to find the backend root. If we are in backend/tests/integration, it's ../..
-	// But go test might run from backend/ too.
+	// We need to find the backend root. In tests\backend\integration, it's ../../../backend
 	backendRoot := cwd
 	if filepath.Base(cwd) == "integration" {
-		backendRoot = filepath.Join(cwd, "../..")
-	} else if filepath.Base(cwd) == "tests" {
-		backendRoot = filepath.Join(cwd, "..")
+		backendRoot = filepath.Join(cwd, "../../../backend")
+	} else if filepath.Base(cwd) == "backend" {
+		backendRoot = filepath.Join(cwd, "../../backend")
 	}
 	
 	dataJsonPath := filepath.Join(backendRoot, "data.json")

@@ -6,7 +6,7 @@
       "updatedAt": "0001-01-01T00:00:00Z",
       "deletedAt": null,
       "username": "admin",
-      "password": "W1WBnCnbsCrmV7nN6jNVJqR50btqyTcp4xCasMDMTrJCvVNUA132jCZ2dS8HeLgE9ydT7ctqvenmH0reeOVg8inYx/hPRGgiUKtO7v2R2z3kDphdbdFzXAyLmwC8F/SUWe3jHUnYifneIUqycbddg97lf+z5Yzh14iKbvIxLGlQZOlFaDAEQmOZBU21ain4cU+9Y8pmyZhmFayBw8W22+wguVyxOsY+mbGt/yZUMMqTJ0dg8MEdwqX5BIe1CgJNvuPgPZoFnXxutb6yiC/EyyTLjvsxG6WzQVucjlB0pi3MkEkHXdpilVMZ3UilYcZKYXyPtG5G/vupCQQounx4oyAjNYSE4n9ip/dT8n8VU2i5MeemwM3XezQGUZhdlTkUVAT14IE3zHaz22OXQVGcZeuEmwI6BBVWgd8BysD/Ta3oA3x3f+HBJ1ao0nf52u90SW3iEh/TVAiyDRKJsESCq4I7kjrlVt6+llql61uWJ+DkNdrZ3nZk10o23AOjJ6HVBTPyBsF6pkq+NBGOV/w976jmxzmEOjOEfjbSf2vdaloHDK81KPQLKf8bYiixiu63aXqWgD4/GpSObgpbM8rWmaXQvNcuNLGAF7dMSQ+MSc33QpIvYyphlPRjV11QrkJ3qV7azf+nVuMcobjQyXsssnhZHoV9Oa3ToC1UV27Am7iE=",
+      "password": "GOuhCGOokB55We+cLhezoZTI03YdrBc4n47OOM3q8TD2S1PQrB9QQ7wJj+S6qwYt+F2UI9iPnz36DyS8kDZ8R3tqVIKJE4jpNU7KjzSul1Fuk2cQ8SOdwWa28sfO8k/m8/i99W3+YWFuNkZ5obx0jMZUbrpDjzvVL3Ni8nrdQ1hpXe7JhpyLvZPmPOZxnErHymR3kUciQLhGxyoaoqN7owagEt6I4B7okZMO1aXaXrfNAFizRZnVxbP1SHHvBh3gjzo2VOef3HQuH3/MMbrJNc5A/Da/VXukWLwfBIgwPeGP/tqRgGOo75+NoBfRvywfY8/i+zfokZabAVcTMyCCvxcZ5an8KKHsYENKUYodOEc3VP7lYBkdsF55sX679edydlwJr/c+Du7JSF3P8CnbWBP5FDiF7xrSC18Jox5iuS/qdvrD7la52nBvnPWXm3uo+Gv5V0E1Ij9t/1CRk4voT6KZuXVSHQ6DXdtGFPhGGXZtGitli9/eyA5D1kl8cYSst/rPb2z4xwaaSTfDJNdqLEG/p6aKhivaunibtUrVNNjDBsAqBFVMV5RPjWcQyBTk3GkjWwa2LOLWEepTb9fKqh/ujEwpe0ewfOdmbLaGaQlMqy6CWVyEwURY3+vTrDKJ/0uLPQqC2xvRyS8OoHUwYw0PZok7E2/omdoRTCcvh4E=",
       "role": "admin"
     },
     {
@@ -15,90 +15,13 @@
       "updatedAt": "0001-01-01T00:00:00Z",
       "deletedAt": null,
       "username": "operator_01",
-      "password": "R/QMovDJD7hHAWSVw2K2k0/lKOaNyA4qT+Nuz13FQbdEAlOVAOjscTccTZxTk9t8z/+aLqoGFuS891VVEJneU4xQ1FMxXGxHFAgKK0tp7wtS7pmmmbF55JpdRHgh+0tBDpSz4Z29Q6yhLd3LOZD4FspKDbbvuZHetwVm0Vo6tMgQVi/ZjPmYIoJaADpSnHt3Vzo4Ikf9dM23RnhX8zGypKU63/xCnzgiq0MNQ3KEkSfK0E22+KAUF7jJqQ+okboSUEO3Yd5j4q9bhauiksU4u9VD6W9T/C118SSGfZpDAKKTQ48Nyzz0kiZIlHf5DeaTzu8dLPrKbvgJZUxItxOfYiSw4FQP7O2CUUfkgTugz+FgrUGINVyeIOJ4dH6wYhcVsQHTJARZ7r1KbCtPsEr/V70hhfuD8Ale1ujkLRKmEiGf1tdPLMaHs7Aw/bKQX+9mcEMd/GxqrOiucJ+TZFKb0Pbhb74wcgH5tX303A9ux/doyagdcpUAQ23lb3HLW/FZMayWQY/SixDqg6A+r0s7wnL9Rxt82qUZVum/lEWjfdJSH8O/NlM33/mMDnPoiJTT85wcsF1B92Ac4Bm1EUvi6Ynf+Wq48mvBg1n6NKrh/yHISOsZdAbfmMGbnwMTJzuP6g/vNwii5lyHB2UGyUcY4+09XsLEGP4ER4dc866gzLQ=",
+      "password": "IhnSN48Vbup7iW/sZWbPRBGQblV2QSJtnKk5FnSIOwu4NcWzlhFD0Up/zuqtptwxdZg453GOVFDVVt6ikSpF6+XazaLcCgrQnbnHttypKb+4HXWc4jnZ7UczTtyKf7NJ/v1izX7rE3MFE00dIw9DYGQz7uRYUZU3uhCgkywHjWuDiXL0H+FUpaAutSPtZcSx8Hyr03LJYPn3aGYUf6fauAvHm7UKX67qn/VATECsQ5B9HjwoLp/mizRESnDYhr65Jsf/b5WvT0vKfDqLNZO437Us0j9nTDxmR4GigqnviyLQcU81fDureyXpHa2TivVXI5UL+JfpypVESgYA/sfusXGK3mh6tlfT4aACgJTBmIEmLaapikLUf2SuxUPemaoFkj93zLB4NkWtDCCiVjXPg+R7ZaAKNjEvD4fklsg7EUsPB/Fmk595RMdRgQqH3TdtioKM+uEiCALF84GhLOc/MHwsitVwXSBGxP0MqFIHmyH7qsi3ssmIwnQsbP4+7R+ssRgO5Wjwwv58ZaTkecmErWwRKUworSRFPqWKIvdsFbb+8AsZ+8m6va1dhrtOby+iR3rUBm21txdCGw1i4MIk0B7v8GeUX8TzMzsfsbMzmfUIiWDUQEoEyr5mAPTYmhRcRgtSP4ummXU2UbQYtR0NxC1OTPHCXAk38U89dB20J1U=",
       "role": "operator"
     }
   ],
   "import_tasks": null,
   "backup_records": null,
-  "deployment_nodes": [
-    {
-      "node_ip": "172.20.0.10",
-      "hostname": "172.20.0.10",
-      "agent_config": {
-        "deployment_time": "2026-03-18T14:40:20+08:00",
-        "log_file": "/home/anyadmin/logs/agent.log",
-        "mgmt_host": "172.20.0.1",
-        "mgmt_port": "8080",
-        "node_ip": "172.20.0.10",
-        "node_port": "8082"
-      },
-      "inference_cfgs": [
-        {
-          "id": 0,
-          "createdAt": "0001-01-01T00:00:00Z",
-          "updatedAt": "0001-01-01T00:00:00Z",
-          "deletedAt": null,
-          "name": "litellm",
-          "model_type": "proxy",
-          "is_managed": true,
-          "engine": "LiteLLM",
-          "model_name": "",
-          "model_path": "",
-          "ip": "172.20.0.10",
-          "port": "4000",
-          "mode": "",
-          "gpu_memory_size": 0,
-          "gpu_utilization": 0,
-          "max_model_len": 0,
-          "max_num_seqs": 0,
-          "max_num_batched_tokens": 0,
-          "gpu_memory_utilization": 0
-        },
-        {
-          "id": 0,
-          "createdAt": "2026-03-18T14:40:03.566209+08:00",
-          "updatedAt": "2026-03-18T14:40:03.566209+08:00",
-          "deletedAt": null,
-          "name": "vllm-llm",
-          "model_type": "llm",
-          "is_managed": true,
-          "engine": "vLLM",
-          "model_name": "Qwen3-1.7B",
-          "model_path": "",
-          "ip": "172.20.0.10",
-          "port": "8000",
-          "mode": "balanced",
-          "gpu_memory_size": 8,
-          "gpu_utilization": 0.85,
-          "max_model_len": 4096,
-          "max_num_seqs": 3,
-          "max_num_batched_tokens": 8192,
-          "gpu_memory_utilization": 0.85
-        }
-      ],
-      "rag_app_cfgs": [
-        {
-          "id": 0,
-          "createdAt": "2026-03-18T14:40:03.5700287+08:00",
-          "updatedAt": "2026-03-18T14:40:03.5700287+08:00",
-          "deletedAt": null,
-          "name": "anythingllm",
-          "is_managed": true,
-          "host": "172.20.0.10",
-          "port": "3001",
-          "storage_dir": "/app/server/storage",
-          "llm_provider": "generic-openai",
-          "generic_openai_base_path": "http://litellm:4000/v1",
-          "generic_openai_model_pref": "qwen",
-          "generic_openai_model_token_limit": 0,
-          "generic_openai_max_tokens": 0,
-          "generic_openai_api_key": "IiXZmExQIwdFgEeBZipLEDUC6hAFZyOKpi6wVMEFebtHz6Mxuv42gvERpNMKSUVtSIbehuuIz8yPfWvaqOFA5lgKGiu/3erQzL8N64IV5/cwCFR2qmA9/WFNg38thfHa36PNGXUk0YS/LIX24dRDlhg9bfxpvf3OWFM1wEqqapYR7BDt7V6jq6NhENukcVUPB2IzcCxKb3CoSyyaw595J9s5XJUwZAfgnDUe1DSLcCiAmIJ8N4xK4VSd44pn8ohCmFidWK8DPSMMxxQMROmBTjsGZw1fonPu9kAhJGt8DAdyCvuodiP/elSKaPEskdVjO2IKqw1/ZpiqPyMZUXN9ZrrNTjP1bdIb3W3QXL6w1se/RcpgtGujc2kjIVRqpc6uuP9mA3NJB8OVzgF/IIe6pcFDapPtsDRDn9yrQoa/eC8mTM8Dd1oyLmIqwJCA+gzlaLuDh+eJQGd+nCOwESHuuQCLsdd8Uw0a9qjGq8Ym0vzgKMXM+AouobjYGHomEINGeFDWcWmmrBEihzf7W7Tt3a+kpweeegpCfPJDpDPJ3PhUdh+nAwOnRMlRsbY8r43Re5NRMElfbpsBxClPC7QKA+KZ/rt2Kt2tKAU4dtRe/D6jzAh879uDxC5oe/xXRh3eEShWaKNpxwmgl3eUsHSoCJeUiNK9xSwdmIRCMczwlYI=",
-          "vector_db": "lancedb"
-        }
-      ]
-    }
-  ],
+  "deployment_nodes": null,
   "model_types": [
     "llm",
     "vlm",
@@ -108,53 +31,7 @@
     "embedding",
     "reranker"
   ],
-  "models": [
-    {
-      "id": 0,
-      "createdAt": "2026-02-26T16:29:52.464861+08:00",
-      "updatedAt": "2026-02-26T16:29:52.464861+08:00",
-      "deletedAt": null,
-      "name": "MinerU-2.5",
-      "model_type": "ocr",
-      "size": 2323675923
-    },
-    {
-      "id": 0,
-      "createdAt": "2026-02-26T17:37:00.8861147+08:00",
-      "updatedAt": "2026-02-26T17:37:00.8861147+08:00",
-      "deletedAt": null,
-      "name": "Qwen3-1.7B",
-      "model_type": "llm",
-      "size": 4079477551
-    },
-    {
-      "id": 0,
-      "createdAt": "2026-02-26T16:36:09.2041541+08:00",
-      "updatedAt": "2026-02-26T16:36:09.2041541+08:00",
-      "deletedAt": null,
-      "name": "bge-large-zh",
-      "model_type": "embedding",
-      "size": 1302804254
-    },
-    {
-      "id": 0,
-      "createdAt": "2026-02-26T16:42:10.1916208+08:00",
-      "updatedAt": "2026-02-26T16:42:10.1916208+08:00",
-      "deletedAt": null,
-      "name": "bge-reranker-large",
-      "model_type": "reranker",
-      "size": 6741726079
-    },
-    {
-      "id": 0,
-      "createdAt": "2026-02-26T16:30:03.1666241+08:00",
-      "updatedAt": "2026-02-26T16:30:03.1666241+08:00",
-      "deletedAt": null,
-      "name": "llama-3.2-1B-Instruct",
-      "model_type": "llm",
-      "size": 4954734534
-    }
-  ],
+  "models": null,
   "mgmt_host": "172.20.0.1",
   "mgmt_port": "8080"
 }

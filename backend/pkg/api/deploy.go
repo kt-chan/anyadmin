@@ -44,16 +44,23 @@ func DeployService(c *gin.Context) {
 	}
 
 	// Determine Compose Service Name
-	composeService := "vllm-llm"
+	baseService := "vllm-llm"
 	switch req.ModelType {
 	case "embedding":
-		composeService = "vllm-embedding"
+		baseService = "vllm-embedding"
 	case "reranker":
-		composeService = "vllm-embedding" // Assuming same service handles both
+		baseService = "vllm-embedding" // Assuming same service handles both
 	case "ocr", "vlm":
-		composeService = "vllm-mineru"
+		baseService = "vllm-mineru"
 	}
-	
+
+	composeService := baseService
+	if req.ModelName != "" {
+		// Replace characters that are not allowed in docker-compose service names
+		safeModelName := strings.ReplaceAll(strings.ToLower(req.ModelName), ".", "-")
+		composeService = fmt.Sprintf("%s-%s", baseService, safeModelName)
+	}
+
 	inferenceConfig.Name = composeService
 
 	// For managed services, we use the compose service name directly
@@ -237,11 +244,12 @@ func DeployService(c *gin.Context) {
 		}
 		if req.EnableRAG && req.RAGHost != "" {
 			addRagCfg(req.RAGHost, global.RagAppConfig{
-				Name:      "anythingllm",
-				IsManaged: req.Mode == "new_deployment",
-				Host:      req.RAGHost,
-				Port:      req.RAGPort,
-				VectorDB:  req.VectorDBType,
+				Name:                   "anythingllm",
+				IsManaged:              req.Mode == "new_deployment",
+				Host:                   req.RAGHost,
+				Port:                   req.RAGPort,
+				VectorDB:               req.VectorDBType,
+				GenericOpenAIModelPref: req.ModelName,
 			})
 		}
 

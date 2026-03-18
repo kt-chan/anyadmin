@@ -53,11 +53,11 @@ type RagAppConfig struct {
 	// AnythingLLM Specifics
 	StorageDir                   string `json:"storage_dir"`
 	LLMProvider                  string `json:"llm_provider"`
-	GenericOpenAIBasePath        string `json:"generic_openai_base_path"`
-	GenericOpenAIModelPref       string `json:"generic_openai_model_pref"`
-	GenericOpenAIModelTokenLimit int    `json:"generic_openai_model_token_limit"`
-	GenericOpenAIMaxTokens       int    `json:"generic_openai_max_tokens"`
-	GenericOpenAIKey             string `json:"generic_openai_api_key"`
+	GenericOpenAIBasePath        string `json:"generic_open_ai_base_path"`
+	GenericOpenAIModelPref       string `json:"generic_open_ai_model_pref"`
+	GenericOpenAIModelTokenLimit int    `json:"generic_open_ai_model_token_limit"`
+	GenericOpenAIMaxTokens       int    `json:"generic_open_ai_max_tokens"`
+	GenericOpenAIKey             string `json:"generic_open_ai_api_key"`
 	VectorDB                     string `json:"vector_db"`
 }
 
@@ -177,7 +177,7 @@ func InitConfig() {
 	// 1. Try to load .env file
 	// We prefer the project root .env first, then fallback to relative locations
 	cwd, _ := os.Getwd()
-	
+
 	// List of potential .env paths in order of preference
 	// 1. Project Root (assuming we are in anyadmin/backend or anyadmin/backend/cmd/server)
 	// 2. Current directory
@@ -223,7 +223,7 @@ func InitConfig() {
 		"GENERIC_OPEN_AI_BASE_PATH", "GENERIC_OPEN_AI_MODEL_PREF",
 		"GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT", "GENERIC_OPEN_AI_MAX_TOKENS",
 		"GENERIC_OPEN_AI_API_KEY", "VECTOR_DB", "DISABLE_TELEMETRY",
-		"VLLM_IMAGE", "VLLM_LLM_PORT", "LLM_GPU_DEVICE_ID",
+		"VLLM_LLM_PORT", "LLM_GPU_DEVICE_ID",
 		"VLLM_GPU_MEMORY_UTILIZATION", "VLLM_MAX_MODEL_LEN",
 		"VLLM_MAX_NUM_SEQS", "VLLM_MAX_NUM_BATCHED_TOKENS",
 	}
@@ -231,7 +231,7 @@ func InitConfig() {
 		viper.BindEnv(v)
 	}
 
-	// Legacy bindings
+	// Legacy and cross-service bindings
 	viper.BindEnv("server.port", "MgmtPort")
 	viper.BindEnv("admin.username", "ADMIN_USERNAME")
 	viper.BindEnv("admin.password", "ADMIN_PASSWORD")
@@ -248,6 +248,12 @@ func InitConfig() {
 	viper.SetDefault("VLLM_MAX_NUM_BATCHED_TOKENS", 8192)
 	viper.SetDefault("VLLM_GPU_MEMORY_UTILIZATION", 0.85)
 
-	ServerPort = viper.GetString("MgmtPort")
+	// Final settings
+	// SERVER_PORT can still be used as an override if set in environment
+	if os.Getenv("SERVER_PORT") != "" {
+		ServerPort = os.Getenv("SERVER_PORT")
+	} else {
+		ServerPort = viper.GetString("MgmtPort")
+	}
 	log.Printf("[Config] 端口配置: %s, 绑定地址: 0.0.0.0", ServerPort)
 }

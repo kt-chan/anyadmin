@@ -203,9 +203,14 @@ func DeployModels(client *ssh.Client) error {
 			return fmt.Errorf("failed to extract %s: %w", tarName, err)
 		}
 
-		// Handle potential nested directory: if we extracted and found only one directory inside with the same name
+		// Handle potential nested directory: if we extracted and found only one directory inside
 		// (e.g. /home/anyadmin/data/model/Qwen/Qwen/...)
-		// we might want to move it up, but for now let's just ensure permissions.
+		// we move its contents up to the parent directory to keep it flat.
+		log.Printf("Checking for nested directory in %s...", remoteExtractDir)
+		flattenCmd := fmt.Sprintf(`cd "%s" && if [ $(ls -A | wc -l) -eq 1 ] && [ -d "$(ls -A)" ]; then SUBDIR="$(ls -A)"; mv "$SUBDIR"/* . 2>/dev/null || true; mv "$SUBDIR"/.[!.]* . 2>/dev/null || true; rmdir "$SUBDIR"; fi`, remoteExtractDir)
+		if _, err := ExecuteCommand(client, flattenCmd); err != nil {
+			log.Printf("Warning: failed to flatten directory in %s: %v", remoteExtractDir, err)
+		}
 
 		// Set ownership recursively
 		if _, err := ExecuteCommand(client, fmt.Sprintf("chown -R anyadmin:anyadmin %s && chmod -R 755 %s", remoteExtractDir, remoteExtractDir)); err != nil {

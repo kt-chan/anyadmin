@@ -61,6 +61,8 @@ COPY --from=backend-builder --chown=anyadmin:anyadmin /app/backend/anyadmin-serv
 COPY --from=backend-builder --chown=anyadmin:anyadmin /app/backend/anyadmin-agent /home/anyadmin/app/backend/dist/
 # Copy backend data.json if exists
 COPY --chown=anyadmin:anyadmin backend/data.json* /home/anyadmin/app/backend/
+# Copy backend tars 
+COPY --chown=anyadmin:anyadmin backend/deployments /home/anyadmin/app/backend/
 
 # Copy frontend source and built assets from stage 2
 # Note: we copy everything from frontend source because app.js needs it

@@ -32,6 +32,7 @@ FROM ubuntu:22.04
 # Build arguments and environment variables
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NODE_ENV=production
+ENV GO_VERSION=1.25.6
 
 # Install essential prerequisites
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -40,10 +41,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     gnupg \
     procps \
+    git \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends \
     nodejs \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Go
+RUN wget -q https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz && \
+    rm go${GO_VERSION}.linux-amd64.tar.gz
+
+# Add Go to PATH
+ENV PATH=$PATH:/usr/local/go/bin
 
 # Create 'anyadmin' user and group with UID 1000
 RUN groupadd -g 1000 anyadmin && useradd -u 1000 -m -r -g anyadmin -s /bin/bash anyadmin
@@ -61,8 +71,8 @@ COPY --from=backend-builder --chown=anyadmin:anyadmin /app/backend/anyadmin-serv
 COPY --from=backend-builder --chown=anyadmin:anyadmin /app/backend/anyadmin-agent /home/anyadmin/app/backend/dist/
 # Copy backend data.json if exists
 COPY --chown=anyadmin:anyadmin backend/data.json* /home/anyadmin/app/backend/
-# Copy backend tars 
-COPY --chown=anyadmin:anyadmin backend/deployments /home/anyadmin/app/backend/
+# Copy backend deployments (tars, templates, etc.)
+COPY --chown=anyadmin:anyadmin backend/deployments /home/anyadmin/app/backend/deployments
 
 # Copy frontend source and built assets from stage 2
 # Note: we copy everything from frontend source because app.js needs it

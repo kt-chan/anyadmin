@@ -96,14 +96,16 @@ func EnsureKeys() error {
 		return fmt.Errorf("failed to encode private key: %w", err)
 	}
 
-	// Generate and save public key
+	// Generate and save public key in OpenSSH authorized_keys format
 	pub, err := ssh.NewPublicKey(&privateKey.PublicKey)
 	if err != nil {
 		return fmt.Errorf("failed to generate public key: %w", err)
 	}
 
 	pubBytes := ssh.MarshalAuthorizedKey(pub)
-	if err := os.WriteFile(pubPath, pubBytes, 0644); err != nil {
+	// Add a comment to the public key to match standard authorized_keys format
+	authorizedKey := fmt.Sprintf("%s anyadmin-backend\n", strings.TrimSpace(string(pubBytes)))
+	if err := os.WriteFile(pubPath, []byte(authorizedKey), 0644); err != nil {
 		return fmt.Errorf("failed to save public key: %w", err)
 	}
 

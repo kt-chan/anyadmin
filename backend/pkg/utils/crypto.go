@@ -9,6 +9,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"golang.org/x/crypto/ssh"
 )
 
 var (
@@ -71,7 +74,7 @@ func EnsureKeysExist() error {
 
 	fmt.Println("Generating RSA keys...")
 	// Generate key pair
-	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	priv, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		return err
 	}
@@ -91,24 +94,15 @@ func EnsureKeysExist() error {
 		return err
 	}
 
-	// Save Public Key (OpenSSH format for compatibility with remote agent scripts if needed, but we also use PKIX for frontend)
-	// Actually the prompt specifically asked for id_rsa and id_rsa.pub.
-	// We'll save the public key in PKIX format as well for our GetPublicKeyContent.
-	pubFile, err := os.OpenFile(PublicKeyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	// Save Public Key in OpenSSH format for compatibility with target node setup
+	pub, err := ssh.NewPublicKey(&priv.PublicKey)
 	if err != nil {
 		return err
 	}
-	defer pubFile.Close()
-
-	pubBytes, err := x509.MarshalPKIXPublicKey(&priv.PublicKey)
-	if err != nil {
-		return err
-	}
-	pubBlock := &pem.Block{
-		Type:  "PUBLIC KEY",
-		Bytes: pubBytes,
-	}
-	if err := pem.Encode(pubFile, pubBlock); err != nil {
+	pubBytes := ssh.MarshalAuthorizedKey(pub)
+	// Add comment for authorized_keys standard format
+	authorizedKey := fmt.Sprintf("%s anyadmin-backend\n", strings.TrimSpace(string(pubBytes)))
+	if err := os.WriteFile(PublicKeyPath, []byte(authorizedKey), 0644); err != nil {
 		return err
 	}
 

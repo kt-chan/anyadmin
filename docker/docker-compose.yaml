@@ -3,6 +3,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+    image: anyadmin:latest
     container_name: anyadmin
     ports:
       - "${PORT:-3000}:3000"
@@ -15,11 +16,8 @@ services:
     env_file:
       - ../.env
     volumes:
-      - anyadmin_logs:/home/anyadmin/logs
-      # Optional: mount local .env if you want to update it without rebuilding
-      # - ../.env:/home/anyadmin/app/.env
+      - ../logs:/home/anyadmin/logs
+      - ../backend/data.json:/home/anyadmin/app/backend/data.json
+      - ../.env:/home/anyadmin/app/.env
     restart: unless-stopped
 
-volumes:
-  anyadmin_logs:
-    driver: local

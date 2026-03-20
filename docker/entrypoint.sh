@@ -9,8 +9,8 @@ BACKEND_LOG="${LOG_DIR}/backend.log"
 FRONTEND_LOG="${LOG_DIR}/frontend.log"
 
 # Ensure log files exist and are writable
+# (Running as 'anyadmin' user, so we just touch them)
 touch "${BACKEND_LOG}" "${FRONTEND_LOG}"
-chown anyadmin:anyadmin "${BACKEND_LOG}" "${FRONTEND_LOG}"
 
 echo ">>> Starting AnyAdmin Services..."
 

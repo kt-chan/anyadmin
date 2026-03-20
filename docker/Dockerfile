@@ -1,5 +1,5 @@
 # --- Stage 1: Build Backend ---
-FROM golang:1.24-bookworm AS backend-builder
+FROM golang:1.25-bookworm AS backend-builder
 
 WORKDIR /app/backend
 # Copy go.mod and go.sum first to leverage Docker cache
@@ -43,8 +43,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Create 'anyadmin' user and group
-RUN groupadd -r anyadmin && useradd -m -r -g anyadmin -s /bin/bash anyadmin
+# Create 'anyadmin' user and group with UID 1000
+RUN groupadd -g 1000 anyadmin && useradd -u 1000 -m -r -g anyadmin -s /bin/bash anyadmin
 
 # Set working directory
 WORKDIR /home/anyadmin/app

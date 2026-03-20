@@ -231,6 +231,17 @@ func RebuildAgent() error {
 		return fmt.Errorf("could not find backend directory (anyadmin-backend) from %s", cwd)
 	}
 
+	// Check if source code exists (go.mod and cmd/agent/main.go)
+	// If missing, we are in a binary-only distribution (like production Docker)
+	if _, err := os.Stat(filepath.Join(backendDir, "go.mod")); err != nil {
+		log.Printf("[Deploy] go.mod not found in %s, skipping agent rebuild and using existing binary.", backendDir)
+		return nil
+	}
+	if _, err := os.Stat(filepath.Join(backendDir, "cmd", "agent", "main.go")); err != nil {
+		log.Printf("[Deploy] Agent source (cmd/agent/main.go) not found in %s, skipping agent rebuild and using existing binary.", backendDir)
+		return nil
+	}
+
 	// Check if 'go' command exists
 	_, err := exec.LookPath("go")
 	if err != nil {

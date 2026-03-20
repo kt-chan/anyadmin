@@ -41,9 +41,9 @@ git status --short
 # --- Rebuild and restart Docker containers ---
 echo "Rebuilding and restarting containers..."
 cd "$DOCKER_COMPOSE_DIR" || { echo "Directory $DOCKER_COMPOSE_DIR not found"; exit 1; }
-docker compose up --build --force-recreate --remove-orphans -d
+docker compose build
 
 # --- Return to original directory ---
 cd - > /dev/null
 
-echo "Done! Containers are running with the latest code."
+echo "Done! Containers are built with the latest code."

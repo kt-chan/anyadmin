@@ -133,96 +133,94 @@ func DeployModels(client *ssh.Client) error {
 		// Check if model already exists on remote
 		checkCmd := fmt.Sprintf("[ -d %s ] && echo \"exists\"", remoteExtractDir)
 		output, err := ExecuteCommand(client, checkCmd)
-		if err == nil && strings.TrimSpace(output) == "exists" {
-			log.Printf("Model %s already exists at %s, skipping copy.", baseName, remoteExtractDir)
-			continue
-		}
+		exists := (err == nil && strings.TrimSpace(output) == "exists")
 
-		// Local paths
-		// Checksum path (expected in the same directory as the tar file)
-		localChecksumPath := filepath.Join(filepath.Dir(localTarPath), baseName+".tar.sha256")
+		if !exists {
+			// Local paths
+			// Checksum path (expected in the same directory as the tar file)
+			localChecksumPath := filepath.Join(filepath.Dir(localTarPath), baseName+".tar.sha256")
 
-		// Get expected checksum
-		expectedChecksum := ""
-		if checksumData, err := os.ReadFile(localChecksumPath); err == nil {
-			expectedChecksum = strings.Fields(string(checksumData))[0]
-			log.Printf("Expected checksum for %s: %s...", tarName, expectedChecksum[:16])
-		} else {
-			log.Printf("Warning: no checksum file found for %s, skipping verification", tarName)
-		}
-
-		// Copy tar file
-		log.Printf("Copying %s...", tarName)
-
-		remoteTarPath := remoteModelHomePath + "/" + tarName
-		if err := CopyFile(client, localTarPath, remoteTarPath); err != nil {
-			return fmt.Errorf("failed to copy %s: %w", tarName, err)
-		}
-
-		// Set ownership
-		if _, err := ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remoteTarPath)); err != nil {
-			return fmt.Errorf("failed to set ownership for %s: %w", remoteTarPath, err)
-		}
-
-		// Verify checksum on remote
-		if expectedChecksum != "" {
-			log.Printf("Verifying checksum on remote for %s...", tarName)
-			output, err := ExecuteCommand(client, fmt.Sprintf("sha256sum %s | cut -d' ' -f1", remoteTarPath))
-			if err != nil {
-				// Clean up on verification failure
-				ExecuteCommand(client, fmt.Sprintf("rm -f %s", remoteTarPath))
-				return fmt.Errorf("failed to verify checksum for %s: %w", tarName, err)
+			// Get expected checksum
+			expectedChecksum := ""
+			if checksumData, err := os.ReadFile(localChecksumPath); err == nil {
+				expectedChecksum = strings.Fields(string(checksumData))[0]
+				log.Printf("Expected checksum for %s: %s...", tarName, expectedChecksum[:16])
+			} else {
+				log.Printf("Warning: no checksum file found for %s, skipping verification", tarName)
 			}
 
-			actualChecksum := strings.TrimSpace(output)
-			if actualChecksum != expectedChecksum {
-				// Clean up corrupted file
-				ExecuteCommand(client, fmt.Sprintf("rm -f %s", remoteTarPath))
-				return fmt.Errorf("checksum mismatch for %s", tarName)
+			// Copy tar file
+			log.Printf("Copying %s...", tarName)
+
+			remoteTarPath := remoteModelHomePath + "/" + tarName
+			if err := CopyFile(client, localTarPath, remoteTarPath); err != nil {
+				return fmt.Errorf("failed to copy %s: %w", tarName, err)
 			}
-			log.Printf("Checksum verified for %s", tarName)
-		}
 
-		// Extract tar file
-		log.Printf("Extracting %s to %s...", tarName, remoteExtractDir)
+			// Set ownership for tar
+			if _, err := ExecuteCommand(client, fmt.Sprintf("chown anyadmin:anyadmin %s", remoteTarPath)); err != nil {
+				return fmt.Errorf("failed to set ownership for %s: %w", remoteTarPath, err)
+			}
 
-		// Ensure remoteExtractDir exists
-		if _, err := ExecuteCommand(client, fmt.Sprintf("mkdir -p %s", remoteExtractDir)); err != nil {
-			return fmt.Errorf("failed to create remote extract directory %s: %w", remoteExtractDir, err)
-		}
+			// Verify checksum on remote
+			if expectedChecksum != "" {
+				log.Printf("Verifying checksum on remote for %s...", tarName)
+				output, err := ExecuteCommand(client, fmt.Sprintf("sha256sum %s | cut -d' ' -f1", remoteTarPath))
+				if err != nil {
+					// Clean up on verification failure
+					ExecuteCommand(client, fmt.Sprintf("rm -f %s", remoteTarPath))
+					return fmt.Errorf("failed to verify checksum for %s: %w", tarName, err)
+				}
 
-		// Extract into remoteExtractDir.
-		// We use --strip-components=1 if we suspect the tar already has the folder,
-		// but if we don't know, it's safer to extract and then check.
-		// However, most model tars contain files directly or in a subfolder.
-		// Let's try to extract into remoteExtractDir.
-		if _, err := ExecuteCommand(client, fmt.Sprintf("tar -xf %s -C %s", remoteTarPath, remoteExtractDir)); err != nil {
-			// Clean up on extraction failure
-			ExecuteCommand(client, fmt.Sprintf("rm -rf %s", remoteExtractDir))
+				actualChecksum := strings.TrimSpace(output)
+				if actualChecksum != expectedChecksum {
+					// Clean up corrupted file
+					ExecuteCommand(client, fmt.Sprintf("rm -f %s", remoteTarPath))
+					return fmt.Errorf("checksum mismatch for %s", tarName)
+				}
+				log.Printf("Checksum verified for %s", tarName)
+			}
+
+			// Extract tar file
+			log.Printf("Extracting %s to %s...", tarName, remoteExtractDir)
+
+			// Ensure remoteExtractDir exists
+			if _, err := ExecuteCommand(client, fmt.Sprintf("mkdir -p %s", remoteExtractDir)); err != nil {
+				return fmt.Errorf("failed to create remote extract directory %s: %w", remoteExtractDir, err)
+			}
+
+			// Extract into remoteExtractDir.
+			if _, err := ExecuteCommand(client, fmt.Sprintf("tar -xf %s -C %s", remoteTarPath, remoteExtractDir)); err != nil {
+				// Clean up on extraction failure
+				ExecuteCommand(client, fmt.Sprintf("rm -rf %s", remoteExtractDir))
+				ExecuteCommand(client, fmt.Sprintf("rm -f %s", remoteTarPath))
+				return fmt.Errorf("failed to extract %s: %w", tarName, err)
+			}
+
+			// Delete tar file after successful extraction
 			ExecuteCommand(client, fmt.Sprintf("rm -f %s", remoteTarPath))
-			return fmt.Errorf("failed to extract %s: %w", tarName, err)
+		} else {
+			log.Printf("Model %s already exists at %s, checking for nesting and permissions...", baseName, remoteExtractDir)
 		}
 
-		// Handle potential nested directory: if we extracted and found only one directory inside
+		// ALWAYS Handle potential nested directory: if we extracted (or previously had) only one directory inside
 		// (e.g. /home/anyadmin/data/model/Qwen/Qwen/...)
 		// we move its contents up to the parent directory to keep it flat.
 		log.Printf("Checking for nested directory in %s...", remoteExtractDir)
-		flattenCmd := fmt.Sprintf(`cd "%s" && if [ $(ls -A | wc -l) -eq 1 ] && [ -d "$(ls -A)" ]; then SUBDIR="$(ls -A)"; mv "$SUBDIR"/* . 2>/dev/null || true; mv "$SUBDIR"/.[!.]* . 2>/dev/null || true; rmdir "$SUBDIR"; fi`, remoteExtractDir)
-		if _, err := ExecuteCommand(client, flattenCmd); err != nil {
+		flattenCmd := fmt.Sprintf(`cd "%s" && if [ "$(ls -A | wc -l)" -eq 1 ] && [ -d "$(ls -A)" ]; then SUBDIR=$(ls -A); echo "Flattening nested directory $SUBDIR in $(pwd)"; mv "$SUBDIR"/* . 2>/dev/null || true; mv "$SUBDIR"/.[!.]* . 2>/dev/null || true; rmdir "$SUBDIR" 2>/dev/null || true; fi`, remoteExtractDir)
+		output, err = ExecuteCommand(client, flattenCmd)
+		if err != nil {
 			log.Printf("Warning: failed to flatten directory in %s: %v", remoteExtractDir, err)
+		} else if strings.Contains(output, "Flattening") {
+			log.Printf("[Deploy] %s", strings.TrimSpace(output))
 		}
 
-		// Set ownership recursively
+		// ALWAYS Set ownership recursively to ensure everything is correct
 		if _, err := ExecuteCommand(client, fmt.Sprintf("chown -R anyadmin:anyadmin %s && chmod -R 755 %s", remoteExtractDir, remoteExtractDir)); err != nil {
-			return fmt.Errorf("failed to set ownership for extracted files: %w", err)
+			return fmt.Errorf("failed to set ownership for %s: %w", remoteExtractDir, err)
 		}
 
-		// Delete tar file
-		if _, err := ExecuteCommand(client, fmt.Sprintf("rm -f %s", remoteTarPath)); err != nil {
-			return fmt.Errorf("failed to delete tar file %s: %w", remoteTarPath, err)
-		}
-
-		log.Printf("Successfully extracted %s to %s", tarName, remoteExtractDir)
+		log.Printf("Successfully processed %s at %s", tarName, remoteExtractDir)
 	}
 
 	return nil

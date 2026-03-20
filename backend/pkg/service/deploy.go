@@ -1111,6 +1111,8 @@ func SyncLiteLLMConfig(nodeIP string) error {
 		}
 	})
 
+	// 2. Add litellm_settings section
+	sb.WriteString("\nlitellm_settings:\n")
 	sb.WriteString("  drop_params: true\n")
 	sb.WriteString("  set_verbose: true\n")
 

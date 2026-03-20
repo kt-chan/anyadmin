@@ -16,8 +16,10 @@ services:
     env_file:
       - ../.env
     volumes:
+      - ../tars:/home/anyadmin/app/backend/deployments/tars
       - ../logs:/home/anyadmin/logs
       - ../data.json:/home/anyadmin/app/backend/data.json
+      - ../keys:/home/anyadmin/app/backend/keys
       - ../.env:/home/anyadmin/app/.env
     restart: unless-stopped
 

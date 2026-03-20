@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-func maketar() {
+func main() {
 	// Target path
 	path := "../deployments/tars/os/ubuntu/amd64/jammy/go1.21.linux-amd64.tar.gz"
 

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,29 +22,75 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func getBackendDir() string {
+func GetBackendDir() string {
+	// 1. Check environment variable
+	if envPath := os.Getenv("BACKEND_DIR"); envPath != "" {
+		if _, err := os.Stat(envPath); err == nil {
+			return envPath
+		}
+	}
+
 	cwd, _ := os.Getwd()
 	checkPaths := []string{
+		cwd,
 		filepath.Join(cwd, "backend"),
 		filepath.Join(cwd, "..", "backend"),
 		filepath.Join(cwd, "..", "..", "backend"),
 		filepath.Join(cwd, "..", "..", "..", "backend"),
-		cwd,
+		"/home/anyadmin/app/backend", // Docker default
 	}
 
 	for _, p := range checkPaths {
+		// First try to find go.mod (development/source mode)
 		if _, err := os.Stat(filepath.Join(p, "go.mod")); err == nil {
 			data, _ := os.ReadFile(filepath.Join(p, "go.mod"))
 			if strings.Contains(string(data), "module anyadmin-backend") {
 				return p
 			}
 		}
+		// Then try to find data.json (production/binary mode)
+		if _, err := os.Stat(filepath.Join(p, "data.json")); err == nil {
+			return p
+		}
 	}
 	return ""
 }
 
+// downloadFile downloads a file from a URL to a local path
+func downloadFile(url string, destPath string) error {
+	log.Printf("[Deploy] Downloading %s to %s...", url, destPath)
+
+	// Ensure directory exists
+	if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+		return fmt.Errorf("failed to create directory for download: %w", err)
+	}
+
+	resp, err := utils.Get(url, 30*time.Minute) // Long timeout for large files
+	if err != nil {
+		return fmt.Errorf("failed to start download: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad status: %s", resp.Status)
+	}
+
+	out, err := os.Create(destPath)
+	if err != nil {
+		return fmt.Errorf("failed to create local file: %w", err)
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to save download: %w", err)
+	}
+
+	return nil
+}
+
 func DeployModels(client *ssh.Client) error {
-	backendDir := getBackendDir()
+	backendDir := GetBackendDir()
 	if backendDir == "" {
 		cwd, _ := os.Getwd()
 		return fmt.Errorf("could not find backend directory (anyadmin-backend) from %s", cwd)
@@ -178,7 +225,7 @@ func DeployModels(client *ssh.Client) error {
 
 // RebuildAgent recompiles the agent for Linux AMD64
 func RebuildAgent() error {
-	backendDir := getBackendDir()
+	backendDir := GetBackendDir()
 	if backendDir == "" {
 		cwd, _ := os.Getwd()
 		return fmt.Errorf("could not find backend directory (anyadmin-backend) from %s", cwd)
@@ -365,7 +412,7 @@ func installDocker(client *ssh.Client) error {
 
 func installGo(client *ssh.Client) error {
 	const goVersion = "1.25.6"
-	backendDir := getBackendDir()
+	backendDir := GetBackendDir()
 	if backendDir == "" {
 		return fmt.Errorf("could not find backend directory")
 	}
@@ -381,6 +428,15 @@ func installGo(client *ssh.Client) error {
 	if output, err := ExecuteCommand(client, checkCmd); err == nil && strings.Contains(output, "go version") {
 		log.Printf("Go %s already installed at %s, skipping installation.", goVersion, remoteInstallDir)
 		return nil
+	}
+
+	// Check if local tar exists, if not download it
+	if _, err := os.Stat(localTarPath); os.IsNotExist(err) {
+		log.Printf("[Deploy] Go tarball missing at %s, attempting download...", localTarPath)
+		downloadURL := fmt.Sprintf("https://go.dev/dl/go%s.linux-amd64.tar.gz", goVersion)
+		if err := downloadFile(downloadURL, localTarPath); err != nil {
+			return fmt.Errorf("failed to download Go tarball: %w", err)
+		}
 	}
 
 	log.Printf("Installing Go %s to %s...", goVersion, remoteInstallDir)
@@ -447,7 +503,7 @@ func deployAndRunAgent(client *ssh.Client, nodeIP, mgmtHost, mgmtPort string) er
 
 	log.Println("[Deploy] RebuildAgent done.")
 
-	backendDir := getBackendDir()
+	backendDir := GetBackendDir()
 
 	localPath := filepath.Join(backendDir, "dist/anyadmin-agent")
 
@@ -978,7 +1034,7 @@ func calculateHash(filePath string) (string, error) {
 
 // SyncLiteLLMConfig regenerates litellm_config.yaml from data.json and pushes to all nodes
 func SyncLiteLLMConfig(nodeIP string) error {
-	backendDir := getBackendDir()
+	backendDir := GetBackendDir()
 	if backendDir == "" {
 		return fmt.Errorf("backend dir not found")
 	}

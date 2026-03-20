@@ -16,11 +16,34 @@ import (
 
 	"anyadmin-backend/pkg/global"
 	"anyadmin-backend/pkg/utils"
+	"anyadmin-backend/pkg/service"
 	"github.com/gin-gonic/gin"
 )
 
-var ModelsDir = "deployments/tars/models"
-var TempUploadDir = "deployments/tars/models/.tmp"
+var ModelsDir string
+var TempUploadDir string
+
+func init() {
+	ModelsDir = getModelsDir()
+	TempUploadDir = getTempUploadDir()
+	// Ensure temp dir exists
+	os.MkdirAll(TempUploadDir, 0755)
+}
+
+func getModelsDir() string {
+	backendDir := service.GetBackendDir()
+	if backendDir == "" {
+		return "deployments/tars/models"
+	}
+	return filepath.Join(backendDir, "deployments/tars/models")
+}
+
+func getTempUploadDir() string {
+	if ModelsDir == "" {
+		return filepath.Join(getModelsDir(), ".tmp")
+	}
+	return filepath.Join(ModelsDir, ".tmp")
+}
 
 type ModelInfo struct {
 	Name      string    `json:"name"`
@@ -46,11 +69,6 @@ type FinalizeRequest struct {
 	ModelType        string `json:"model_type"`
 	TarUploadID      string `json:"tar_upload_id"`
 	ChecksumUploadID string `json:"checksum_upload_id"`
-}
-
-func init() {
-	// Ensure temp dir exists
-	os.MkdirAll(TempUploadDir, 0755)
 }
 
 // GetModels lists all available models from utils.Models

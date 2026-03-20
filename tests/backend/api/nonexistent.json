@@ -22,6 +22,16 @@
   "import_tasks": null,
   "backup_records": null,
   "deployment_nodes": null,
+  "model_types": [
+    "llm",
+    "vlm",
+    "asr",
+    "ocr",
+    "omni",
+    "embedding",
+    "reranker"
+  ],
+  "models": null,
   "mgmt_host": "172.20.0.1",
   "mgmt_port": "8080"
 }

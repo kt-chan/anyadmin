@@ -40,6 +40,8 @@
           "updatedAt": "0001-01-01T00:00:00Z",
           "deletedAt": null,
           "name": "vllm",
+          "model_type": "",
+          "is_managed": false,
           "engine": "vLLM",
           "model_name": "",
           "model_path": "",
@@ -59,6 +61,8 @@
           "updatedAt": "0001-01-01T00:00:00Z",
           "deletedAt": null,
           "name": "anythingllm",
+          "model_type": "",
+          "is_managed": false,
           "engine": "RAG App",
           "model_name": "",
           "model_path": "",
@@ -76,6 +80,16 @@
       "rag_app_cfgs": null
     }
   ],
+  "model_types": [
+    "llm",
+    "vlm",
+    "asr",
+    "ocr",
+    "omni",
+    "embedding",
+    "reranker"
+  ],
+  "models": null,
   "mgmt_host": "127.0.0.1",
   "mgmt_port": "8080"
 }

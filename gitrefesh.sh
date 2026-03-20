@@ -61,8 +61,4 @@ git status --short
 
 # --- Step 8: Rebuild and restart Docker containers ---
 echo "Rebuilding and restarting containers..."
-docker compose -f "$DOCKER_COMPOSE_PATH" up --build --force-recreate --remove-orphans -d
-
-# --- Step 9: Optionally tail logs ---
-echo "Tailing logs for service '$SERVICE_NAME' (Ctrl+C to exit)..."
-docker compose -f "$DOCKER_COMPOSE_PATH" logs -f "$SERVICE_NAME"
+docker compose -f "$DOCKER_COMPOSE_PATH" build

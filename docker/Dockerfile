@@ -10,6 +10,8 @@ RUN go mod download
 COPY backend/ ./
 # Build the backend binary
 RUN CGO_ENABLED=0 GOOS=linux go build -o anyadmin-server ./cmd/server/main.go
+# Build the agent binary
+RUN CGO_ENABLED=0 GOOS=linux go build -o anyadmin-agent ./cmd/agent/main.go
 
 # --- Stage 2: Build Frontend ---
 FROM node:22-bookworm AS frontend-builder
@@ -50,11 +52,13 @@ RUN groupadd -g 1000 anyadmin && useradd -u 1000 -m -r -g anyadmin -s /bin/bash 
 WORKDIR /home/anyadmin/app
 
 # Create necessary directories
-RUN mkdir -p /home/anyadmin/logs /home/anyadmin/app/backend /home/anyadmin/app/frontend \
+RUN mkdir -p /home/anyadmin/logs /home/anyadmin/app/backend/dist /home/anyadmin/app/frontend \
     && chown -R anyadmin:anyadmin /home/anyadmin
 
 # Copy backend binary from stage 1
 COPY --from=backend-builder --chown=anyadmin:anyadmin /app/backend/anyadmin-server /home/anyadmin/app/backend/
+# Copy agent binary from stage 1 to dist folder
+COPY --from=backend-builder --chown=anyadmin:anyadmin /app/backend/anyadmin-agent /home/anyadmin/app/backend/dist/
 # Copy backend data.json if exists
 COPY --chown=anyadmin:anyadmin backend/data.json* /home/anyadmin/app/backend/
 

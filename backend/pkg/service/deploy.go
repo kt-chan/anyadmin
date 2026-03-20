@@ -231,7 +231,19 @@ func RebuildAgent() error {
 		return fmt.Errorf("could not find backend directory (anyadmin-backend) from %s", cwd)
 	}
 
-	cmd := exec.Command("go", "build", "-o", "./dist/anyadmin-agent", "./cmd/agent/main.go")
+	// Check if 'go' command exists
+	_, err := exec.LookPath("go")
+	if err != nil {
+		log.Println("[Deploy] 'go' command not found, skipping agent rebuild and using existing binary.")
+		// Check if the binary already exists
+		localPath := filepath.Join(backendDir, "dist", "anyadmin-agent")
+		if _, err := os.Stat(localPath); err != nil {
+			return fmt.Errorf("agent binary not found at %s and 'go' is not installed to rebuild it", localPath)
+		}
+		return nil
+	}
+
+	cmd := exec.Command("go", "build", "-o", filepath.Join("dist", "anyadmin-agent"), "./cmd/agent/main.go")
 	cmd.Dir = backendDir
 	cmd.Env = append(os.Environ(), "GOOS=linux", "GOARCH=amd64")
 

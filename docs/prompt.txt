@@ -1397,3 +1397,28 @@ The script must:
 - Use standard Windows 11 OpenSSH commands (`ssh`, `scp`).
 
 Provide the complete script with comments.
+
+
+## Task 46
+
+Role: Act as a Senior DevOps Engineer specializing in Docker and Linux environments.
+
+Task: Create a production-ready Dockerfile based on an existing PowerShell deployment script located at @scripts\deployment\deploy-remote.ps1.
+
+Technical Requirements:
+
+1. Base Image: Use ubuntu:22.04.
+
+2. Context Translation: Analyze the provided PowerShell script (which typically handles remote package installation and configuration) and convert its logic into standard Docker RUN instructions.
+
+3. Environment: >    * Ensure DEBIAN_FRONTEND=noninteractive is set during the build. Include common prerequisites that the PS1 script likely expects (e.g., curl, wget, ca-certificates, gnupg).
+
+4. Optimization:
+
+a. Combine apt-get update, install, and rm -rf /var/lib/apt/lists/* into single layers to keep the image slim.
+
+b. If the PS1 script defines environment variables or specific file paths, mirror those using ENV and WORKDIR.
+
+5. Security: Implement as user anyadmin for execution if the script allows.
+
+Output: Please provide the complete Dockerfile at @docker/ folder, and a suggested .dockerignore file to ensure the Windows-specific scripts aren't accidentally copied into the image unless explicitly needed.

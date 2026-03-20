@@ -1,0 +1,25 @@
+services:
+  anyadmin:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: anyadmin
+    ports:
+      - "${PORT:-3000}:3000"
+      - "${MgmtPort:-8080}:8080"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MgmtPort=8080
+      - MgmtHost=0.0.0.0
+    env_file:
+      - ../.env
+    volumes:
+      - anyadmin_logs:/home/anyadmin/logs
+      # Optional: mount local .env if you want to update it without rebuilding
+      # - ../.env:/home/anyadmin/app/.env
+    restart: unless-stopped
+
+volumes:
+  anyadmin_logs:
+    driver: local

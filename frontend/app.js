@@ -10,6 +10,9 @@ const logger = require('./utils/logger');
 const app = express();
 const PORT = appConfig.port;
 
+// Trust first proxy (required for session cookies behind a proxy/container)
+app.set('trust proxy', 1);
+
 // ==================== 中间件配置 ====================
 app.set('view engine', 'pug');
 app.set('views', path.join(__dirname, 'views'));

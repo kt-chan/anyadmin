@@ -17,7 +17,7 @@ services:
       - ../.env
     volumes:
       - ../logs:/home/anyadmin/logs
-      - ../backend/data.json:/home/anyadmin/app/backend/data.json
+      - ../data.json:/home/anyadmin/app/backend/data.json
       - ../.env:/home/anyadmin/app/.env
     restart: unless-stopped
 

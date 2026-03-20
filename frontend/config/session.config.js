@@ -1,11 +1,12 @@
 const sessionConfig = {
   secret: process.env.SESSION_SECRET || 'knowledgebase-secret-key',
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
   cookie: { 
-    secure: process.env.NODE_ENV === 'production', 
+    secure: false, // Changed to false for container/proxy environments without HTTPS
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    httpOnly: true
+    httpOnly: true,
+    sameSite: 'lax'
   }
 };
 

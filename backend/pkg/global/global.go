@@ -239,7 +239,7 @@ func InitConfig() {
 	viper.BindEnv("mgmt.port", "MgmtPort")
 
 	// Set defaults
-	viper.SetDefault("MgmtHost", "172.20.0.1")
+	viper.SetDefault("MgmtHost", "0.0.0.0")
 	viper.SetDefault("MgmtPort", "8080")
 	viper.SetDefault("ADMIN_USERNAME", "admin")
 	viper.SetDefault("ADMIN_PASSWORD", "password")

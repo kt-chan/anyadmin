@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -455,12 +456,10 @@ func TestServiceConnection(c *gin.Context) {
 				}
 			}
 
-			address := net.JoinHostPort(host, port)
-			conn, err := net.DialTimeout("tcp", address, timeout)
-			if err != nil {
+			portInt, _ := strconv.Atoi(port)
+			if err := service.CheckSSHConnection(host, portInt); err != nil {
 				failedNodes = append(failedNodes, fmt.Sprintf("%s: %v", node, err))
 			} else {
-				conn.Close()
 				successCount++
 			}
 		}
